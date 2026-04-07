@@ -65,6 +65,3 @@ Run benchmarks:
 | Threshold | 0.5x -- 5.0x | 1.5x | Multiplier on the noise profile. Higher = more aggressive gating. |
 | Reduction | -60 dB -- 0 dB | -30 dB | Attenuation applied to gated frequency bins. |
 
-## License
-
-All rights reserved.
