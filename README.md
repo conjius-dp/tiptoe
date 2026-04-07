@@ -1,0 +1,74 @@
+# Denoiser
+
+A general-purpose spectral gating denoiser audio plugin. Learns a noise profile from a sample of background noise, then attenuates matching frequencies in real time.
+
+Available as **VST3**, **AU**, and **Standalone** formats with stereo input/output.
+
+## How It Works
+
+1. Click **Learn Noise** during a section that contains only the noise you want to remove.
+2. Click again to stop learning.
+3. Adjust **Threshold** (how aggressively frequencies are gated) and **Reduction** (how much gated frequencies are attenuated in dB).
+
+The plugin uses an FFT-based spectral gate with a 2048-sample Hann window and 50% overlap-add for artefact-free reconstruction.
+
+## Dependencies
+
+| Dependency | Version | Notes |
+|---|---|---|
+| [JUCE](https://github.com/juce-framework/JUCE) | 8.0.12 | Included as a git submodule |
+| CMake | >= 3.22 | Build system |
+| C++ compiler | C++17 | Clang, GCC, or MSVC |
+| [Catch2](https://github.com/catchorg/Catch2) | 3.5.2 | Fetched automatically by CMake for tests |
+
+## Build
+
+```bash
+git clone --recursive https://github.com/conjius/denoiser.git
+cd denoiser
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+```
+
+If you already cloned without `--recursive`:
+
+```bash
+git submodule update --init --recursive
+```
+
+### Build Outputs
+
+Plugins are built to `build/Denoiser_artefacts/` and automatically copied to your system plugin directories:
+
+| Format | macOS Location |
+|---|---|
+| VST3 | `~/Library/Audio/Plug-Ins/VST3/` |
+| AU | `~/Library/Audio/Plug-Ins/Components/` |
+| Standalone | `build/Denoiser_artefacts/Standalone/` |
+
+## Tests
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build --target DenoiserTests
+./build/DenoiserTests
+```
+
+19 test cases covering FFT round-trip accuracy, noise profile learning, spectral gating behaviour, overlap-add continuity, and processing performance.
+
+Run benchmarks:
+
+```bash
+./build/DenoiserTests "[!benchmark]"
+```
+
+## Parameters
+
+| Parameter | Range | Default | Description |
+|---|---|---|---|
+| Threshold | 0.5x -- 5.0x | 1.5x | Multiplier on the noise profile. Higher = more aggressive gating. |
+| Reduction | -60 dB -- 0 dB | -30 dB | Attenuation applied to gated frequency bins. |
+
+## License
+
+All rights reserved.

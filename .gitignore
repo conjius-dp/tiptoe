@@ -4,3 +4,15 @@ cmake-build-*/
 *.user
 .idea/
 .vscode/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+Desktop.ini
+
+# Plugin build artefacts
+*.vst3
+*.component
+*.app
