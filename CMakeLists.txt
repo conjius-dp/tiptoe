@@ -26,7 +26,6 @@ target_link_libraries(DenoiserDSP
 
 target_compile_definitions(DenoiserDSP
     PUBLIC
-        JUCE_STANDALONE_APPLICATION=0
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
 )
@@ -69,13 +68,6 @@ target_link_libraries(Denoiser
 )
 
 # --- Tests ---
-FetchContent_Declare(
-    Catch2
-    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG        v3.5.2
-)
-FetchContent_MakeAvailable(Catch2)
-
 add_executable(DenoiserTests
     Tests/TestSpectralGateDenoiser.cpp
 )
@@ -83,10 +75,10 @@ add_executable(DenoiserTests
 target_link_libraries(DenoiserTests
     PRIVATE
         DenoiserDSP
-        Catch2::Catch2WithMain
+        juce::juce_core
 )
 
-include(CTest)
-list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
-include(Catch)
-catch_discover_tests(DenoiserTests)
+target_compile_definitions(DenoiserTests
+    PRIVATE
+        JUCE_STANDALONE_APPLICATION=1
+)

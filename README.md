@@ -19,7 +19,6 @@ All dependencies are fetched automatically by CMake at configure time.
 | Dependency | Version | Link |
 |---|---|---|
 | JUCE | 8.0.12 | [juce-framework/JUCE@8.0.12](https://github.com/juce-framework/JUCE/releases/tag/8.0.12) |
-| Catch2 | 3.5.2 | [catchorg/Catch2@v3.5.2](https://github.com/catchorg/Catch2/releases/tag/v3.5.2) |
 | CMake | >= 3.22 | [cmake.org](https://cmake.org/download/) |
 | C++ compiler | C++17 | Clang, GCC, or MSVC |
 
@@ -52,11 +51,7 @@ cmake --build build --target DenoiserTests
 
 22 test cases covering FFT round-trip accuracy, noise profile learning, spectral gating behaviour, overlap-add continuity, processing latency measurement, and performance.
 
-Run benchmarks:
-
-```bash
-./build/DenoiserTests "[!benchmark]"
-```
+Tests use JUCE's built-in `UnitTest` framework — no external test dependencies.
 
 ## Parameters
 
