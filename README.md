@@ -2,7 +2,7 @@
 
 A general-purpose spectral gating denoiser audio plugin. Learns a noise profile from a sample of background noise, then attenuates matching frequencies in real time.
 
-Available as **VST3**, **AU**, and **Standalone** formats with stereo input/output.
+Available as macOS **VST3**, **AU**, and **Standalone** formats with stereo input/output.
 
 ## How It Works
 
