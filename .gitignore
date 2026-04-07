@@ -8,9 +8,15 @@ cmake-build-*/
 *.swo
 *~
 
+# Project-local AI config
+CLAUDE.md
+
 # OS
 Thumbs.db
 Desktop.ini
+
+# JUCE (fetched by CMake)
+JUCE/
 
 # Plugin build artefacts
 *.vst3

@@ -14,26 +14,22 @@ The plugin uses an FFT-based spectral gate with a 2048-sample Hann window and 50
 
 ## Dependencies
 
-| Dependency | Version | Notes |
+All dependencies are fetched automatically by CMake at configure time.
+
+| Dependency | Version | Link |
 |---|---|---|
-| [JUCE](https://github.com/juce-framework/JUCE) | 8.0.12 | Included as a git submodule |
-| CMake | >= 3.22 | Build system |
+| JUCE | 8.0.12 | [juce-framework/JUCE@8.0.12](https://github.com/juce-framework/JUCE/releases/tag/8.0.12) |
+| Catch2 | 3.5.2 | [catchorg/Catch2@v3.5.2](https://github.com/catchorg/Catch2/releases/tag/v3.5.2) |
+| CMake | >= 3.22 | [cmake.org](https://cmake.org/download/) |
 | C++ compiler | C++17 | Clang, GCC, or MSVC |
-| [Catch2](https://github.com/catchorg/Catch2) | 3.5.2 | Fetched automatically by CMake for tests |
 
 ## Build
 
 ```bash
-git clone --recursive https://github.com/conjius/denoiser.git
+git clone https://github.com/conjius/denoiser.git
 cd denoiser
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
-```
-
-If you already cloned without `--recursive`:
-
-```bash
-git submodule update --init --recursive
 ```
 
 ### Build Outputs
@@ -54,7 +50,7 @@ cmake --build build --target DenoiserTests
 ./build/DenoiserTests
 ```
 
-19 test cases covering FFT round-trip accuracy, noise profile learning, spectral gating behaviour, overlap-add continuity, and processing performance.
+22 test cases covering FFT round-trip accuracy, noise profile learning, spectral gating behaviour, overlap-add continuity, processing latency measurement, and performance.
 
 Run benchmarks:
 
