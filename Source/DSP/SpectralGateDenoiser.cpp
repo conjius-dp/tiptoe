@@ -1,4 +1,5 @@
 #include "DSP/SpectralGateDenoiser.h"
+#include <chrono>
 #include <cmath>
 #include <algorithm>
 
@@ -141,8 +142,15 @@ void SpectralGateDenoiser::setReduction(float reductionDB)
     reductionGain_ = std::pow(10.0f, reductionDB / 20.0f);
 }
 
+float SpectralGateDenoiser::getLastProcessingTimeMs() const
+{
+    return lastProcessingTimeMs_;
+}
+
 void SpectralGateDenoiser::processMono(float* samples, int numSamples)
 {
+    auto start = std::chrono::high_resolution_clock::now();
+
     for (int i = 0; i < numSamples; ++i)
     {
         inputFifo[inputFifoIndex] = samples[i];
@@ -161,6 +169,9 @@ void SpectralGateDenoiser::processMono(float* samples, int numSamples)
 
         inputFifoIndex &= kFFTMask; // bitwise AND instead of modulo
     }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    lastProcessingTimeMs_ = std::chrono::duration<float, std::milli>(end - start).count();
 }
 
 void SpectralGateDenoiser::processFrame()

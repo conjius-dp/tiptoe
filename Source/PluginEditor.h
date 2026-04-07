@@ -2,7 +2,8 @@
 
 #include "PluginProcessor.h"
 
-class DenoiserAudioProcessorEditor : public juce::AudioProcessorEditor
+class DenoiserAudioProcessorEditor : public juce::AudioProcessorEditor,
+                                      private juce::Timer
 {
 public:
     explicit DenoiserAudioProcessorEditor(DenoiserAudioProcessor&);
@@ -12,6 +13,8 @@ public:
     void resized() override;
 
 private:
+    void timerCallback() override;
+
     DenoiserAudioProcessor& processorRef;
 
     juce::Slider thresholdSlider;
@@ -20,6 +23,7 @@ private:
 
     juce::Label thresholdLabel { {}, "Threshold" };
     juce::Label reductionLabel { {}, "Reduction (dB)" };
+    juce::Label latencyLabel { {}, "Latency: 0.000ms" };
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> reductionAttachment;

@@ -43,6 +43,9 @@ public:
     void stopLearning();
     bool isLearning() const;
 
+    // Processing latency (max of both channels)
+    float getLastProcessingTimeMs() const;
+
 private:
     juce::AudioProcessorValueTreeState apvts;
     SpectralGateDenoiser denoisers[2]; // one per stereo channel

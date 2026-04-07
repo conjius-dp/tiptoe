@@ -34,15 +34,31 @@ DenoiserAudioProcessorEditor::DenoiserAudioProcessorEditor(DenoiserAudioProcesso
     };
     addAndMakeVisible(learnButton);
 
+    latencyLabel.setJustificationType(juce::Justification::centredLeft);
+    latencyLabel.setFont(juce::Font(12.0f));
+    latencyLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
+    addAndMakeVisible(latencyLabel);
+
     thresholdAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         processorRef.getAPVTS(), "threshold", thresholdSlider);
     reductionAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         processorRef.getAPVTS(), "reduction", reductionSlider);
 
     setSize(400, 300);
+    startTimerHz(30);
 }
 
-DenoiserAudioProcessorEditor::~DenoiserAudioProcessorEditor() {}
+DenoiserAudioProcessorEditor::~DenoiserAudioProcessorEditor()
+{
+    stopTimer();
+}
+
+void DenoiserAudioProcessorEditor::timerCallback()
+{
+    float ms = processorRef.getLastProcessingTimeMs();
+    latencyLabel.setText(juce::String::formatted("Latency: %.3fms", ms),
+                         juce::dontSendNotification);
+}
 
 void DenoiserAudioProcessorEditor::paint(juce::Graphics& g)
 {
@@ -69,4 +85,6 @@ void DenoiserAudioProcessorEditor::resized()
     reductionSlider.setBounds(rightKnob);
 
     learnButton.setBounds(area.removeFromTop(40).reduced(80, 5));
+
+    latencyLabel.setBounds(getLocalBounds().removeFromBottom(20).removeFromLeft(200).withTrimmedLeft(10));
 }

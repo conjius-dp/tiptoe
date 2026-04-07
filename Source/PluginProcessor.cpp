@@ -115,6 +115,12 @@ bool DenoiserAudioProcessor::isLearning() const
     return learning_;
 }
 
+float DenoiserAudioProcessor::getLastProcessingTimeMs() const
+{
+    return std::max(denoisers[0].getLastProcessingTimeMs(),
+                    denoisers[1].getLastProcessingTimeMs());
+}
+
 juce::AudioProcessorEditor* DenoiserAudioProcessor::createEditor()
 {
     return new DenoiserAudioProcessorEditor(*this);

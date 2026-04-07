@@ -497,6 +497,50 @@ TEST_CASE("Performance: processMono throughput", "[perf][!benchmark]")
     };
 }
 
+// ============================================================
+// Phase 7: Processing Time Measurement
+// ============================================================
+
+TEST_CASE("getLastProcessingTimeMs returns zero before any processing", "[latency]")
+{
+    SpectralGateDenoiser denoiser;
+    denoiser.prepare(44100.0, 512);
+
+    REQUIRE(denoiser.getLastProcessingTimeMs() == Catch::Approx(0.0f));
+}
+
+TEST_CASE("getLastProcessingTimeMs returns positive value after processing", "[latency]")
+{
+    SpectralGateDenoiser denoiser;
+    denoiser.prepare(44100.0, 512);
+
+    auto signal = generateWhiteNoise(4096, 0.5f);
+    denoiser.processMono(signal.data(), static_cast<int>(signal.size()));
+
+    REQUIRE(denoiser.getLastProcessingTimeMs() > 0.0f);
+}
+
+TEST_CASE("getLastProcessingTimeMs updates each call", "[latency]")
+{
+    SpectralGateDenoiser denoiser;
+    denoiser.prepare(44100.0, 512);
+
+    // Small block
+    auto small = generateWhiteNoise(64, 0.5f);
+    denoiser.processMono(small.data(), static_cast<int>(small.size()));
+    float timeSmall = denoiser.getLastProcessingTimeMs();
+    REQUIRE(timeSmall > 0.0f);
+
+    // Larger block — should take longer (or at least update)
+    auto large = generateWhiteNoise(44100, 0.5f);
+    denoiser.processMono(large.data(), static_cast<int>(large.size()));
+    float timeLarge = denoiser.getLastProcessingTimeMs();
+    REQUIRE(timeLarge > 0.0f);
+
+    // The large block should take more time than the small one
+    REQUIRE(timeLarge > timeSmall);
+}
+
 TEST_CASE("Performance: must process 1s of audio in under 50ms", "[perf]")
 {
     SpectralGateDenoiser denoiser;

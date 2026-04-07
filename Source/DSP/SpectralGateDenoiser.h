@@ -2,6 +2,7 @@
 
 #include <juce_dsp/juce_dsp.h>
 #include <vector>
+#include <chrono>
 
 class SpectralGateDenoiser
 {
@@ -26,6 +27,9 @@ public:
 
     // Processing
     void processMono(float* samples, int numSamples);
+
+    // Latency measurement
+    float getLastProcessingTimeMs() const;
 
     // Parameters
     void setThreshold(float thresholdMultiplier);
@@ -56,6 +60,9 @@ private:
 
     // Precomputed constants
     float invWindowSum_ = 1.0f; // 1.0 / windowSum for multiply instead of divide
+
+    // Timing
+    float lastProcessingTimeMs_ = 0.0f;
 
     // Parameters
     float thresholdMultiplier_ = 1.5f;
