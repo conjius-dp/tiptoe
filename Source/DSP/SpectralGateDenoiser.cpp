@@ -1,0 +1,205 @@
+#include "DSP/SpectralGateDenoiser.h"
+#include <cmath>
+#include <algorithm>
+
+SpectralGateDenoiser::SpectralGateDenoiser()
+    : fft(kFFTOrder)
+{
+}
+
+void SpectralGateDenoiser::prepare(double /*sampleRate*/, int /*maxBlockSize*/)
+{
+    // Hann window
+    window.resize(kFFTSize);
+    for (int i = 0; i < kFFTSize; ++i)
+        window[i] = 0.5f * (1.0f - std::cos(2.0f * juce::MathConstants<float>::pi * static_cast<float>(i) / static_cast<float>(kFFTSize)));
+
+    // With 50% overlap and Hann window on analysis only, COLA sum = 1.0
+    // No normalization needed (invWindowSum_ = 1.0)
+    invWindowSum_ = 1.0f;
+
+    inputFifo.resize(kFFTSize, 0.0f);
+    outputFifo.resize(kFFTSize, 0.0f);
+    inputFifoIndex = 0;
+    hopCounter = 0;
+
+    fftWorkspace.resize(kFFTSize * 2, 0.0f);
+
+    noiseProfile_.resize(kNumBins, 0.0f);
+    noiseProfileSq_.resize(kNumBins, 0.0f);
+    noiseAccumulator_.resize(kNumBins, 0.0);
+    noiseFrameCount_ = 0;
+    learning_ = false;
+    hasNoiseProfile_ = false;
+
+    learnFifo_.resize(kFFTSize, 0.0f);
+    learnFifoIndex_ = 0;
+}
+
+void SpectralGateDenoiser::reset()
+{
+    std::fill(inputFifo.begin(), inputFifo.end(), 0.0f);
+    std::fill(outputFifo.begin(), outputFifo.end(), 0.0f);
+    inputFifoIndex = 0;
+    hopCounter = 0;
+
+    std::fill(noiseProfile_.begin(), noiseProfile_.end(), 0.0f);
+    std::fill(noiseProfileSq_.begin(), noiseProfileSq_.end(), 0.0f);
+    std::fill(noiseAccumulator_.begin(), noiseAccumulator_.end(), 0.0);
+    noiseFrameCount_ = 0;
+    learning_ = false;
+    hasNoiseProfile_ = false;
+
+    std::fill(learnFifo_.begin(), learnFifo_.end(), 0.0f);
+    learnFifoIndex_ = 0;
+}
+
+void SpectralGateDenoiser::startLearning()
+{
+    learning_ = true;
+    std::fill(noiseAccumulator_.begin(), noiseAccumulator_.end(), 0.0);
+    noiseFrameCount_ = 0;
+    learnFifoIndex_ = 0;
+}
+
+void SpectralGateDenoiser::stopLearning()
+{
+    learning_ = false;
+    hasNoiseProfile_ = false;
+
+    if (noiseFrameCount_ > 0)
+    {
+        for (int i = 0; i < kNumBins; ++i)
+        {
+            noiseProfile_[i] = static_cast<float>(noiseAccumulator_[i] / static_cast<double>(noiseFrameCount_));
+            noiseProfileSq_[i] = noiseProfile_[i] * noiseProfile_[i];
+
+            if (noiseProfile_[i] > 0.0f)
+                hasNoiseProfile_ = true;
+        }
+    }
+    else
+    {
+        std::fill(noiseProfile_.begin(), noiseProfile_.end(), 0.0f);
+        std::fill(noiseProfileSq_.begin(), noiseProfileSq_.end(), 0.0f);
+    }
+}
+
+bool SpectralGateDenoiser::isLearning() const
+{
+    return learning_;
+}
+
+void SpectralGateDenoiser::learnFromBlock(const float* samples, int numSamples)
+{
+    for (int i = 0; i < numSamples; ++i)
+    {
+        learnFifo_[learnFifoIndex_] = samples[i];
+        ++learnFifoIndex_;
+
+        if (learnFifoIndex_ >= kFFTSize)
+        {
+            learnFrame(learnFifo_.data());
+            std::copy(learnFifo_.begin() + kHopSize, learnFifo_.end(), learnFifo_.begin());
+            learnFifoIndex_ = kFFTSize - kHopSize;
+        }
+    }
+}
+
+void SpectralGateDenoiser::learnFrame(const float* frameData)
+{
+    for (int i = 0; i < kFFTSize; ++i)
+        fftWorkspace[i] = frameData[i] * window[i];
+
+    std::fill(fftWorkspace.begin() + kFFTSize, fftWorkspace.end(), 0.0f);
+
+    fft.performRealOnlyForwardTransform(fftWorkspace.data());
+
+    for (int i = 0; i < kNumBins; ++i)
+    {
+        float re = fftWorkspace[i * 2];
+        float im = fftWorkspace[i * 2 + 1];
+        float mag = std::sqrt(re * re + im * im);
+        noiseAccumulator_[i] += static_cast<double>(mag);
+    }
+    ++noiseFrameCount_;
+}
+
+const std::vector<float>& SpectralGateDenoiser::getNoiseProfile() const
+{
+    return noiseProfile_;
+}
+
+void SpectralGateDenoiser::setThreshold(float thresholdMultiplier)
+{
+    thresholdMultiplier_ = thresholdMultiplier;
+    thresholdSq_ = thresholdMultiplier * thresholdMultiplier;
+}
+
+void SpectralGateDenoiser::setReduction(float reductionDB)
+{
+    reductionGain_ = std::pow(10.0f, reductionDB / 20.0f);
+}
+
+void SpectralGateDenoiser::processMono(float* samples, int numSamples)
+{
+    for (int i = 0; i < numSamples; ++i)
+    {
+        inputFifo[inputFifoIndex] = samples[i];
+
+        samples[i] = outputFifo[inputFifoIndex];
+        outputFifo[inputFifoIndex] = 0.0f;
+
+        ++inputFifoIndex;
+        ++hopCounter;
+
+        if (hopCounter >= kHopSize)
+        {
+            hopCounter = 0;
+            processFrame();
+        }
+
+        inputFifoIndex &= kFFTMask; // bitwise AND instead of modulo
+    }
+}
+
+void SpectralGateDenoiser::processFrame()
+{
+    // Gather and window using bitwise AND for wrap
+    for (int i = 0; i < kFFTSize; ++i)
+    {
+        int idx = (inputFifoIndex + i) & kFFTMask;
+        fftWorkspace[i] = inputFifo[idx] * window[i];
+    }
+    std::fill(fftWorkspace.begin() + kFFTSize, fftWorkspace.end(), 0.0f);
+
+    fft.performRealOnlyForwardTransform(fftWorkspace.data());
+
+    // Spectral gate — compare squared magnitudes (no sqrt)
+    if (hasNoiseProfile_)
+    {
+        for (int i = 0; i < kNumBins; ++i)
+        {
+            float re = fftWorkspace[i * 2];
+            float im = fftWorkspace[i * 2 + 1];
+            float magSq = re * re + im * im;
+
+            float thresholdSq = noiseProfileSq_[i] * thresholdSq_;
+
+            if (magSq < thresholdSq)
+            {
+                fftWorkspace[i * 2] *= reductionGain_;
+                fftWorkspace[i * 2 + 1] *= reductionGain_;
+            }
+        }
+    }
+
+    fft.performRealOnlyInverseTransform(fftWorkspace.data());
+
+    // Overlap-add — no synthesis window needed with Hann analysis + 50% overlap (COLA = 1.0)
+    for (int i = 0; i < kFFTSize; ++i)
+    {
+        int idx = (inputFifoIndex + i) & kFFTMask;
+        outputFifo[idx] += fftWorkspace[i];
+    }
+}
