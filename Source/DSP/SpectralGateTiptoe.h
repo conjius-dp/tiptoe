@@ -4,7 +4,7 @@
 #include <vector>
 #include <chrono>
 
-class SpectralGateDenoiser
+class SpectralGateTiptoe
 {
 public:
     static constexpr int kFFTOrder = 11;
@@ -13,7 +13,7 @@ public:
     static constexpr int kNumBins = kFFTSize / 2 + 1;   // 1025
     static constexpr int kFFTMask = kFFTSize - 1;        // bitmask for power-of-2 wrap
 
-    SpectralGateDenoiser();
+    SpectralGateTiptoe();
 
     void prepare(double sampleRate, int maxBlockSize);
     void reset();

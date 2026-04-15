@@ -2,13 +2,13 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
-#include "DSP/SpectralGateDenoiser.h"
+#include "DSP/SpectralGateTiptoe.h"
 
-class DenoiserAudioProcessor : public juce::AudioProcessor
+class TiptoeAudioProcessor : public juce::AudioProcessor
 {
 public:
-    DenoiserAudioProcessor();
-    ~DenoiserAudioProcessor() override;
+    TiptoeAudioProcessor();
+    ~TiptoeAudioProcessor() override;
 
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
@@ -48,10 +48,10 @@ public:
 
 private:
     juce::AudioProcessorValueTreeState apvts;
-    SpectralGateDenoiser denoisers[2]; // one per stereo channel
+    SpectralGateTiptoe gates[2]; // one per stereo channel
     bool learning_ = false;
 
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DenoiserAudioProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TiptoeAudioProcessor)
 };

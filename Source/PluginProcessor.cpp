@@ -1,7 +1,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
-DenoiserAudioProcessor::DenoiserAudioProcessor()
+TiptoeAudioProcessor::TiptoeAudioProcessor()
     : AudioProcessor(BusesProperties()
                          .withInput("Input", juce::AudioChannelSet::stereo(), true)
                          .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
@@ -9,9 +9,9 @@ DenoiserAudioProcessor::DenoiserAudioProcessor()
 {
 }
 
-DenoiserAudioProcessor::~DenoiserAudioProcessor() {}
+TiptoeAudioProcessor::~TiptoeAudioProcessor() {}
 
-juce::AudioProcessorValueTreeState::ParameterLayout DenoiserAudioProcessor::createParameterLayout()
+juce::AudioProcessorValueTreeState::ParameterLayout TiptoeAudioProcessor::createParameterLayout()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
@@ -26,30 +26,30 @@ juce::AudioProcessorValueTreeState::ParameterLayout DenoiserAudioProcessor::crea
     return { params.begin(), params.end() };
 }
 
-const juce::String DenoiserAudioProcessor::getName() const { return JucePlugin_Name; }
-bool DenoiserAudioProcessor::acceptsMidi() const { return false; }
-bool DenoiserAudioProcessor::producesMidi() const { return false; }
-bool DenoiserAudioProcessor::isMidiEffect() const { return false; }
-double DenoiserAudioProcessor::getTailLengthSeconds() const { return 0.0; }
-int DenoiserAudioProcessor::getNumPrograms() { return 1; }
-int DenoiserAudioProcessor::getCurrentProgram() { return 0; }
-void DenoiserAudioProcessor::setCurrentProgram(int) {}
-const juce::String DenoiserAudioProcessor::getProgramName(int) { return {}; }
-void DenoiserAudioProcessor::changeProgramName(int, const juce::String&) {}
+const juce::String TiptoeAudioProcessor::getName() const { return JucePlugin_Name; }
+bool TiptoeAudioProcessor::acceptsMidi() const { return false; }
+bool TiptoeAudioProcessor::producesMidi() const { return false; }
+bool TiptoeAudioProcessor::isMidiEffect() const { return false; }
+double TiptoeAudioProcessor::getTailLengthSeconds() const { return 0.0; }
+int TiptoeAudioProcessor::getNumPrograms() { return 1; }
+int TiptoeAudioProcessor::getCurrentProgram() { return 0; }
+void TiptoeAudioProcessor::setCurrentProgram(int) {}
+const juce::String TiptoeAudioProcessor::getProgramName(int) { return {}; }
+void TiptoeAudioProcessor::changeProgramName(int, const juce::String&) {}
 
-void DenoiserAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
+void TiptoeAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    for (auto& d : denoisers)
-        d.prepare(sampleRate, samplesPerBlock);
+    for (auto& g : gates)
+        g.prepare(sampleRate, samplesPerBlock);
 }
 
-void DenoiserAudioProcessor::releaseResources()
+void TiptoeAudioProcessor::releaseResources()
 {
-    for (auto& d : denoisers)
-        d.reset();
+    for (auto& g : gates)
+        g.reset();
 }
 
-bool DenoiserAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
+bool TiptoeAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
     if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
         return false;
@@ -60,7 +60,7 @@ bool DenoiserAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) 
     return true;
 }
 
-void DenoiserAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
+void TiptoeAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                            juce::MidiBuffer& midiMessages)
 {
     juce::ignoreUnused(midiMessages);
@@ -76,10 +76,10 @@ void DenoiserAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     float threshold = apvts.getRawParameterValue("threshold")->load();
     float reduction = apvts.getRawParameterValue("reduction")->load();
 
-    for (auto& d : denoisers)
+    for (auto& g : gates)
     {
-        d.setThreshold(threshold);
-        d.setReduction(reduction);
+        g.setThreshold(threshold);
+        g.setReduction(reduction);
     }
 
     int numSamples = buffer.getNumSamples();
@@ -88,54 +88,54 @@ void DenoiserAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     if (learning_)
     {
         for (int ch = 0; ch < std::min(totalNumInputChannels, 2); ++ch)
-            denoisers[ch].learnFromBlock(buffer.getReadPointer(ch), numSamples);
+            gates[ch].learnFromBlock(buffer.getReadPointer(ch), numSamples);
     }
 
     // Process each channel
     for (int ch = 0; ch < std::min(totalNumInputChannels, 2); ++ch)
-        denoisers[ch].processMono(buffer.getWritePointer(ch), numSamples);
+        gates[ch].processMono(buffer.getWritePointer(ch), numSamples);
 }
 
-void DenoiserAudioProcessor::startLearning()
+void TiptoeAudioProcessor::startLearning()
 {
     learning_ = true;
-    for (auto& d : denoisers)
-        d.startLearning();
+    for (auto& g : gates)
+        g.startLearning();
 }
 
-void DenoiserAudioProcessor::stopLearning()
+void TiptoeAudioProcessor::stopLearning()
 {
-    for (auto& d : denoisers)
-        d.stopLearning();
+    for (auto& g : gates)
+        g.stopLearning();
     learning_ = false;
 }
 
-bool DenoiserAudioProcessor::isLearning() const
+bool TiptoeAudioProcessor::isLearning() const
 {
     return learning_;
 }
 
-float DenoiserAudioProcessor::getLastProcessingTimeMs() const
+float TiptoeAudioProcessor::getLastProcessingTimeMs() const
 {
-    return std::max(denoisers[0].getLastProcessingTimeMs(),
-                    denoisers[1].getLastProcessingTimeMs());
+    return std::max(gates[0].getLastProcessingTimeMs(),
+                    gates[1].getLastProcessingTimeMs());
 }
 
-juce::AudioProcessorEditor* DenoiserAudioProcessor::createEditor()
+juce::AudioProcessorEditor* TiptoeAudioProcessor::createEditor()
 {
-    return new DenoiserAudioProcessorEditor(*this);
+    return new TiptoeAudioProcessorEditor(*this);
 }
 
-bool DenoiserAudioProcessor::hasEditor() const { return true; }
+bool TiptoeAudioProcessor::hasEditor() const { return true; }
 
-void DenoiserAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
+void TiptoeAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
     auto state = apvts.copyState();
     std::unique_ptr<juce::XmlElement> xml(state.createXml());
     copyXmlToBinary(*xml, destData);
 }
 
-void DenoiserAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
+void TiptoeAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
     std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data, sizeInBytes));
     if (xml != nullptr && xml->hasTagName(apvts.state.getType()))
@@ -144,5 +144,5 @@ void DenoiserAudioProcessor::setStateInformation(const void* data, int sizeInByt
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new DenoiserAudioProcessor();
+    return new TiptoeAudioProcessor();
 }

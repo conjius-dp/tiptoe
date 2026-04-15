@@ -58,7 +58,7 @@ jobs:
       - name: Read version and bump patch
         id: version
         run: |
-          CURRENT=$(sed -n 's/.*project(Denoiser VERSION \([0-9]*\.[0-9]*\.[0-9]*\)).*/\1/p' CMakeLists.txt)
+          CURRENT=$(sed -n 's/.*project(Tiptoe VERSION \([0-9]*\.[0-9]*\.[0-9]*\)).*/\1/p' CMakeLists.txt)
           MAJOR=$(echo "$CURRENT" | cut -d. -f1)
           MINOR=$(echo "$CURRENT" | cut -d. -f2)
           PATCH=$(echo "$CURRENT" | cut -d. -f3)
@@ -66,7 +66,7 @@ jobs:
           NEW_PATCH=$((PATCH + 1))
           NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
 
-          sed -i '' "s/project(Denoiser VERSION ${CURRENT})/project(Denoiser VERSION ${NEW_VERSION})/" CMakeLists.txt
+          sed -i '' "s/project(Tiptoe VERSION ${CURRENT})/project(Tiptoe VERSION ${NEW_VERSION})/" CMakeLists.txt
 
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v${NEW_VERSION}" >> "$GITHUB_OUTPUT"
@@ -106,30 +106,30 @@ jobs:
         run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
 
       - name: Build Standalone
-        run: cmake --build build --target Denoiser_Standalone
+        run: cmake --build build --target Tiptoe_Standalone
 
       - name: Build VST3
-        run: cmake --build build --target Denoiser_VST3
+        run: cmake --build build --target Tiptoe_VST3
 
       - name: Zip Standalone
         run: |
-          cd build/Denoiser_artefacts/Release/Standalone
-          zip -r "$GITHUB_WORKSPACE/Denoiser-macOS-Standalone.zip" Denoiser.app
+          cd build/Tiptoe_artefacts/Release/Standalone
+          zip -r "$GITHUB_WORKSPACE/Tiptoe-macOS-Standalone.zip" Tiptoe.app
 
       - name: Zip VST3
         run: |
-          cd build/Denoiser_artefacts/Release/VST3
-          zip -r "$GITHUB_WORKSPACE/Denoiser-macOS-VST3.zip" Denoiser.vst3
+          cd build/Tiptoe_artefacts/Release/VST3
+          zip -r "$GITHUB_WORKSPACE/Tiptoe-macOS-VST3.zip" Tiptoe.vst3
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: Denoiser ${{ steps.version.outputs.tag }}
+          name: Tiptoe ${{ steps.version.outputs.tag }}
           body: |
             **Artifacts:**
-            - `Denoiser-macOS-Standalone.zip` - macOS standalone app
-            - `Denoiser-macOS-VST3.zip` - macOS VST3 plugin
+            - `Tiptoe-macOS-Standalone.zip` - macOS standalone app
+            - `Tiptoe-macOS-VST3.zip` - macOS VST3 plugin
           files: |
-            Denoiser-macOS-Standalone.zip
-            Denoiser-macOS-VST3.zip
+            Tiptoe-macOS-Standalone.zip
+            Tiptoe-macOS-VST3.zip

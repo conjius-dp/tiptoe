@@ -1,6 +1,6 @@
 #include "PluginEditor.h"
 
-DenoiserAudioProcessorEditor::DenoiserAudioProcessorEditor(DenoiserAudioProcessor& p)
+TiptoeAudioProcessorEditor::TiptoeAudioProcessorEditor(TiptoeAudioProcessor& p)
     : AudioProcessorEditor(&p), processorRef(p)
 {
     thresholdSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
@@ -48,27 +48,27 @@ DenoiserAudioProcessorEditor::DenoiserAudioProcessorEditor(DenoiserAudioProcesso
     startTimerHz(30);
 }
 
-DenoiserAudioProcessorEditor::~DenoiserAudioProcessorEditor()
+TiptoeAudioProcessorEditor::~TiptoeAudioProcessorEditor()
 {
     stopTimer();
 }
 
-void DenoiserAudioProcessorEditor::timerCallback()
+void TiptoeAudioProcessorEditor::timerCallback()
 {
     float ms = processorRef.getLastProcessingTimeMs();
     latencyLabel.setText(juce::String::formatted("Latency: %.3fms", ms),
                          juce::dontSendNotification);
 }
 
-void DenoiserAudioProcessorEditor::paint(juce::Graphics& g)
+void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colour(0xff1a1a2e));
     g.setColour(juce::Colours::white);
     g.setFont(22.0f);
-    g.drawFittedText("Denoiser", getLocalBounds().removeFromTop(40), juce::Justification::centred, 1);
+    g.drawFittedText("tiptoe", getLocalBounds().removeFromTop(40), juce::Justification::centred, 1);
 }
 
-void DenoiserAudioProcessorEditor::resized()
+void TiptoeAudioProcessorEditor::resized()
 {
     auto area = getLocalBounds().reduced(20);
     area.removeFromTop(30); // title space

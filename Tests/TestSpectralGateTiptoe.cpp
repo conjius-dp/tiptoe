@@ -2,7 +2,7 @@
 #include <cmath>
 #include <random>
 #include <chrono>
-#include "DSP/SpectralGateDenoiser.h"
+#include "DSP/SpectralGateTiptoe.h"
 
 static constexpr double kPi = 3.14159265358979323846;
 
@@ -37,17 +37,17 @@ static float ratioToDb(float output, float input)
     return 20.0f * std::log10(output / (input + 1e-10f));
 }
 
-class SpectralGateDenoiserTests : public juce::UnitTest
+class SpectralGateTiptoeTests : public juce::UnitTest
 {
 public:
-    SpectralGateDenoiserTests() : juce::UnitTest("SpectralGateDenoiser") {}
+    SpectralGateTiptoeTests() : juce::UnitTest("Tiptoe") {}
 
     void runTest() override
     {
         // Phase 1: FFT Round-Trip
         beginTest("Silence in produces silence out");
         {
-            SpectralGateDenoiser denoiser;
+            SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
 
             std::vector<float> silence(4096, 0.0f);
@@ -59,7 +59,7 @@ public:
 
         beginTest("Pass-through with no noise profile does not alter signal");
         {
-            SpectralGateDenoiser denoiser;
+            SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
 
             const int numSamples = 16384;
@@ -68,7 +68,7 @@ public:
 
             denoiser.processMono(input.data(), numSamples);
 
-            const int skip = SpectralGateDenoiser::kFFTSize;
+            const int skip = SpectralGateTiptoe::kFFTSize;
             float inputRMS = computeRMS(original.data() + skip, numSamples - skip);
             float outputRMS = computeRMS(input.data() + skip, numSamples - skip);
             float db = ratioToDb(outputRMS, inputRMS);
@@ -78,7 +78,7 @@ public:
         // Phase 2: Noise Learning
         beginTest("Learning state flags work correctly");
         {
-            SpectralGateDenoiser denoiser;
+            SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
 
             expect(!denoiser.isLearning());
@@ -90,7 +90,7 @@ public:
 
         beginTest("Learning from silence produces near-zero profile");
         {
-            SpectralGateDenoiser denoiser;
+            SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
 
             std::vector<float> silence(8192, 0.0f);
@@ -99,7 +99,7 @@ public:
             denoiser.stopLearning();
 
             auto& profile = denoiser.getNoiseProfile();
-            expectEquals(static_cast<int>(profile.size()), SpectralGateDenoiser::kNumBins);
+            expectEquals(static_cast<int>(profile.size()), SpectralGateTiptoe::kNumBins);
 
             for (size_t i = 0; i < profile.size(); ++i)
                 expectWithinAbsoluteError(profile[i], 0.0f, 1e-6f);
@@ -107,7 +107,7 @@ public:
 
         beginTest("Learning accumulates noise profile from white noise");
         {
-            SpectralGateDenoiser denoiser;
+            SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
 
             auto noise = generateWhiteNoise(32768, 0.5f);
@@ -116,7 +116,7 @@ public:
             denoiser.stopLearning();
 
             auto& profile = denoiser.getNoiseProfile();
-            expectEquals(static_cast<int>(profile.size()), SpectralGateDenoiser::kNumBins);
+            expectEquals(static_cast<int>(profile.size()), SpectralGateTiptoe::kNumBins);
 
             for (size_t i = 1; i < profile.size() - 1; ++i)
                 expect(profile[i] > 0.0f);
@@ -124,7 +124,7 @@ public:
 
         beginTest("Multiple learning sessions reset accumulator");
         {
-            SpectralGateDenoiser denoiser;
+            SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
 
             auto loudNoise = generateWhiteNoise(8192, 1.0f, 1);
@@ -145,7 +145,7 @@ public:
         // Phase 3: Spectral Gating
         beginTest("Gating attenuates signal below noise floor");
         {
-            SpectralGateDenoiser denoiser;
+            SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
             denoiser.setThreshold(1.0f);
             denoiser.setReduction(-40.0f);
@@ -161,7 +161,7 @@ public:
 
             denoiser.processMono(quiet.data(), numSamples);
 
-            const int skip = SpectralGateDenoiser::kFFTSize;
+            const int skip = SpectralGateTiptoe::kFFTSize;
             float inputRMS = computeRMS(original.data() + skip, numSamples - skip);
             float outputRMS = computeRMS(quiet.data() + skip, numSamples - skip);
             float db = ratioToDb(outputRMS, inputRMS);
@@ -170,7 +170,7 @@ public:
 
         beginTest("Gating preserves signal above noise floor");
         {
-            SpectralGateDenoiser denoiser;
+            SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
             denoiser.setThreshold(1.0f);
             denoiser.setReduction(-40.0f);
@@ -186,7 +186,7 @@ public:
 
             denoiser.processMono(loud.data(), numSamples);
 
-            const int skip = SpectralGateDenoiser::kFFTSize;
+            const int skip = SpectralGateTiptoe::kFFTSize;
             float inputRMS = computeRMS(original.data() + skip, numSamples - skip);
             float outputRMS = computeRMS(loud.data() + skip, numSamples - skip);
             float db = ratioToDb(outputRMS, inputRMS);
@@ -196,7 +196,7 @@ public:
         beginTest("Threshold parameter controls gating aggressiveness");
         {
             auto runWithThreshold = [](float threshold) -> float {
-                SpectralGateDenoiser denoiser;
+                SpectralGateTiptoe denoiser;
                 denoiser.prepare(44100.0, 512);
                 denoiser.setThreshold(threshold);
                 denoiser.setReduction(-40.0f);
@@ -210,7 +210,7 @@ public:
                 auto signal = generateWhiteNoise(numSamples, 0.15f, 200);
                 denoiser.processMono(signal.data(), numSamples);
 
-                const int skip = SpectralGateDenoiser::kFFTSize;
+                const int skip = SpectralGateTiptoe::kFFTSize;
                 return computeRMS(signal.data() + skip, numSamples - skip);
             };
 
@@ -222,7 +222,7 @@ public:
         beginTest("Reduction parameter controls attenuation depth");
         {
             auto runWithReduction = [](float reductionDb) -> float {
-                SpectralGateDenoiser denoiser;
+                SpectralGateTiptoe denoiser;
                 denoiser.prepare(44100.0, 512);
                 denoiser.setThreshold(1.0f);
                 denoiser.setReduction(reductionDb);
@@ -236,7 +236,7 @@ public:
                 auto signal = generateWhiteNoise(numSamples, 0.01f, 77);
                 denoiser.processMono(signal.data(), numSamples);
 
-                const int skip = SpectralGateDenoiser::kFFTSize;
+                const int skip = SpectralGateTiptoe::kFFTSize;
                 return computeRMS(signal.data() + skip, numSamples - skip);
             };
 
@@ -251,25 +251,25 @@ public:
             const int totalSamples = 8192;
             auto signal = generateSine(440.0f, 44100.0f, totalSamples, 0.5f);
 
-            SpectralGateDenoiser d1;
+            SpectralGateTiptoe d1;
             d1.prepare(44100.0, totalSamples);
             auto large = signal;
             d1.processMono(large.data(), totalSamples);
 
-            SpectralGateDenoiser d2;
+            SpectralGateTiptoe d2;
             d2.prepare(44100.0, 128);
             auto small = signal;
             for (int i = 0; i < totalSamples; i += 128)
                 d2.processMono(small.data() + i, 128);
 
-            const int skip = SpectralGateDenoiser::kFFTSize;
+            const int skip = SpectralGateTiptoe::kFFTSize;
             for (int i = skip; i < totalSamples; ++i)
                 expectWithinAbsoluteError(small[static_cast<size_t>(i)], large[static_cast<size_t>(i)], 1e-5f);
         }
 
         beginTest("No clicks or discontinuities at block boundaries");
         {
-            SpectralGateDenoiser denoiser;
+            SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 256);
 
             const int blockSize = 256;
@@ -280,7 +280,7 @@ public:
             for (int i = 0; i < totalSamples; i += blockSize)
                 denoiser.processMono(signal.data() + i, blockSize);
 
-            const int skip = SpectralGateDenoiser::kFFTSize;
+            const int skip = SpectralGateTiptoe::kFFTSize;
             float maxJump = 0.0f;
             for (int i = skip + 1; i < totalSamples; ++i)
             {
@@ -293,7 +293,7 @@ public:
         // Phase 5: Reset
         beginTest("prepare and reset return to clean state");
         {
-            SpectralGateDenoiser denoiser;
+            SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
 
             auto noise = generateWhiteNoise(8192, 0.5f);
@@ -315,7 +315,7 @@ public:
             auto original = fresh;
             denoiser.processMono(fresh.data(), numSamples);
 
-            const int skip = SpectralGateDenoiser::kFFTSize;
+            const int skip = SpectralGateTiptoe::kFFTSize;
             float inputRMS = computeRMS(original.data() + skip, numSamples - skip);
             float outputRMS = computeRMS(fresh.data() + skip, numSamples - skip);
             float db = ratioToDb(outputRMS, inputRMS);
@@ -325,7 +325,7 @@ public:
         // Phase 6: Performance (50% overlap)
         beginTest("50% overlap: silence in produces silence out");
         {
-            SpectralGateDenoiser denoiser;
+            SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
 
             std::vector<float> silence(4096, 0.0f);
@@ -337,7 +337,7 @@ public:
 
         beginTest("50% overlap: pass-through preserves signal");
         {
-            SpectralGateDenoiser denoiser;
+            SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
 
             const int numSamples = 16384;
@@ -346,7 +346,7 @@ public:
 
             denoiser.processMono(input.data(), numSamples);
 
-            const int skip = SpectralGateDenoiser::kFFTSize;
+            const int skip = SpectralGateTiptoe::kFFTSize;
             float inputRMS = computeRMS(original.data() + skip, numSamples - skip);
             float outputRMS = computeRMS(input.data() + skip, numSamples - skip);
             float db = ratioToDb(outputRMS, inputRMS);
@@ -355,7 +355,7 @@ public:
 
         beginTest("50% overlap: gating still attenuates below noise floor");
         {
-            SpectralGateDenoiser denoiser;
+            SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
             denoiser.setThreshold(1.0f);
             denoiser.setReduction(-40.0f);
@@ -371,7 +371,7 @@ public:
 
             denoiser.processMono(quiet.data(), numSamples);
 
-            const int skip = SpectralGateDenoiser::kFFTSize;
+            const int skip = SpectralGateTiptoe::kFFTSize;
             float inputRMS = computeRMS(original.data() + skip, numSamples - skip);
             float outputRMS = computeRMS(quiet.data() + skip, numSamples - skip);
             float db = ratioToDb(outputRMS, inputRMS);
@@ -380,7 +380,7 @@ public:
 
         beginTest("50% overlap: gating still preserves signal above noise floor");
         {
-            SpectralGateDenoiser denoiser;
+            SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
             denoiser.setThreshold(1.0f);
             denoiser.setReduction(-40.0f);
@@ -396,7 +396,7 @@ public:
 
             denoiser.processMono(loud.data(), numSamples);
 
-            const int skip = SpectralGateDenoiser::kFFTSize;
+            const int skip = SpectralGateTiptoe::kFFTSize;
             float inputRMS = computeRMS(original.data() + skip, numSamples - skip);
             float outputRMS = computeRMS(loud.data() + skip, numSamples - skip);
             float db = ratioToDb(outputRMS, inputRMS);
@@ -408,18 +408,18 @@ public:
             const int totalSamples = 8192;
             auto signal = generateSine(440.0f, 44100.0f, totalSamples, 0.5f);
 
-            SpectralGateDenoiser d1;
+            SpectralGateTiptoe d1;
             d1.prepare(44100.0, totalSamples);
             auto large = signal;
             d1.processMono(large.data(), totalSamples);
 
-            SpectralGateDenoiser d2;
+            SpectralGateTiptoe d2;
             d2.prepare(44100.0, 128);
             auto small = signal;
             for (int i = 0; i < totalSamples; i += 128)
                 d2.processMono(small.data() + i, 128);
 
-            const int skip = SpectralGateDenoiser::kFFTSize;
+            const int skip = SpectralGateTiptoe::kFFTSize;
             for (int i = skip; i < totalSamples; ++i)
                 expectWithinAbsoluteError(small[static_cast<size_t>(i)], large[static_cast<size_t>(i)], 1e-5f);
         }
@@ -427,14 +427,14 @@ public:
         // Phase 7: Processing Time Measurement
         beginTest("getLastProcessingTimeMs returns zero before any processing");
         {
-            SpectralGateDenoiser denoiser;
+            SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
             expectWithinAbsoluteError(denoiser.getLastProcessingTimeMs(), 0.0f, 1e-6f);
         }
 
         beginTest("getLastProcessingTimeMs returns positive value after processing");
         {
-            SpectralGateDenoiser denoiser;
+            SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
 
             auto signal = generateWhiteNoise(4096, 0.5f);
@@ -444,7 +444,7 @@ public:
 
         beginTest("getLastProcessingTimeMs updates each call");
         {
-            SpectralGateDenoiser denoiser;
+            SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
 
             auto small = generateWhiteNoise(64, 0.5f);
@@ -462,7 +462,7 @@ public:
         // Performance
         beginTest("Must process 1s of audio in under 50ms");
         {
-            SpectralGateDenoiser denoiser;
+            SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
             denoiser.setThreshold(1.5f);
             denoiser.setReduction(-30.0f);
@@ -487,7 +487,7 @@ public:
     }
 };
 
-static SpectralGateDenoiserTests spectralGateDenoiserTests;
+static SpectralGateTiptoeTests spectralGateTiptoeTests;
 
 int main()
 {

@@ -2,12 +2,12 @@
 
 #include "PluginProcessor.h"
 
-class DenoiserAudioProcessorEditor : public juce::AudioProcessorEditor,
+class TiptoeAudioProcessorEditor : public juce::AudioProcessorEditor,
                                       private juce::Timer
 {
 public:
-    explicit DenoiserAudioProcessorEditor(DenoiserAudioProcessor&);
-    ~DenoiserAudioProcessorEditor() override;
+    explicit TiptoeAudioProcessorEditor(TiptoeAudioProcessor&);
+    ~TiptoeAudioProcessorEditor() override;
 
     void paint(juce::Graphics&) override;
     void resized() override;
@@ -15,7 +15,7 @@ public:
 private:
     void timerCallback() override;
 
-    DenoiserAudioProcessor& processorRef;
+    TiptoeAudioProcessor& processorRef;
 
     juce::Slider thresholdSlider;
     juce::Slider reductionSlider;
@@ -28,5 +28,5 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> reductionAttachment;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DenoiserAudioProcessorEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TiptoeAudioProcessorEditor)
 };

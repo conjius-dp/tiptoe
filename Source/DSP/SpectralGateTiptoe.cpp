@@ -1,14 +1,14 @@
-#include "DSP/SpectralGateDenoiser.h"
+#include "DSP/SpectralGateTiptoe.h"
 #include <chrono>
 #include <cmath>
 #include <algorithm>
 
-SpectralGateDenoiser::SpectralGateDenoiser()
+SpectralGateTiptoe::SpectralGateTiptoe()
     : fft(kFFTOrder)
 {
 }
 
-void SpectralGateDenoiser::prepare(double /*sampleRate*/, int /*maxBlockSize*/)
+void SpectralGateTiptoe::prepare(double /*sampleRate*/, int /*maxBlockSize*/)
 {
     // Hann window
     window.resize(kFFTSize);
@@ -37,7 +37,7 @@ void SpectralGateDenoiser::prepare(double /*sampleRate*/, int /*maxBlockSize*/)
     learnFifoIndex_ = 0;
 }
 
-void SpectralGateDenoiser::reset()
+void SpectralGateTiptoe::reset()
 {
     std::fill(inputFifo.begin(), inputFifo.end(), 0.0f);
     std::fill(outputFifo.begin(), outputFifo.end(), 0.0f);
@@ -55,7 +55,7 @@ void SpectralGateDenoiser::reset()
     learnFifoIndex_ = 0;
 }
 
-void SpectralGateDenoiser::startLearning()
+void SpectralGateTiptoe::startLearning()
 {
     learning_ = true;
     std::fill(noiseAccumulator_.begin(), noiseAccumulator_.end(), 0.0);
@@ -63,7 +63,7 @@ void SpectralGateDenoiser::startLearning()
     learnFifoIndex_ = 0;
 }
 
-void SpectralGateDenoiser::stopLearning()
+void SpectralGateTiptoe::stopLearning()
 {
     learning_ = false;
     hasNoiseProfile_ = false;
@@ -86,12 +86,12 @@ void SpectralGateDenoiser::stopLearning()
     }
 }
 
-bool SpectralGateDenoiser::isLearning() const
+bool SpectralGateTiptoe::isLearning() const
 {
     return learning_;
 }
 
-void SpectralGateDenoiser::learnFromBlock(const float* samples, int numSamples)
+void SpectralGateTiptoe::learnFromBlock(const float* samples, int numSamples)
 {
     for (int i = 0; i < numSamples; ++i)
     {
@@ -107,7 +107,7 @@ void SpectralGateDenoiser::learnFromBlock(const float* samples, int numSamples)
     }
 }
 
-void SpectralGateDenoiser::learnFrame(const float* frameData)
+void SpectralGateTiptoe::learnFrame(const float* frameData)
 {
     for (int i = 0; i < kFFTSize; ++i)
         fftWorkspace[i] = frameData[i] * window[i];
@@ -126,28 +126,28 @@ void SpectralGateDenoiser::learnFrame(const float* frameData)
     ++noiseFrameCount_;
 }
 
-const std::vector<float>& SpectralGateDenoiser::getNoiseProfile() const
+const std::vector<float>& SpectralGateTiptoe::getNoiseProfile() const
 {
     return noiseProfile_;
 }
 
-void SpectralGateDenoiser::setThreshold(float thresholdMultiplier)
+void SpectralGateTiptoe::setThreshold(float thresholdMultiplier)
 {
     thresholdMultiplier_ = thresholdMultiplier;
     thresholdSq_ = thresholdMultiplier * thresholdMultiplier;
 }
 
-void SpectralGateDenoiser::setReduction(float reductionDB)
+void SpectralGateTiptoe::setReduction(float reductionDB)
 {
     reductionGain_ = std::pow(10.0f, reductionDB / 20.0f);
 }
 
-float SpectralGateDenoiser::getLastProcessingTimeMs() const
+float SpectralGateTiptoe::getLastProcessingTimeMs() const
 {
     return lastProcessingTimeMs_;
 }
 
-void SpectralGateDenoiser::processMono(float* samples, int numSamples)
+void SpectralGateTiptoe::processMono(float* samples, int numSamples)
 {
     auto start = std::chrono::high_resolution_clock::now();
 
@@ -174,7 +174,7 @@ void SpectralGateDenoiser::processMono(float* samples, int numSamples)
     lastProcessingTimeMs_ = std::chrono::duration<float, std::milli>(end - start).count();
 }
 
-void SpectralGateDenoiser::processFrame()
+void SpectralGateTiptoe::processFrame()
 {
     // Gather and window using bitwise AND for wrap
     for (int i = 0; i < kFFTSize; ++i)
