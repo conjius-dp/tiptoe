@@ -1,0 +1,128 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  check-changes:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    outputs:
+      plugin_changed: ${{ steps.filter.outputs.plugin_changed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for plugin code changes
+        id: filter
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD -- Source/ Tests/ CMakeLists.txt)
+          if [ -n "$CHANGED" ]; then
+            echo "plugin_changed=true" >> "$GITHUB_OUTPUT"
+            echo "Plugin files changed:"
+            echo "$CHANGED"
+          else
+            echo "plugin_changed=false" >> "$GITHUB_OUTPUT"
+            echo "No plugin files changed, skipping release"
+          fi
+
+  release:
+    needs: check-changes
+    if: needs.check-changes.outputs.plugin_changed == 'true'
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install ccache
+        run: brew install ccache
+
+      - name: Read version and bump patch
+        id: version
+        run: |
+          CURRENT=$(sed -n 's/.*project(Denoiser VERSION \([0-9]*\.[0-9]*\.[0-9]*\)).*/\1/p' CMakeLists.txt)
+          MAJOR=$(echo "$CURRENT" | cut -d. -f1)
+          MINOR=$(echo "$CURRENT" | cut -d. -f2)
+          PATCH=$(echo "$CURRENT" | cut -d. -f3)
+
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+
+          sed -i '' "s/project(Denoiser VERSION ${CURRENT})/project(Denoiser VERSION ${NEW_VERSION})/" CMakeLists.txt
+
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CMakeLists.txt
+          git commit -m "Bump version to ${{ steps.version.outputs.tag }}"
+          git push
+
+      - name: Tag release
+        run: |
+          git tag -a ${{ steps.version.outputs.tag }} -m "Release ${{ steps.version.outputs.tag }}"
+          git push origin ${{ steps.version.outputs.tag }}
+
+      - name: Cache JUCE
+        id: cache-juce
+        uses: actions/cache@v4
+        with:
+          path: JUCE
+          key: juce-8.0.12
+
+      - name: Clone JUCE
+        if: steps.cache-juce.outputs.cache-hit != 'true'
+        run: git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/ccache
+          key: ccache-release-${{ hashFiles('Source/**', 'CMakeLists.txt') }}
+          restore-keys: ccache-release-
+
+      - name: Configure (Release)
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
+
+      - name: Build Standalone
+        run: cmake --build build --target Denoiser_Standalone
+
+      - name: Build VST3
+        run: cmake --build build --target Denoiser_VST3
+
+      - name: Zip Standalone
+        run: |
+          cd build/Denoiser_artefacts/Release/Standalone
+          zip -r "$GITHUB_WORKSPACE/Denoiser-macOS-Standalone.zip" Denoiser.app
+
+      - name: Zip VST3
+        run: |
+          cd build/Denoiser_artefacts/Release/VST3
+          zip -r "$GITHUB_WORKSPACE/Denoiser-macOS-VST3.zip" Denoiser.vst3
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Denoiser ${{ steps.version.outputs.tag }}
+          body: |
+            **Artifacts:**
+            - `Denoiser-macOS-Standalone.zip` - macOS standalone app
+            - `Denoiser-macOS-VST3.zip` - macOS VST3 plugin
+          files: |
+            Denoiser-macOS-Standalone.zip
+            Denoiser-macOS-VST3.zip

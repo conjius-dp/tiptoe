@@ -2,15 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 
 project(Denoiser VERSION 0.1.0)
 
-include(FetchContent)
-
-# --- JUCE ---
-FetchContent_Declare(
-    JUCE
-    GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
-    GIT_TAG        8.0.12
-)
-FetchContent_MakeAvailable(JUCE)
+add_subdirectory(JUCE)
 
 # --- DSP Library (shared between plugin and tests) ---
 add_library(DenoiserDSP STATIC

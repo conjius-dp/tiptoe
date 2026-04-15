@@ -1,5 +1,10 @@
 # Denoiser
 
+<p align="center">
+  <a href="https://github.com/conjius-dp/denoiser/releases/latest"><img src="https://img.shields.io/github/v/release/conjius-dp/denoiser?label=stable" alt="Stable"></a>
+  <a href="https://github.com/conjius-dp/denoiser/releases"><img src="https://img.shields.io/github/v/release/conjius-dp/denoiser?include_prereleases&label=nightly" alt="Nightly"></a>
+</p>
+
 A general-purpose spectral gating denoiser audio plugin. Learns a noise profile from a sample of background noise, then attenuates matching frequencies in real time.
 
 Available as macOS **VST3**, **AU**, and **Standalone** formats with stereo input/output.
@@ -14,8 +19,6 @@ The plugin uses an FFT-based spectral gate with a 2048-sample Hann window and 50
 
 ## Dependencies
 
-All dependencies are fetched automatically by CMake at configure time.
-
 | Dependency | Version | Link |
 |---|---|---|
 | JUCE | 8.0.12 | [juce-framework/JUCE@8.0.12](https://github.com/juce-framework/JUCE/releases/tag/8.0.12) |
@@ -25,9 +28,10 @@ All dependencies are fetched automatically by CMake at configure time.
 ## Build
 
 ```bash
-git clone https://github.com/conjius/denoiser.git
+git clone https://github.com/conjius-dp/denoiser.git
 cd denoiser
-cmake -B build -DCMAKE_BUILD_TYPE=Release
+git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
 cmake --build build
 ```
 
@@ -44,7 +48,7 @@ Plugins are built to `build/Denoiser_artefacts/` and automatically copied to you
 ## Tests
 
 ```bash
-cmake -B build -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
 cmake --build build --target DenoiserTests
 ./build/DenoiserTests
 ```
