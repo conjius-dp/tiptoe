@@ -3,6 +3,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
 #include "DSP/SpectralGateTiptoe.h"
+#include "KnobDesign.h"
 
 class TiptoeAudioProcessor : public juce::AudioProcessor
 {
@@ -45,6 +46,10 @@ public:
 
     // Processing latency (max of both channels)
     float getLastProcessingTimeMs() const;
+
+    // Editor size persistence
+    std::atomic<int> editorWidth  { KnobDesign::defaultWidth };
+    std::atomic<int> editorHeight { KnobDesign::defaultHeight };
 
 private:
     juce::AudioProcessorValueTreeState apvts;

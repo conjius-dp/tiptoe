@@ -39,7 +39,14 @@ target_sources(Tiptoe
     PRIVATE
         Source/PluginProcessor.cpp
         Source/PluginEditor.cpp
+        Source/KnobDesign.h
 )
+
+juce_add_binary_data(TiptoeBinaryData
+    SOURCES
+        Assets/conjius-avatar-transparent-bg.png
+        Assets/Inconsolata-Bold.ttf
+        Assets/Inconsolata-Regular.ttf)
 
 target_compile_definitions(Tiptoe
     PUBLIC
@@ -51,6 +58,7 @@ target_compile_definitions(Tiptoe
 target_link_libraries(Tiptoe
     PRIVATE
         TiptoeDSP
+        TiptoeBinaryData
         juce::juce_audio_utils
         juce::juce_dsp
     PUBLIC

@@ -1,0 +1,362 @@
+#pragma once
+#include <juce_gui_basics/juce_gui_basics.h>
+
+namespace KnobDesign
+{
+    // ── Colors (matching conji.us) ──
+    inline const juce::Colour bgColour       { 0xff111111 };  // #111
+    inline const juce::Colour accentColour   { 0xffd48300 };  // #d48300
+
+    // ── Knob geometry (proportional to diameter) ──
+    inline constexpr float knobStrokeFrac    = 0.033f;
+    inline constexpr float indicatorWidthFrac= 0.040f;
+    inline constexpr float tickStrokeFrac    = 0.033f;
+
+    inline constexpr float indicatorStart    = 0.33f;
+    inline constexpr float indicatorEnd      = 0.75f;
+
+    inline constexpr float tickGap           = 1.15f;
+    inline constexpr float tickLength        = 0.18f;
+
+    // ── Rotation range ──
+    inline constexpr float rotationStartAngle = -135.0f;
+    inline constexpr float rotationEndAngle   =  135.0f;
+
+    // ── Label style ──
+    inline constexpr float labelFontScale    = 0.18f;
+    inline constexpr float gainLabelScale    = 0.06f;
+    inline constexpr float dbTextScale       = 0.06f;
+    inline constexpr float latencyTextScale  = 0.03f;
+
+    // ── Window ──
+    inline constexpr int   defaultWidth      = 650;
+    inline constexpr int   defaultHeight     = 450;
+    inline constexpr int   minWidth          = 400;
+    inline constexpr int   minHeight         = 280;
+    inline constexpr int   maxWidth          = 1000;
+    inline constexpr int   maxHeight         = 700;
+
+    // ── Angle helpers ──
+    inline float normToAngleRad(float norm01)
+    {
+        float degrees = rotationStartAngle + norm01 * (rotationEndAngle - rotationStartAngle);
+        return juce::degreesToRadians(degrees);
+    }
+}
+
+// ── Knob type: determines tick labels and pill format ──
+enum class KnobType
+{
+    Threshold,   // 0.5× – 5.0×, tick labels: "0.5×", "1.5×", "5.0×"
+    Reduction    // -60 dB – 0 dB, tick labels: "-60", "-30", "0"
+};
+
+// ── Custom LookAndFeel ──
+class ConjusKnobLookAndFeel : public juce::LookAndFeel_V4
+{
+public:
+    ConjusKnobLookAndFeel()
+    {
+        setColour(juce::Slider::textBoxTextColourId, KnobDesign::accentColour);
+        setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::transparentBlack);
+        setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+        setColour(juce::Label::textColourId, KnobDesign::accentColour);
+    }
+
+    void loadFonts(const void* boldData, int boldSize, const void* regularData, int regularSize)
+    {
+        boldTypeface = juce::Typeface::createSystemTypefaceFor(boldData, static_cast<size_t>(boldSize));
+        regularTypeface = juce::Typeface::createSystemTypefaceFor(regularData, static_cast<size_t>(regularSize));
+    }
+
+    juce::Font getBoldFont(float height) const
+    {
+        if (boldTypeface != nullptr)
+            return juce::Font(juce::FontOptions(boldTypeface).withHeight(height));
+        return juce::Font(juce::FontOptions().withHeight(height).withStyle("Bold"));
+    }
+
+    juce::Font getRegularFont(float height) const
+    {
+        if (regularTypeface != nullptr)
+            return juce::Font(juce::FontOptions(regularTypeface).withHeight(height));
+        return juce::Font(juce::FontOptions().withHeight(height));
+    }
+
+    // Store knob type per slider via component properties
+    static void setKnobType(juce::Slider& slider, KnobType type)
+    {
+        slider.getProperties().set("knobType", static_cast<int>(type));
+    }
+
+    static KnobType getKnobType(juce::Slider& slider)
+    {
+        return static_cast<KnobType>(static_cast<int>(slider.getProperties().getWithDefault("knobType", 0)));
+    }
+
+    void drawRotarySlider(juce::Graphics& g,
+                          int x, int y, int width, int height,
+                          float sliderPosProportional,
+                          float /*rotaryStartAngle*/, float /*rotaryEndAngle*/,
+                          juce::Slider& slider) override
+    {
+        using namespace KnobDesign;
+
+        auto bounds = juce::Rectangle<int>(x, y, width, height).toFloat();
+
+        // Use the slider's allocated area to determine knob size
+        float sliderW = bounds.getWidth();
+        float sliderH = bounds.getHeight();
+        float diameter = juce::jmin(sliderW, sliderH) * 0.624f;
+        float radius = diameter * 0.5f;
+        float cx = bounds.getCentreX();
+        float cy = bounds.getCentreY() - diameter * 0.08f;
+
+        float strokeW = diameter * knobStrokeFrac;
+        float indW = diameter * indicatorWidthFrac;
+        float tickW = diameter * tickStrokeFrac;
+
+        // ── Draw knob circle ──
+        g.setColour(accentColour);
+        g.drawEllipse(cx - radius + strokeW * 0.5f,
+                      cy - radius + strokeW * 0.5f,
+                      diameter - strokeW,
+                      diameter - strokeW,
+                      strokeW);
+
+        // ── Draw indicator line ──
+        float angle = normToAngleRad(sliderPosProportional);
+        float innerR = radius * indicatorStart;
+        float outerR = radius * indicatorEnd;
+
+        juce::Path indicator;
+        indicator.startNewSubPath(cx + std::sin(angle) * innerR,
+                                 cy - std::cos(angle) * innerR);
+        indicator.lineTo(cx + std::sin(angle) * outerR,
+                         cy - std::cos(angle) * outerR);
+        g.strokePath(indicator,
+                     juce::PathStrokeType(indW,
+                                          juce::PathStrokeType::curved,
+                                          juce::PathStrokeType::rounded));
+
+        // ── Draw tick marks at min, default, max ──
+        float tickStartR = radius * tickGap;
+        float tickEndR = radius * (tickGap + tickLength);
+
+        auto knobType = getKnobType(slider);
+
+        // Tick positions: left (min), middle (default), right (max)
+        float defaultNorm = 0.0f;
+        if (knobType == KnobType::Threshold)
+            defaultNorm = (1.5f - 0.5f) / (5.0f - 0.5f);  // 1.5 is default, maps to ~0.222
+        else
+            defaultNorm = (-30.0f - (-60.0f)) / (0.0f - (-60.0f));  // -30 default, maps to 0.5
+
+        float tickAngles[3] = {
+            juce::degreesToRadians(rotationStartAngle),
+            normToAngleRad(defaultNorm),
+            juce::degreesToRadians(rotationEndAngle)
+        };
+
+        for (int i = 0; i < 3; ++i)
+        {
+            juce::Path tick;
+            tick.startNewSubPath(cx + std::sin(tickAngles[i]) * tickStartR,
+                                cy - std::cos(tickAngles[i]) * tickStartR);
+            tick.lineTo(cx + std::sin(tickAngles[i]) * tickEndR,
+                        cy - std::cos(tickAngles[i]) * tickEndR);
+            g.strokePath(tick,
+                         juce::PathStrokeType(tickW,
+                                              juce::PathStrokeType::curved,
+                                              juce::PathStrokeType::rounded));
+        }
+
+        // ── Draw tick labels ──
+        float fontSize = diameter * labelFontScale;
+        float markerFontSize = fontSize * 0.85f;
+        g.setColour(accentColour);
+        g.setFont(getBoldFont(markerFontSize));
+
+        float labelR = tickEndR + markerFontSize * 0.8f;
+        float labelYOffset = fontSize * 0.05f;
+
+        juce::String leftLabel, midLabel, rightLabel;
+        if (knobType == KnobType::Threshold)
+        {
+            leftLabel = "0.5";
+            midLabel = "1.5";
+            rightLabel = "5.0";
+        }
+        else
+        {
+            leftLabel = juce::String(juce::CharPointer_UTF8("\xe2\x88\x92")) + "60";
+            midLabel = juce::String(juce::CharPointer_UTF8("\xe2\x88\x92")) + "30";
+            rightLabel = "0";
+        }
+
+        // Left label
+        float a0 = juce::degreesToRadians(rotationStartAngle);
+        float lx0 = cx + std::sin(a0) * labelR;
+        float ly0 = cy - std::cos(a0) * labelR + labelYOffset;
+        g.drawText(leftLabel,
+                   juce::Rectangle<float>(lx0 - fontSize * 2.5f, ly0 - markerFontSize * 0.5f,
+                                          fontSize * 5.0f, markerFontSize * 1.2f),
+                   juce::Justification::centred, false);
+
+        // Right label
+        float a1 = juce::degreesToRadians(rotationEndAngle);
+        float lx1 = cx + std::sin(a1) * labelR;
+        float ly1 = cy - std::cos(a1) * labelR + labelYOffset;
+        g.drawText(rightLabel,
+                   juce::Rectangle<float>(lx1 - fontSize * 2.5f, ly1 - markerFontSize * 0.5f,
+                                          fontSize * 5.0f, markerFontSize * 1.2f),
+                   juce::Justification::centred, false);
+
+        // Middle label (above tick)
+        float aMid = normToAngleRad(defaultNorm);
+        float topLabelR = tickEndR + markerFontSize * 0.3f;
+        float midLabelW = getBoldFont(markerFontSize).getStringWidthFloat(midLabel);
+        float midXShift = (knobType == KnobType::Threshold) ? -midLabelW * 0.5f : midLabelW * 0.15f;
+        float midYShift = (knobType == KnobType::Threshold) ? markerFontSize * 0.3f : 0.0f;
+        float lxM = cx + std::sin(aMid) * topLabelR + midXShift;
+        float lyM = cy - std::cos(aMid) * topLabelR - markerFontSize * 0.5f + midYShift;
+        g.drawText(midLabel,
+                   juce::Rectangle<float>(lxM - fontSize * 2.5f, lyM - markerFontSize * 0.5f,
+                                          fontSize * 5.0f, markerFontSize * 1.2f),
+                   juce::Justification::centred, false);
+    }
+
+    void drawLabel(juce::Graphics& g, juce::Label& label) override
+    {
+        bool isSliderTextBox = (dynamic_cast<juce::Slider*>(label.getParentComponent()) != nullptr);
+
+        if (isSliderTextBox)
+        {
+            auto text = label.getText();
+            auto font = label.getFont();
+            float baseHeight = font.getHeight();
+
+            auto* slider = dynamic_cast<juce::Slider*>(label.getParentComponent());
+            auto knobType = slider ? getKnobType(*slider) : KnobType::Threshold;
+
+            // Determine suffix
+            juce::String suffix = (knobType == KnobType::Threshold) ? juce::String(juce::CharPointer_UTF8("\xc3\x97")) : " dB";
+
+            // Use proportional font sizes
+            auto* editor = slider ? slider->getParentComponent() : nullptr;
+            float windowH = editor ? static_cast<float>(editor->getHeight()) : 450.0f;
+            float pillFontSize = windowH * 0.042f;
+            auto pillFont = getBoldFont(pillFontSize);
+            float suffixFontSize = (knobType == KnobType::Threshold) ? pillFontSize * 1.3f : pillFontSize;
+            auto suffixFont = (knobType == KnobType::Threshold) ? getRegularFont(suffixFontSize) : getBoldFont(suffixFontSize);
+
+            float suffixW = suffixFont.getStringWidthFloat(suffix);
+
+            // Parse value from text
+            juce::String valueStr = text;
+            // Strip suffix for display
+            if (knobType == KnobType::Reduction)
+            {
+                valueStr = text.replace(" dB", "").trim();
+            }
+
+            bool isNegative = valueStr.getDoubleValue() < 0.0;
+            juce::String digits = valueStr;
+            if (digits.startsWith("-"))
+                digits = digits.substring(1);
+            if (digits.startsWith("+"))
+                digits = digits.substring(1);
+
+            // Minus sign
+            auto minusStr = juce::String(juce::CharPointer_UTF8("\xe2\x88\x92"));
+            float minusW = pillFont.getStringWidthFloat(minusStr);
+            float minusGap = pillFontSize * 0.15f;
+
+            float digitsW = pillFont.getStringWidthFloat(digits);
+            float numW = pillFont.getStringWidthFloat("99.9");
+            float valueZoneW = juce::jmax(digitsW, numW);
+
+            float pillH = pillFontSize * 1.5f;
+            float padLeft = pillH * 0.45f;
+            float padRight = pillH * 0.3f;
+
+            // Both pills use the same width (matched to the wider reduction layout)
+            // Compute reduction-style width: [pad | minus | gap | digits | dB | pad]
+            auto reductionSuffix = juce::String(" dB");
+            float reductionSuffixW = getBoldFont(pillFontSize).getStringWidthFloat(reductionSuffix);
+            float pillW = padLeft + minusW + minusGap + valueZoneW + reductionSuffixW + padRight;
+
+            float labelW = static_cast<float>(label.getWidth());
+            float pillX = (labelW - pillW) * 0.5f;
+            float pillUpShift = pillFontSize * 3.0f;
+            float pillY = (static_cast<float>(label.getHeight()) - pillH) * 0.5f - pillUpShift;
+
+            auto pillBounds = juce::Rectangle<float>(pillX, pillY, pillW, pillH);
+
+            // Draw orange pill
+            g.setColour(KnobDesign::accentColour);
+            g.fillRoundedRectangle(pillBounds, pillH * 0.5f);
+
+            g.setColour(KnobDesign::bgColour);
+            float centreY = pillBounds.getCentreY();
+
+            if (knobType == KnobType::Threshold)
+            {
+                // × on left
+                float suffixX = pillBounds.getX() + padRight;
+                g.setFont(suffixFont);
+                g.drawText(suffix,
+                           juce::Rectangle<float>(suffixX, centreY - suffixFontSize * 0.5f,
+                                                  suffixW, suffixFontSize),
+                           juce::Justification::centred, false);
+
+                // Digits centered horizontally in the pill
+                g.setFont(pillFont);
+                g.drawText(digits,
+                           juce::Rectangle<float>(pillBounds.getX(), centreY - pillFontSize * 0.5f,
+                                                  pillBounds.getWidth(), pillFontSize),
+                           juce::Justification::centred, false);
+            }
+            else
+            {
+                // Suffix (dB) on right
+                float suffixX = pillBounds.getRight() - padRight - suffixW;
+                g.setFont(suffixFont);
+                g.drawText(suffix,
+                           juce::Rectangle<float>(suffixX, centreY - suffixFontSize * 0.5f,
+                                                  suffixW, suffixFontSize),
+                           juce::Justification::centred, false);
+
+                // Minus sign on left
+                float minusX = pillBounds.getX() + padLeft;
+                float valueLeft = minusX + minusW + minusGap;
+
+                if (isNegative)
+                {
+                    g.setFont(pillFont);
+                    g.drawText(minusStr,
+                               juce::Rectangle<float>(minusX, centreY - pillFontSize * 0.5f,
+                                                      minusW, pillFontSize),
+                               juce::Justification::centred, false);
+                }
+
+                // Value digits
+                g.setFont(pillFont);
+                g.drawText(digits,
+                           juce::Rectangle<float>(valueLeft, centreY - pillFontSize * 0.5f,
+                                                  suffixX - valueLeft, pillFontSize),
+                           juce::Justification::centredLeft, false);
+            }
+        }
+        else
+        {
+            LookAndFeel_V4::drawLabel(g, label);
+        }
+    }
+
+private:
+    juce::Typeface::Ptr boldTypeface;
+    juce::Typeface::Ptr regularTypeface;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ConjusKnobLookAndFeel)
+};
