@@ -1,4 +1,4 @@
-# Tiptoe
+# tiptoe
 
 <p align="center">
   <a href="https://github.com/conjius-dp/tiptoe/releases/latest"><img src="https://img.shields.io/github/v/release/conjius-dp/tiptoe?label=stable" alt="Stable"></a>
