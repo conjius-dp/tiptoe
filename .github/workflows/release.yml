@@ -1,6 +1,7 @@
 name: Release
 
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: [CI]
     types: [completed]
@@ -11,7 +12,7 @@ permissions:
 
 jobs:
   check-changes:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     outputs:
       plugin_changed: ${{ steps.filter.outputs.plugin_changed }}
@@ -19,19 +20,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
-      - name: Check for plugin code changes
+      - name: Check for plugin code changes since last release
         id: filter
         run: |
-          CHANGED=$(git diff --name-only HEAD~1 HEAD -- Source/ Tests/ CMakeLists.txt)
-          if [ -n "$CHANGED" ]; then
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            echo "No previous release tag found, proceeding with release"
             echo "plugin_changed=true" >> "$GITHUB_OUTPUT"
-            echo "Plugin files changed:"
-            echo "$CHANGED"
           else
-            echo "plugin_changed=false" >> "$GITHUB_OUTPUT"
-            echo "No plugin files changed, skipping release"
+            CHANGED=$(git diff --name-only "$LAST_TAG"..HEAD -- Source/ Tests/ CMakeLists.txt)
+            if [ -n "$CHANGED" ]; then
+              echo "plugin_changed=true" >> "$GITHUB_OUTPUT"
+              echo "Plugin files changed since $LAST_TAG:"
+              echo "$CHANGED"
+            else
+              echo "plugin_changed=false" >> "$GITHUB_OUTPUT"
+              echo "No plugin files changed since $LAST_TAG, skipping release"
+            fi
           fi
 
   release:
