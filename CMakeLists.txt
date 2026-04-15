@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(Denoiser VERSION 0.1.0)
+project(Denoiser VERSION 0.1.1)
 
 add_subdirectory(JUCE)
 
