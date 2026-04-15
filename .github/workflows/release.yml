@@ -111,6 +111,9 @@ jobs:
       - name: Build VST3
         run: cmake --build build --target Tiptoe_VST3
 
+      - name: Build AU
+        run: cmake --build build --target Tiptoe_AU
+
       - name: Zip Standalone
         run: |
           cd build/Tiptoe_artefacts/Release/Standalone
@@ -121,6 +124,11 @@ jobs:
           cd build/Tiptoe_artefacts/Release/VST3
           zip -r "$GITHUB_WORKSPACE/Tiptoe-macOS-VST3.zip" Tiptoe.vst3
 
+      - name: Zip AU
+        run: |
+          cd build/Tiptoe_artefacts/Release/AU
+          zip -r "$GITHUB_WORKSPACE/tiptoe-macOS-AU.zip" Tiptoe.component
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -130,6 +138,8 @@ jobs:
             **Artifacts:**
             - `Tiptoe-macOS-Standalone.zip` - macOS standalone app
             - `Tiptoe-macOS-VST3.zip` - macOS VST3 plugin
+            - `tiptoe-macOS-AU.zip` - macOS AU plugin
           files: |
             Tiptoe-macOS-Standalone.zip
             Tiptoe-macOS-VST3.zip
+            tiptoe-macOS-AU.zip

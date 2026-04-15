@@ -45,6 +45,9 @@ jobs:
       - name: Build VST3
         run: cmake --build build --target Tiptoe_VST3
 
+      - name: Build AU
+        run: cmake --build build --target Tiptoe_AU
+
       - name: Zip Standalone
         run: |
           cd build/Tiptoe_artefacts/Release/Standalone
@@ -54,6 +57,11 @@ jobs:
         run: |
           cd build/Tiptoe_artefacts/Release/VST3
           zip -r "$GITHUB_WORKSPACE/Tiptoe-macOS-VST3.zip" Tiptoe.vst3
+
+      - name: Zip AU
+        run: |
+          cd build/Tiptoe_artefacts/Release/AU
+          zip -r "$GITHUB_WORKSPACE/tiptoe-macOS-AU.zip" Tiptoe.component
 
       - name: Delete existing nightly release
         env:
@@ -72,4 +80,5 @@ jobs:
           **This is a pre-release — not recommended for production use.**" \
             --prerelease \
             Tiptoe-macOS-Standalone.zip \
-            Tiptoe-macOS-VST3.zip
+            Tiptoe-macOS-VST3.zip \
+            tiptoe-macOS-AU.zip
