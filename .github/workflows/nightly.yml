@@ -1,0 +1,75 @@
+name: Nightly
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  nightly:
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ccache
+        run: brew install ccache
+
+      - name: Cache JUCE
+        id: cache-juce
+        uses: actions/cache@v4
+        with:
+          path: JUCE
+          key: juce-8.0.12
+
+      - name: Clone JUCE
+        if: steps.cache-juce.outputs.cache-hit != 'true'
+        run: git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/ccache
+          key: ccache-nightly-${{ hashFiles('Source/**', 'CMakeLists.txt') }}
+          restore-keys: ccache-nightly-
+
+      - name: Configure (Release)
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
+
+      - name: Build Standalone
+        run: cmake --build build --target Tiptoe_Standalone
+
+      - name: Build VST3
+        run: cmake --build build --target Tiptoe_VST3
+
+      - name: Zip Standalone
+        run: |
+          cd build/Tiptoe_artefacts/Release/Standalone
+          zip -r "$GITHUB_WORKSPACE/Tiptoe-macOS-Standalone.zip" Tiptoe.app
+
+      - name: Zip VST3
+        run: |
+          cd build/Tiptoe_artefacts/Release/VST3
+          zip -r "$GITHUB_WORKSPACE/Tiptoe-macOS-VST3.zip" Tiptoe.vst3
+
+      - name: Delete existing nightly release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete nightly --yes --cleanup-tag 2>/dev/null || true
+
+      - name: Create nightly pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create nightly \
+            --title "Nightly Build" \
+            --notes "Automated nightly build from PR #${{ github.event.pull_request.number }} (${{ github.head_ref }}).
+
+          **This is a pre-release — not recommended for production use.**" \
+            --prerelease \
+            Tiptoe-macOS-Standalone.zip \
+            Tiptoe-macOS-VST3.zip
