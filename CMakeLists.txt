@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(Tiptoe VERSION 0.1.3)
+project(Tiptoe VERSION 0.1.4)
 
 add_subdirectory(JUCE)
 
