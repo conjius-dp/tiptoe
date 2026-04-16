@@ -14,11 +14,14 @@
   <a href="https://github.com/conjius-dp/tiptoe/releases/latest">
     <img src="https://img.shields.io/badge/Download_for_macOS-d48300?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS">
   </a>
+  <a href="https://github.com/conjius-dp/tiptoe/releases/latest/download/Tiptoe-Windows-VST3.zip">
+    <img src="https://img.shields.io/badge/Download_for_Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows">
+  </a>
 </p>
 
 A general-purpose spectral gating audio plugin. Learns a noise profile from a sample of background noise, then attenuates matching frequencies in real time.
 
-Available as macOS **VST3**, **AU**, and **Standalone** formats with stereo input/output.
+Available as **VST3** (macOS, Windows), **AU** & **Standalone** (macOS) formats with stereo input/output.
 
 ## How It Works
 
