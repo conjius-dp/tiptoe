@@ -11,11 +11,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/conjius-dp/tiptoe/releases/latest">
+  <a href="https://github.com/conjius-dp/tiptoe/releases/latest" style="text-decoration:none">
     <img src="https://img.shields.io/badge/Download_for_macOS-d48300?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS">
   </a>
-  &nbsp;&nbsp;
-  <a href="https://github.com/conjius-dp/tiptoe/releases/latest/download/Tiptoe-Windows-VST3.zip">
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/conjius-dp/tiptoe/releases/latest/download/Tiptoe-Windows-VST3.zip" style="text-decoration:none">
     <img src="https://img.shields.io/badge/Download_for_Windows-0078D4?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0wIDMuNDlsMTAuMDEtMS4zOFYxMS41SDB6TTEwLjAxIDEyLjYxdjkuMzlMMCAxOS42MlYxMi42MXpNMTEuMTUgMi4wN0wyNCAuNTh2MTEuMDRIMTEuMTV6TTI0IDEyLjQ1djExLjAybC0xMi44NS0xLjh2LTkuMjJ6Ii8+PC9zdmc+" alt="Download for Windows">
   </a>
 </p>
