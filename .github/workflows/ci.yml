@@ -50,6 +50,12 @@ jobs:
       - name: Run tests
         run: ./build/TiptoeTests
 
+      - name: Validate VST3 with pluginval
+        run: |
+          curl -LO https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip
+          unzip pluginval_macOS.zip
+          pluginval.app/Contents/MacOS/pluginval --validate build/Tiptoe_artefacts/VST3/Tiptoe.vst3 --strictness-level 5
+
       - name: Generate coverage report
         run: |
           lcov --capture --directory build --output-file coverage.info \
@@ -126,4 +132,11 @@ jobs:
           $exe = Get-ChildItem -Path build -Recurse -Filter TiptoeTests.exe | Select-Object -First 1
           Write-Host "Found test executable: $($exe.FullName)"
           & $exe.FullName
+        shell: pwsh
+
+      - name: Validate VST3 with pluginval
+        run: |
+          Invoke-WebRequest -Uri https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip -OutFile pluginval_Windows.zip
+          Expand-Archive pluginval_Windows.zip -DestinationPath pluginval
+          pluginval\pluginval.exe --validate build\Tiptoe_artefacts\Release\VST3\Tiptoe.vst3 --strictness-level 5
         shell: pwsh
