@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 jobs:
-  nightly:
+  build-macos:
     runs-on: macos-15
 
     steps:
@@ -63,6 +63,67 @@ jobs:
           cd build/Tiptoe_artefacts/Release/AU
           zip -r "$GITHUB_WORKSPACE/tiptoe-macOS-AU.zip" Tiptoe.component
 
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-artifacts
+          path: |
+            Tiptoe-macOS-Standalone.zip
+            Tiptoe-macOS-VST3.zip
+            tiptoe-macOS-AU.zip
+
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache JUCE
+        id: cache-juce
+        uses: actions/cache@v4
+        with:
+          path: JUCE
+          key: juce-8.0.12
+
+      - name: Clone JUCE
+        if: steps.cache-juce.outputs.cache-hit != 'true'
+        run: git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
+
+      - name: Configure (Release)
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build VST3
+        run: cmake --build build --config Release --target Tiptoe_VST3
+
+      - name: Zip VST3
+        run: Compress-Archive -Path "build\Tiptoe_artefacts\Release\VST3\Tiptoe.vst3" -DestinationPath "Tiptoe-Windows-VST3.zip"
+        shell: pwsh
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          path: Tiptoe-Windows-VST3.zip
+
+  create-nightly:
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-artifacts
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-artifacts
+
       - name: Delete existing nightly release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -81,4 +142,5 @@ jobs:
             --prerelease \
             Tiptoe-macOS-Standalone.zip \
             Tiptoe-macOS-VST3.zip \
-            tiptoe-macOS-AU.zip
+            tiptoe-macOS-AU.zip \
+            Tiptoe-Windows-VST3.zip

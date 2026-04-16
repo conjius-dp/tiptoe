@@ -41,7 +41,7 @@ jobs:
             fi
           fi
 
-  release:
+  build-macos:
     needs: check-changes
     if: needs.check-changes.outputs.plugin_changed == 'true'
     runs-on: macos-15
@@ -49,40 +49,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Install ccache
         run: brew install ccache
-
-      - name: Read version and bump patch
-        id: version
-        run: |
-          CURRENT=$(sed -n 's/.*project(Tiptoe VERSION \([0-9]*\.[0-9]*\.[0-9]*\)).*/\1/p' CMakeLists.txt)
-          MAJOR=$(echo "$CURRENT" | cut -d. -f1)
-          MINOR=$(echo "$CURRENT" | cut -d. -f2)
-          PATCH=$(echo "$CURRENT" | cut -d. -f3)
-
-          NEW_PATCH=$((PATCH + 1))
-          NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
-
-          sed -i '' "s/project(Tiptoe VERSION ${CURRENT})/project(Tiptoe VERSION ${NEW_VERSION})/" CMakeLists.txt
-
-          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=v${NEW_VERSION}" >> "$GITHUB_OUTPUT"
-
-      - name: Commit version bump
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CMakeLists.txt
-          git commit -m "Bump version to ${{ steps.version.outputs.tag }}"
-          git push
-
-      - name: Tag release
-        run: |
-          git tag -a ${{ steps.version.outputs.tag }} -m "Release ${{ steps.version.outputs.tag }}"
-          git push origin ${{ steps.version.outputs.tag }}
 
       - name: Cache JUCE
         id: cache-juce
@@ -129,6 +98,100 @@ jobs:
           cd build/Tiptoe_artefacts/Release/AU
           zip -r "$GITHUB_WORKSPACE/tiptoe-macOS-AU.zip" Tiptoe.component
 
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-artifacts
+          path: |
+            Tiptoe-macOS-Standalone.zip
+            Tiptoe-macOS-VST3.zip
+            tiptoe-macOS-AU.zip
+
+  build-windows:
+    needs: check-changes
+    if: needs.check-changes.outputs.plugin_changed == 'true'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache JUCE
+        id: cache-juce
+        uses: actions/cache@v4
+        with:
+          path: JUCE
+          key: juce-8.0.12
+
+      - name: Clone JUCE
+        if: steps.cache-juce.outputs.cache-hit != 'true'
+        run: git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
+
+      - name: Configure (Release)
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build VST3
+        run: cmake --build build --config Release --target Tiptoe_VST3
+
+      - name: Zip VST3
+        run: Compress-Archive -Path "build\Tiptoe_artefacts\Release\VST3\Tiptoe.vst3" -DestinationPath "Tiptoe-Windows-VST3.zip"
+        shell: pwsh
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          path: Tiptoe-Windows-VST3.zip
+
+  release:
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-artifacts
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-artifacts
+
+      - name: Bump version
+        id: version
+        run: |
+          CURRENT=$(sed -n 's/.*project(Tiptoe VERSION \([0-9]*\.[0-9]*\.[0-9]*\)).*/\1/p' CMakeLists.txt)
+          MAJOR=$(echo "$CURRENT" | cut -d. -f1)
+          MINOR=$(echo "$CURRENT" | cut -d. -f2)
+          PATCH=$(echo "$CURRENT" | cut -d. -f3)
+
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+
+          sed -i "s/project(Tiptoe VERSION ${CURRENT})/project(Tiptoe VERSION ${NEW_VERSION})/" CMakeLists.txt
+
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CMakeLists.txt
+          git commit -m "Bump version to ${{ steps.version.outputs.tag }}"
+          git push
+
+      - name: Tag release
+        run: |
+          git tag -a ${{ steps.version.outputs.tag }} -m "Release ${{ steps.version.outputs.tag }}"
+          git push origin ${{ steps.version.outputs.tag }}
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -139,7 +202,9 @@ jobs:
             - `Tiptoe-macOS-Standalone.zip` - macOS standalone app
             - `Tiptoe-macOS-VST3.zip` - macOS VST3 plugin
             - `tiptoe-macOS-AU.zip` - macOS AU plugin
+            - `Tiptoe-Windows-VST3.zip` - Windows VST3 plugin
           files: |
             Tiptoe-macOS-Standalone.zip
             Tiptoe-macOS-VST3.zip
             tiptoe-macOS-AU.zip
+            Tiptoe-Windows-VST3.zip

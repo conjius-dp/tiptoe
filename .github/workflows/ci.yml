@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  build-and-test:
+  build-and-test-macos:
     runs-on: macos-15
 
     steps:
@@ -93,3 +93,37 @@ jobs:
             git pull --rebase origin main
             git push
           fi
+
+  build-and-test-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache JUCE
+        id: cache-juce
+        uses: actions/cache@v4
+        with:
+          path: JUCE
+          key: juce-8.0.12
+
+      - name: Clone JUCE
+        if: steps.cache-juce.outputs.cache-hit != 'true'
+        run: git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build VST3
+        run: cmake --build build --config Release --target Tiptoe_VST3
+
+      - name: Build Tests
+        run: cmake --build build --config Release --target TiptoeTests
+
+      - name: Run tests
+        run: |
+          $exe = Get-ChildItem -Path build -Recurse -Filter TiptoeTests.exe | Select-Object -First 1
+          Write-Host "Found test executable: $($exe.FullName)"
+          & $exe.FullName
+        shell: pwsh
