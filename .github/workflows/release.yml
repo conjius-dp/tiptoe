@@ -86,17 +86,17 @@ jobs:
       - name: Zip Standalone
         run: |
           cd build/Tiptoe_artefacts/Release/Standalone
-          zip -r "$GITHUB_WORKSPACE/Tiptoe-macOS-Standalone.zip" Tiptoe.app
+          zip -r "$GITHUB_WORKSPACE/Tiptoe-macOS-Standalone.zip" tiptoe.app
 
       - name: Zip VST3
         run: |
           cd build/Tiptoe_artefacts/Release/VST3
-          zip -r "$GITHUB_WORKSPACE/Tiptoe-macOS-VST3.zip" Tiptoe.vst3
+          zip -r "$GITHUB_WORKSPACE/Tiptoe-macOS-VST3.zip" tiptoe.vst3
 
       - name: Zip AU
         run: |
           cd build/Tiptoe_artefacts/Release/AU
-          zip -r "$GITHUB_WORKSPACE/tiptoe-macOS-AU.zip" Tiptoe.component
+          zip -r "$GITHUB_WORKSPACE/tiptoe-macOS-AU.zip" tiptoe.component
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
@@ -134,7 +134,7 @@ jobs:
         run: cmake --build build --config Release --target Tiptoe_VST3
 
       - name: Zip VST3
-        run: Compress-Archive -Path "build\Tiptoe_artefacts\Release\VST3\Tiptoe.vst3" -DestinationPath "Tiptoe-Windows-VST3.zip"
+        run: Compress-Archive -Path "build\Tiptoe_artefacts\Release\VST3\tiptoe.vst3" -DestinationPath "Tiptoe-Windows-VST3.zip"
         shell: pwsh
 
       - name: Upload Windows artifacts

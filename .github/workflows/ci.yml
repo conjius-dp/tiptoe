@@ -54,7 +54,7 @@ jobs:
         run: |
           curl -LO https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip
           unzip pluginval_macOS.zip
-          pluginval.app/Contents/MacOS/pluginval --validate build/Tiptoe_artefacts/VST3/Tiptoe.vst3 --strictness-level 5
+          pluginval.app/Contents/MacOS/pluginval --validate build/Tiptoe_artefacts/Release/VST3/tiptoe.vst3 --strictness-level 5
 
       - name: Generate coverage report
         run: |
@@ -96,7 +96,7 @@ jobs:
             echo "Coverage unchanged, skipping commit"
           else
             git commit -m "Update coverage to ${LINE_PCT}%"
-            git pull --rebase origin main
+            git pull --rebase -X theirs origin main || (git rebase --abort && git pull origin main --no-edit && git push && exit 0)
             git push
           fi
 
@@ -138,5 +138,5 @@ jobs:
         run: |
           Invoke-WebRequest -Uri https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip -OutFile pluginval_Windows.zip
           Expand-Archive pluginval_Windows.zip -DestinationPath pluginval
-          pluginval\pluginval.exe --validate build\Tiptoe_artefacts\Release\VST3\Tiptoe.vst3 --strictness-level 5
+          pluginval\pluginval.exe --validate build\Tiptoe_artefacts\Release\VST3\tiptoe.vst3 --strictness-level 5
         shell: pwsh
