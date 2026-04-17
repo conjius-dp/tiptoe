@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -78,6 +79,10 @@ jobs:
           fi
           pluginval.app/Contents/MacOS/pluginval --validate build/Tiptoe_artefacts/Release/VST3/tiptoe.vst3 --strictness-level 5
 
+      - name: Cancel workflow if this job failed
+        if: failure()
+        uses: andymckay/cancel-action@0.5
+
       - name: Generate coverage report
         run: |
           lcov --capture --directory build --output-file coverage.info \
@@ -125,7 +130,10 @@ jobs:
   build-and-test-windows:
     runs-on: windows-latest
     env:
-      SCCACHE_GHA_ENABLED: "true"
+      # Local disk cache for sccache (GHA backend is flaky — periodic outages return
+      # HTML errors). actions/cache below persists the directory across runs.
+      SCCACHE_DIR: ${{ github.workspace }}\sccache
+      SCCACHE_CACHE_SIZE: 2G
 
     steps:
       - name: Checkout
@@ -147,6 +155,13 @@ jobs:
       - name: Clone JUCE
         if: steps.cache-juce.outputs.cache-hit != 'true'
         run: git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
+
+      - name: Cache sccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-ci-windows-${{ hashFiles('Source/**', 'Tests/**', 'CMakeLists.txt') }}
+          restore-keys: sccache-ci-windows-
 
       - name: Configure
         run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_C_COMPILER_LAUNCHER=sccache
@@ -178,3 +193,7 @@ jobs:
           }
           pluginval\pluginval.exe --validate build\Tiptoe_artefacts\Release\VST3\tiptoe.vst3 --strictness-level 5
         shell: pwsh
+
+      - name: Cancel workflow if this job failed
+        if: failure()
+        uses: andymckay/cancel-action@0.5

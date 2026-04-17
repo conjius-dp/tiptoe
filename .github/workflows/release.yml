@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: release-${{ github.ref }}
@@ -116,12 +117,18 @@ jobs:
           name: screenshot
           path: screenshot.png
 
+      - name: Cancel workflow if this job failed
+        if: failure()
+        uses: andymckay/cancel-action@0.5
+
   build-windows:
     needs: check-changes
     if: needs.check-changes.outputs.plugin_changed == 'true'
     runs-on: windows-latest
     env:
-      SCCACHE_GHA_ENABLED: "true"
+      # Local disk cache for sccache (GHA backend is flaky).
+      SCCACHE_DIR: ${{ github.workspace }}\sccache
+      SCCACHE_CACHE_SIZE: 2G
 
     steps:
       - name: Checkout
@@ -144,6 +151,13 @@ jobs:
         if: steps.cache-juce.outputs.cache-hit != 'true'
         run: git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
 
+      - name: Cache sccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-release-windows-${{ hashFiles('Source/**', 'CMakeLists.txt') }}
+          restore-keys: sccache-release-windows-
+
       - name: Configure (Release)
         run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_C_COMPILER_LAUNCHER=sccache
 
@@ -159,6 +173,10 @@ jobs:
         with:
           name: windows-artifacts
           path: Tiptoe-Windows-VST3.zip
+
+      - name: Cancel workflow if this job failed
+        if: failure()
+        uses: andymckay/cancel-action@0.5
 
   release:
     needs: [build-macos, build-windows]
