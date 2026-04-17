@@ -143,8 +143,72 @@ jobs:
           name: windows-artifacts
           path: Tiptoe-Windows-VST3.zip
 
+  screenshot:
+    needs: check-changes
+    if: needs.check-changes.outputs.plugin_changed == 'true'
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ccache
+        run: brew install ccache
+
+      - name: Cache JUCE
+        id: cache-juce
+        uses: actions/cache@v4
+        with:
+          path: JUCE
+          key: juce-8.0.12
+
+      - name: Clone JUCE
+        if: steps.cache-juce.outputs.cache-hit != 'true'
+        run: git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/ccache
+          key: ccache-screenshot-${{ hashFiles('Source/**', 'Tools/**', 'CMakeLists.txt') }}
+          restore-keys: ccache-screenshot-
+
+      - name: Configure (Release)
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
+
+      - name: Build screenshot tool
+        run: cmake --build build --target TiptoeScreenshot
+
+      - name: Render screenshot
+        run: ./build/TiptoeScreenshot screenshot.png
+
+      - name: Publish to gh-pages
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO_URL="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          TMPDIR=$(mktemp -d)
+          # Create orphan gh-pages branch if it doesn't exist yet
+          if ! git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git clone "$REPO_URL" "$TMPDIR"
+            cd "$TMPDIR"
+            git checkout --orphan gh-pages
+            git rm -rf . 2>/dev/null || true
+            touch .nojekyll
+          else
+            git clone --branch gh-pages --depth 1 "$REPO_URL" "$TMPDIR"
+            cd "$TMPDIR"
+          fi
+          # Always overwrite — we keep exactly one screenshot
+          cp "$GITHUB_WORKSPACE/screenshot.png" ./screenshot.png
+          touch .nojekyll
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Update plugin screenshot" || true
+          git push origin gh-pages
+
   release:
-    needs: [build-macos, build-windows]
+    needs: [build-macos, build-windows, screenshot]
     runs-on: ubuntu-latest
 
     steps:

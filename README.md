@@ -1,7 +1,7 @@
 # tiptoe
 
 <p align="center">
-  <picture><img src="Assets/tiptoe-ui-transparent-bg.png" width="420" alt="Tiptoe"></picture>
+  <picture><img src="https://conjius-dp.github.io/tiptoe/screenshot.png" width="560" alt="Tiptoe"></picture>
 </p>
 
 <p align="center">

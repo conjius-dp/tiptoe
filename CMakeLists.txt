@@ -83,3 +83,21 @@ target_compile_definitions(TiptoeTests
     PRIVATE
         JUCE_STANDALONE_APPLICATION=1
 )
+
+# --- Screenshot CLI ---
+# Headless renderer for the plugin editor — used by CI to generate the README image.
+# Links against Tiptoe_SharedCode so all plugin macros (JucePlugin_Name etc.) and
+# sources are available without re-declaring them here.
+add_executable(TiptoeScreenshot
+    Tools/Screenshot.cpp
+)
+
+target_include_directories(TiptoeScreenshot PRIVATE Source)
+
+target_link_libraries(TiptoeScreenshot
+    PRIVATE
+        Tiptoe
+        TiptoeBinaryData
+        juce::juce_audio_utils
+        juce::juce_gui_basics
+)
