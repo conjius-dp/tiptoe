@@ -7,7 +7,6 @@ on:
       - '**.md'
       - 'Assets/badges/**'
       - 'docs/**'
-      - '.gitignore'
       - 'LICENSE'
   pull_request:
     branches: [main]
@@ -15,7 +14,6 @@ on:
       - '**.md'
       - 'Assets/badges/**'
       - 'docs/**'
-      - '.gitignore'
       - 'LICENSE'
 
 permissions:
