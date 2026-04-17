@@ -578,9 +578,11 @@ void TiptoeAudioProcessorEditor::resized()
     int sliderTop = static_cast<int>(h) - sliderBottom; // symmetric around h/2
     int sliderH = sliderBottom - sliderTop;
 
-    // Translate slider Y into editor coordinates (the Y offsets below already
-    // have graphH added when we call setBounds).
-    const int sliderTopEditor = sliderTop + static_cast<int>(graphH);
+    // Translate slider Y into editor coordinates, with an extra tiny drop so
+    // the value pills sit a bit lower on the page (matches the knob-ring
+    // shift in drawRotarySlider, keeping the whole knob cluster aligned).
+    const float knobClusterExtraShift = 20.0f * (hTotal / static_cast<float>(KnobDesign::defaultHeight));
+    const int sliderTopEditor = sliderTop + static_cast<int>(graphH + knobClusterExtraShift);
 
     // Tighten slider bounds to match visible knob area
     float sliderBoundsW = knobColW * 0.90f;

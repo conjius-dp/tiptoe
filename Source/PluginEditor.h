@@ -30,7 +30,7 @@ public:
         float parentH = sh;
         if (auto* editor = getParentComponent())
             parentH = static_cast<float>(editor->getHeight());
-        const float knobShift = 70.0f * (parentH / static_cast<float>(KnobDesign::defaultHeight));
+        const float knobShift = 90.0f * (parentH / static_cast<float>(KnobDesign::defaultHeight));
 
         float d = juce::jmin(juce::jmin(sw, sh) * 0.78f, sw * 0.60f);
         float r = d * 0.5f;

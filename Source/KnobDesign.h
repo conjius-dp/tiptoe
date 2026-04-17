@@ -156,12 +156,14 @@ public:
         float radius = diameter * 0.5f;
 
         // Knob-graphics offset (ring + ticks + tick labels only — the value
-        // pill is drawn in drawLabel() off the slider text box bounds, so it
-        // stays put when this offset is applied).
+        // pill is drawn in drawLabel() off the slider text box bounds, so
+        // it moves via the slider's own setBounds() in the editor's
+        // resized(), not via this offset). Raised slightly so the knob
+        // cluster sits a touch lower on the page.
         float parentH = 0.0f;
         if (auto* editor = slider.getParentComponent())
             parentH = static_cast<float>(editor->getHeight());
-        const float knobShiftDown = 70.0f * (parentH > 0.0f
+        const float knobShiftDown = 90.0f * (parentH > 0.0f
                                              ? parentH / static_cast<float>(KnobDesign::defaultHeight)
                                              : 1.0f);
         float cx = bounds.getCentreX();
