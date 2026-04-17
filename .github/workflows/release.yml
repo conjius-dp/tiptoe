@@ -158,6 +158,15 @@ jobs:
           key: sccache-release-windows-${{ hashFiles('Source/**', 'CMakeLists.txt') }}
           restore-keys: sccache-release-windows-
 
+      - name: Cache CMake build directory
+        # Skips most of the CMake configure work when the build tree is restored —
+        # Ninja just checks stamps and rebuilds whatever actually changed.
+        uses: actions/cache@v4
+        with:
+          path: build
+          key: build-release-windows-${{ hashFiles('Source/**', 'Tools/**', 'CMakeLists.txt', '.github/workflows/release.yml') }}
+          restore-keys: build-release-windows-
+
       - name: Configure (Release)
         run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_C_COMPILER_LAUNCHER=sccache
 
@@ -241,6 +250,10 @@ jobs:
 
           sed -i "s/project(Tiptoe VERSION ${CURRENT})/project(Tiptoe VERSION ${NEW_VERSION})/" CMakeLists.txt
 
+          # Bust the README screenshot cache by updating the ?v= query param so
+          # GitHub's image proxy (camo) fetches the freshly-rendered PNG.
+          sed -i "s|screenshot.png?v=[^\"]*|screenshot.png?v=${NEW_VERSION}|" README.md
+
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v${NEW_VERSION}" >> "$GITHUB_OUTPUT"
 
@@ -248,7 +261,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CMakeLists.txt
+          git add CMakeLists.txt README.md
           git commit -m "Bump version to ${{ steps.version.outputs.tag }}"
           git push
 
