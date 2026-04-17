@@ -51,33 +51,45 @@ void SpectrumGraph::buildCurve(juce::Path& out,
     const float w = area.getWidth();
     const float h = area.getHeight();
 
-    bool started = false;
     const int N = static_cast<int>(mags.size());
 
-    for (int bin = 1; bin < N; ++bin) // skip DC
+    // Locate the first and last bins whose frequency falls inside the
+    // displayed range so we can anchor the curve at the graph's LEFT and
+    // RIGHT edges — otherwise bin 1 lands ~1 % inset from the left, making
+    // the curve look shorter on that side than on the right.
+    int firstIn = -1;
+    int lastIn  = -1;
+    for (int bin = 1; bin < N; ++bin)
     {
         const float f = binToFreq(bin);
         if (f < kFreqMin) continue;
         if (f > kFreqMax) break;
+        if (firstIn < 0) firstIn = bin;
+        lastIn = bin;
+    }
+    if (firstIn < 0)
+        return;
 
+    const float yFirst = area.getY() + magToY(mags[static_cast<size_t>(firstIn)] * scale, h);
+    out.startNewSubPath(area.getX(), yFirst);
+
+    for (int bin = firstIn; bin <= lastIn; ++bin)
+    {
+        const float f = binToFreq(bin);
         const float x = area.getX() + freqToX(f, w);
         const float y = area.getY() + magToY(mags[static_cast<size_t>(bin)] * scale, h);
-
-        if (! started)
-        {
-            out.startNewSubPath(x, y);
-            started = true;
-        }
-        else
-        {
-            out.lineTo(x, y);
-        }
+        out.lineTo(x, y);
     }
+
+    // Extend to the right edge with the last bin's value so the curve
+    // touches the right border symmetrically with the left.
+    const float yLast = area.getY() + magToY(mags[static_cast<size_t>(lastIn)] * scale, h);
+    out.lineTo(area.getRight(), yLast);
 }
 
 void SpectrumGraph::paint(juce::Graphics& g)
 {
-    const auto bounds = getLocalBounds().toFloat().reduced(2.0f);
+    const auto bounds = getLocalBounds().toFloat();
 
     // Soft grid — horizontal dB lines at every 20 dB.
     {
