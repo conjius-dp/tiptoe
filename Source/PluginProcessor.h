@@ -51,6 +51,7 @@ public:
     // for visualisation). Lock-free: audio thread writes a double-buffered
     // snapshot, UI reads the most recent one.
     void copyInputMagnitudes(std::vector<float>& out) const { gates[0].copyInputMagnitudes(out); }
+    void copyNoiseProfile(std::vector<float>& out) const { gates[0].copyNoiseProfile(out); }
     const std::vector<float>& getNoiseProfile() const { return gates[0].getNoiseProfile(); }
     double getDspSampleRate() const { return gates[0].getSampleRate(); }
     static constexpr int getFFTSize() { return SpectralGateTiptoe::kFFTSize; }

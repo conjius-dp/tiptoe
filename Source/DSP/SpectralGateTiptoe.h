@@ -42,6 +42,11 @@ public:
     // audio thread and read from the UI thread. `out` is resized to kNumBins.
     void copyInputMagnitudes(std::vector<float>& out) const;
 
+    // Visualisation: copy the current noise-profile snapshot. Before and
+    // after learning this is the final averaged profile; during learning it
+    // is the in-progress running average, published after every learn frame.
+    void copyNoiseProfile(std::vector<float>& out) const;
+
     // Sample rate the DSP was prepared with (0 if prepare() hasn't run yet).
     double getSampleRate() const { return sampleRate_; }
 
@@ -75,9 +80,15 @@ private:
     float lastProcessingTimeMs_ = 0.0f;
 
     // Visualisation snapshots — ping-pong double buffer of per-bin magnitudes
-    // for the most recent processed frame.
+    // for the most recent processed (or learned) frame.
     std::array<std::vector<float>, 2> inputMagSnapshots_;
     mutable std::atomic<int> inputMagWriteIndex_ { 0 };
+
+    // Double-buffered noise profile snapshot. Kept in sync with noiseProfile_
+    // on stopLearning() AND published incrementally on every learn frame
+    // (running average) so the UI can watch the profile form.
+    std::array<std::vector<float>, 2> noiseSnapshots_;
+    mutable std::atomic<int> noiseWriteIndex_ { 0 };
 
     // Cached sample rate from prepare() — used by the editor to label axes.
     double sampleRate_ = 0.0;

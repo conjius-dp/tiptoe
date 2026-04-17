@@ -197,7 +197,8 @@ void TiptoeAudioProcessorEditor::timerCallback()
         spectrumGraph.setThresholdMultiplier(thr);
 
         processorRef.copyInputMagnitudes(scratchInputMags);
-        spectrumGraph.setSnapshot(processorRef.getNoiseProfile(), scratchInputMags);
+        processorRef.copyNoiseProfile(scratchNoiseMags);
+        spectrumGraph.setSnapshot(scratchNoiseMags, scratchInputMags);
     }
 
     // Animate conjius logo hover state
