@@ -142,6 +142,14 @@ TiptoeAudioProcessorEditor::~TiptoeAudioProcessorEditor()
     stopTimer();
 }
 
+void TiptoeAudioProcessorEditor::setChromeVisible(bool visible)
+{
+    showChrome = visible;
+    latencyLabel.setVisible(visible);
+    latencyHitArea.setVisible(visible);
+    repaint();
+}
+
 void TiptoeAudioProcessorEditor::mouseMove(const juce::MouseEvent& e)
 {
     auto pos = getLocalPoint(e.eventComponent, e.getPosition());
@@ -177,9 +185,9 @@ void TiptoeAudioProcessorEditor::timerCallback()
     }
 
     // Animate hover colour interpolation for knobs and Learn button
-    auto animateHover = [](juce::Component& c, bool target) {
+    auto animateHover = [](juce::Component& c, bool hovered) {
         float current = static_cast<float>(c.getProperties().getWithDefault("hoverProgress", 0.0));
-        float dest = target ? 1.0f : 0.0f;
+        float dest = hovered ? 1.0f : 0.0f;
         if (std::abs(dest - current) > 0.002f)
         {
             current += (dest - current) * 0.22f;
@@ -210,11 +218,11 @@ void TiptoeAudioProcessorEditor::timerCallback()
     // Animate Learn button visual state transition (Start <-> Stop)
     {
         auto& props = learnButton.getProperties();
-        float target = static_cast<float>(props.getWithDefault("stateTarget", 0.0));
+        float stateDest = static_cast<float>(props.getWithDefault("stateTarget", 0.0));
         float current = static_cast<float>(props.getWithDefault("stateProgress", 0.0));
-        if (std::abs(target - current) > 0.002f)
+        if (std::abs(stateDest - current) > 0.002f)
         {
-            current += (target - current) * 0.20f;
+            current += (stateDest - current) * 0.20f;
             props.set("stateProgress", current);
             learnButton.repaint();
         }
@@ -273,16 +281,14 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
 {
     g.fillAll(KnobDesign::bgColour);
 
-    // Draw conjius logo in bottom-left corner — inside the orange border
-    // padding so it sits cleanly within the bordered region.
-    if (logoImage.isValid())
+    // Draw conjius logo in bottom-left corner — darker by default, brightens and grows on hover
+    if (logoImage.isValid() && showChrome)
     {
         float scale = static_cast<float>(getWidth()) / static_cast<float>(KnobDesign::defaultWidth);
         int baseSize = static_cast<int>(37.5f * scale);
-        int padPx = static_cast<int>(20.0f * scale); // matches editor border inset
         int padLeft = baseSize / 3;
-        int baseX = padPx + padLeft;
-        int baseY = getHeight() - padPx - baseSize;
+        int baseX = padLeft;
+        int baseY = getHeight() - baseSize;
         logoBounds = { baseX, baseY, baseSize, baseSize };
 
         float hoverScale = 1.0f + 0.2f * logoHoverProgress; // 1.0 -> 1.2
@@ -323,9 +329,7 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
         g.setFont(subFont);
         // Two-line, left-aligned subtitle with the rect sized exactly to the
         // widest line so the "container" matches the text's actual width.
-        juce::GlyphArrangement ga;
-        ga.addLineOfText(subFont, "DENOISER", 0.0f, 0.0f);
-        const float subW = ga.getBoundingBox(0, ga.getNumGlyphs(), true).getWidth();
+        const float subW = KnobDesign::stringWidth(subFont, "DENOISER");
         float subX = titleX + titleW * 0.48f;
         float subY = titleY + titleH * 0.70f;
         const float subLineH = subFontSize * 1.1f;
@@ -373,8 +377,8 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
     // "Learning" + animated dots
     if (alphaLearning > 0.001f)
     {
-        float learningW = labelFontLearn.getStringWidthFloat("LEARNING");
-        float dotW      = labelFontLearn.getStringWidthFloat(".");
+        float learningW = KnobDesign::stringWidth(labelFontLearn, "LEARNING");
+        float dotW      = KnobDesign::stringWidth(labelFontLearn, ".");
         float dotSpacing = dotW * 0.55f; // tighter than the glyph advance
         float fullW     = learningW + 3.0f * dotSpacing;
 
@@ -479,13 +483,6 @@ void TiptoeAudioProcessorEditor::resized()
     float w = static_cast<float>(getWidth());
     float h = static_cast<float>(getHeight());
     float margin = w * 0.05f;
-
-    // Title logo takes up top slice; shift knob/button UI down by this amount
-    float titleOffset = h * 0.18f;
-    // Labels sit higher — just below the title, with smaller offset
-    float labelTitleOffset = h * 0.08f;
-    // Extra vertical space between parameter labels and the knobs
-    float labelKnobGap = h * 0.09f;
 
     // Two knob columns: left 40%, right 40%, centre 20%
     float knobColW = w * 0.40f;
@@ -659,12 +656,11 @@ void TiptoeAudioProcessorEditor::resized()
     latencyLabel.setFont(conjusLAF.getRegularFont(latencyFontSize));
     latencyLabel.setJustificationType(juce::Justification::centredBottom);
     int latencyH = static_cast<int>(latencyFontSize * 2.0f);
-    const int padPx = static_cast<int>(20.0f * w / static_cast<float>(KnobDesign::defaultWidth));
-    latencyBaseBounds = { 0, getHeight() - latencyH - padPx, getWidth(), latencyH };
+    latencyBaseBounds = { 0, getHeight() - latencyH, getWidth(), latencyH };
     latencyBaseFontSize = latencyFontSize;
     // Hit area: narrow — matches the actual text width with a small horizontal pad
     auto latencyFont = conjusLAF.getRegularFont(latencyFontSize);
-    int textW = static_cast<int>(latencyFont.getStringWidthFloat("LATENCY: 0.000ms"));
+    int textW = static_cast<int>(KnobDesign::stringWidth(latencyFont, "LATENCY: 0.000ms"));
     int hitPadX = static_cast<int>(latencyFontSize * 0.8f);
     int hitPadY = latencyH;
     int hitW = textW + 2 * hitPadX;

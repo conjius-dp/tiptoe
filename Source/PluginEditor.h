@@ -10,7 +10,7 @@ class AnimatedSlider : public juce::Slider
 public:
     std::function<void()> onDoubleClick;
 
-    void mouseDoubleClick(const juce::MouseEvent& e) override
+    void mouseDoubleClick(const juce::MouseEvent&) override
     {
         if (onDoubleClick)
             onDoubleClick();
@@ -58,7 +58,12 @@ public:
     void mouseMove(const juce::MouseEvent& e) override;
     void mouseExit(const juce::MouseEvent& e) override;
 
+    // Hide the conjius logo + latency label — used by the headless screenshot
+    // tool so the README image doesn't include the footer chrome.
+    void setChromeVisible(bool visible);
+
 private:
+    bool showChrome = true;
     void timerCallback() override;
 
     TiptoeAudioProcessor& processorRef;

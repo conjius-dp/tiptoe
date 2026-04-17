@@ -43,6 +43,15 @@ namespace KnobDesign
         float degrees = rotationStartAngle + norm01 * (rotationEndAngle - rotationStartAngle);
         return juce::degreesToRadians(degrees);
     }
+
+    // Non-deprecated replacement for juce::Font::getStringWidthFloat (which
+    // was marked deprecated in JUCE 8 in favour of GlyphArrangement).
+    inline float stringWidth(const juce::Font& font, const juce::String& text)
+    {
+        juce::GlyphArrangement ga;
+        ga.addLineOfText(font, text, 0.0f, 0.0f);
+        return ga.getBoundingBox(0, -1, true).getWidth();
+    }
 }
 
 // ── Knob type: determines tick labels and pill format ──
@@ -262,7 +271,7 @@ public:
         // Middle label (above tick)
         float aMid = normToAngleRad(defaultNorm);
         float topLabelR = tickEndR + markerFontSize * 0.3f;
-        float midLabelW = getBoldFont(markerFontSize).getStringWidthFloat(midLabel);
+        float midLabelW = KnobDesign::stringWidth(getBoldFont(markerFontSize), midLabel);
         float midXShift = (knobType == KnobType::Threshold) ? -midLabelW * 0.5f : 0.0f;
         float midYShift = (knobType == KnobType::Threshold) ? markerFontSize * 0.3f : 0.0f;
         float lxM = cx + std::sin(aMid) * topLabelR + midXShift;
@@ -280,9 +289,6 @@ public:
         if (isSliderTextBox)
         {
             auto text = label.getText();
-            auto font = label.getFont();
-            float baseHeight = font.getHeight();
-
             auto* slider = dynamic_cast<juce::Slider*>(label.getParentComponent());
             auto knobType = slider ? getKnobType(*slider) : KnobType::Threshold;
 
@@ -297,7 +303,7 @@ public:
             float suffixFontSize = (knobType == KnobType::Threshold) ? pillFontSize * 1.3f : pillFontSize;
             auto suffixFont = (knobType == KnobType::Threshold) ? getRegularFont(suffixFontSize) : getBoldFont(suffixFontSize);
 
-            float suffixW = suffixFont.getStringWidthFloat(suffix);
+            float suffixW = KnobDesign::stringWidth(suffixFont, suffix);
 
             // Parse value from text
             juce::String valueStr = text;
@@ -316,11 +322,11 @@ public:
 
             // Minus sign
             auto minusStr = juce::String(juce::CharPointer_UTF8("\xe2\x88\x92"));
-            float minusW = pillFont.getStringWidthFloat(minusStr);
+            float minusW = KnobDesign::stringWidth(pillFont, minusStr);
             float minusGap = pillFontSize * 0.15f;
 
-            float digitsW = pillFont.getStringWidthFloat(digits);
-            float numW = pillFont.getStringWidthFloat("99.9");
+            float digitsW = KnobDesign::stringWidth(pillFont, digits);
+            float numW = KnobDesign::stringWidth(pillFont, "99.9");
             float valueZoneW = juce::jmax(digitsW, numW);
 
             float pillH = pillFontSize * 1.5f;
@@ -330,7 +336,7 @@ public:
             // Both pills use the same width (matched to the wider reduction layout)
             // Compute reduction-style width: [pad | minus | gap | digits | dB | pad]
             auto reductionSuffix = juce::String(" dB");
-            float reductionSuffixW = getBoldFont(pillFontSize).getStringWidthFloat(reductionSuffix);
+            float reductionSuffixW = KnobDesign::stringWidth(getBoldFont(pillFontSize), reductionSuffix);
             float pillW = padLeft + minusW + minusGap + valueZoneW + reductionSuffixW + padRight;
 
             float labelW = static_cast<float>(label.getWidth());
