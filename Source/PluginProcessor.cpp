@@ -84,11 +84,13 @@ void TiptoeAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     int numSamples = buffer.getNumSamples();
 
-    // Feed audio for noise learning if active
+    // Feed audio for noise learning if active, and pass the input straight through
+    // (no gating applied while learning) so the user hears the unaffected signal.
     if (learning_)
     {
         for (int ch = 0; ch < std::min(totalNumInputChannels, 2); ++ch)
             gates[ch].learnFromBlock(buffer.getReadPointer(ch), numSamples);
+        return;
     }
 
     // Process each channel

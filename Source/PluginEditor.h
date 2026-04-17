@@ -27,6 +27,8 @@ public:
 
     void paint(juce::Graphics&) override;
     void resized() override;
+    void mouseMove(const juce::MouseEvent& e) override;
+    void mouseExit(const juce::MouseEvent& e) override;
 
 private:
     void timerCallback() override;
@@ -46,6 +48,17 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> reductionAttachment;
 
     juce::Image logoImage;
+    juce::Image titleLogoImage;
+
+    // Conjius logo hover animation (darker -> bright + scale up on hover)
+    juce::Rectangle<int> logoBounds;
+    bool  logoHoverTarget   = false;
+    float logoHoverProgress = 0.0f; // 0 = dim+normal size, 1 = bright + 1.2x
+
+    // "Learn" / "Learning..." text crossfade + animated dots
+    juce::Rectangle<int> learnTextBounds;
+    float learningTextProgress = 0.0f; // 0 = "Learn", 1 = "Learning..."
+    float dotAnimPhase         = 0.0f; // 0..1 loops while learning
 
     // ── Snap-to-default animation ──
     struct SliderAnimation

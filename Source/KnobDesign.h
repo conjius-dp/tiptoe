@@ -4,8 +4,9 @@
 namespace KnobDesign
 {
     // ── Colors (matching conji.us) ──
-    inline const juce::Colour bgColour       { 0xff111111 };  // #111
-    inline const juce::Colour accentColour   { 0xffd48300 };  // #d48300
+    inline const juce::Colour bgColour         { 0xff111111 };  // #111
+    inline const juce::Colour accentColour     { 0xffd48300 };  // #d48300
+    inline const juce::Colour accentHoverColour{ 0xffe89a1a };  // #e89a1a (lighter orange for hover/press)
 
     // ── Knob geometry (proportional to diameter) ──
     inline constexpr float knobStrokeFrac    = 0.033f;
@@ -26,7 +27,7 @@ namespace KnobDesign
     inline constexpr float labelFontScale    = 0.18f;
     inline constexpr float gainLabelScale    = 0.06f;
     inline constexpr float dbTextScale       = 0.06f;
-    inline constexpr float latencyTextScale  = 0.03f;
+    inline constexpr float latencyTextScale  = 0.017f;
 
     // ── Window ──
     inline constexpr int   defaultWidth      = 650;
@@ -107,7 +108,7 @@ public:
         // Use the slider's allocated area to determine knob size
         float sliderW = bounds.getWidth();
         float sliderH = bounds.getHeight();
-        float diameter = juce::jmin(sliderW, sliderH) * 0.624f;
+        float diameter = juce::jmin(sliderW, sliderH) * 0.78f;
         float radius = diameter * 0.5f;
         float cx = bounds.getCentreX();
         float cy = bounds.getCentreY() - diameter * 0.08f;
@@ -116,8 +117,13 @@ public:
         float indW = diameter * indicatorWidthFrac;
         float tickW = diameter * tickStrokeFrac;
 
+        // Interactive colour: smoothly interpolate toward lighter orange based on hover/drag progress
+        float hoverProgress = static_cast<float>(
+            slider.getProperties().getWithDefault("hoverProgress", 0.0));
+        auto interactiveColour = accentColour.interpolatedWith(accentHoverColour, hoverProgress);
+
         // ── Draw knob circle ──
-        g.setColour(accentColour);
+        g.setColour(interactiveColour);
         g.drawEllipse(cx - radius + strokeW * 0.5f,
                       cy - radius + strokeW * 0.5f,
                       diameter - strokeW,
@@ -174,7 +180,7 @@ public:
         // ── Draw tick labels ──
         float fontSize = diameter * labelFontScale;
         float markerFontSize = fontSize * 0.85f;
-        g.setColour(accentColour);
+        g.setColour(interactiveColour);
         g.setFont(getBoldFont(markerFontSize));
 
         float labelR = tickEndR + markerFontSize * 0.8f;
@@ -216,7 +222,7 @@ public:
         float aMid = normToAngleRad(defaultNorm);
         float topLabelR = tickEndR + markerFontSize * 0.3f;
         float midLabelW = getBoldFont(markerFontSize).getStringWidthFloat(midLabel);
-        float midXShift = (knobType == KnobType::Threshold) ? -midLabelW * 0.5f : midLabelW * 0.15f;
+        float midXShift = (knobType == KnobType::Threshold) ? -midLabelW * 0.5f : 0.0f;
         float midYShift = (knobType == KnobType::Threshold) ? markerFontSize * 0.3f : 0.0f;
         float lxM = cx + std::sin(aMid) * topLabelR + midXShift;
         float lyM = cy - std::cos(aMid) * topLabelR - markerFontSize * 0.5f + midYShift;
@@ -288,13 +294,21 @@ public:
 
             float labelW = static_cast<float>(label.getWidth());
             float pillX = (labelW - pillW) * 0.5f;
-            float pillUpShift = pillFontSize * 3.0f;
+            float pillUpShift = pillFontSize * 2.0f;
             float pillY = (static_cast<float>(label.getHeight()) - pillH) * 0.5f - pillUpShift;
 
             auto pillBounds = juce::Rectangle<float>(pillX, pillY, pillW, pillH);
 
+            // Interactive pill colour: smoothly interpolate based on parent slider's hover progress
+            float pillHoverProgress = 0.0f;
+            if (auto* parentSlider = label.findParentComponentOfClass<juce::Slider>())
+                pillHoverProgress = static_cast<float>(
+                    parentSlider->getProperties().getWithDefault("hoverProgress", 0.0));
+            auto pillFillColour = KnobDesign::accentColour
+                .interpolatedWith(KnobDesign::accentHoverColour, pillHoverProgress);
+
             // Draw orange pill
-            g.setColour(KnobDesign::accentColour);
+            g.setColour(pillFillColour);
             g.fillRoundedRectangle(pillBounds, pillH * 0.5f);
 
             g.setColour(KnobDesign::bgColour);

@@ -45,6 +45,7 @@ target_sources(Tiptoe
 juce_add_binary_data(TiptoeBinaryData
     SOURCES
         Assets/conjius-avatar-transparent-bg.png
+        Assets/tiptoe-logo-orange.png
         Assets/Inconsolata-Bold.ttf
         Assets/Inconsolata-Regular.ttf)
 
