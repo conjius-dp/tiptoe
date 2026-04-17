@@ -32,17 +32,17 @@
             <td></td>
             <td class="headerItem">Lines:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
-            <td class="headerCovTableEntry">1</td>
-            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntry">5</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-04-17 14:13:58</td>
+            <td class="headerValue">2026-04-17 17:55:25</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
-            <td class="headerCovTableEntry">1</td>
-            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntry">5</td>
           </tr>
                   <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
                 </table>
@@ -99,7 +99,7 @@
 <span id="L37"><span class="lineNum">      37</span>              :     void getStateInformation(juce::MemoryBlock&amp; destData) override;</span>
 <span id="L38"><span class="lineNum">      38</span>              :     void setStateInformation(const void* data, int sizeInBytes) override;</span>
 <span id="L39"><span class="lineNum">      39</span>              : </span>
-<span id="L40"><span class="lineNum">      40</span> <span class="tlaGNC">          20 :     juce::AudioProcessorValueTreeState&amp; getAPVTS() { return apvts; }</span></span>
+<span id="L40"><span class="lineNum">      40</span> <span class="tlaGNC">         101 :     juce::AudioProcessorValueTreeState&amp; getAPVTS() { return apvts; }</span></span>
 <span id="L41"><span class="lineNum">      41</span>              : </span>
 <span id="L42"><span class="lineNum">      42</span>              :     // Noise learning control</span>
 <span id="L43"><span class="lineNum">      43</span>              :     void startLearning();</span>
@@ -109,19 +109,29 @@
 <span id="L47"><span class="lineNum">      47</span>              :     // Processing latency (max of both channels)</span>
 <span id="L48"><span class="lineNum">      48</span>              :     float getLastProcessingTimeMs() const;</span>
 <span id="L49"><span class="lineNum">      49</span>              : </span>
-<span id="L50"><span class="lineNum">      50</span>              :     // Editor size persistence</span>
-<span id="L51"><span class="lineNum">      51</span>              :     std::atomic&lt;int&gt; editorWidth  { KnobDesign::defaultWidth };</span>
-<span id="L52"><span class="lineNum">      52</span>              :     std::atomic&lt;int&gt; editorHeight { KnobDesign::defaultHeight };</span>
-<span id="L53"><span class="lineNum">      53</span>              : </span>
-<span id="L54"><span class="lineNum">      54</span>              : private:</span>
-<span id="L55"><span class="lineNum">      55</span>              :     juce::AudioProcessorValueTreeState apvts;</span>
-<span id="L56"><span class="lineNum">      56</span>              :     SpectralGateTiptoe gates[2]; // one per stereo channel</span>
-<span id="L57"><span class="lineNum">      57</span>              :     bool learning_ = false;</span>
-<span id="L58"><span class="lineNum">      58</span>              : </span>
-<span id="L59"><span class="lineNum">      59</span>              :     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();</span>
-<span id="L60"><span class="lineNum">      60</span>              : </span>
-<span id="L61"><span class="lineNum">      61</span>              :     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TiptoeAudioProcessor)</span>
-<span id="L62"><span class="lineNum">      62</span>              : };</span>
+<span id="L50"><span class="lineNum">      50</span>              :     // Spectrum-graph accessors (read from the first channel — mono-safe view</span>
+<span id="L51"><span class="lineNum">      51</span>              :     // for visualisation). Lock-free: audio thread writes a double-buffered</span>
+<span id="L52"><span class="lineNum">      52</span>              :     // snapshot, UI reads the most recent one.</span>
+<span id="L53"><span class="lineNum">      53</span> <span class="tlaGNC">          81 :     void copyInputMagnitudes(std::vector&lt;float&gt;&amp; out) const { gates[0].copyInputMagnitudes(out); }</span></span>
+<span id="L54"><span class="lineNum">      54</span> <span class="tlaGNC">          81 :     void copyNoiseProfile(std::vector&lt;float&gt;&amp; out) const { gates[0].copyNoiseProfile(out); }</span></span>
+<span id="L55"><span class="lineNum">      55</span>              :     const std::vector&lt;float&gt;&amp; getNoiseProfile() const { return gates[0].getNoiseProfile(); }</span>
+<span id="L56"><span class="lineNum">      56</span> <span class="tlaGNC">          95 :     double getDspSampleRate() const { return gates[0].getSampleRate(); }</span></span>
+<span id="L57"><span class="lineNum">      57</span> <span class="tlaGNC">          10 :     static constexpr int getFFTSize() { return SpectralGateTiptoe::kFFTSize; }</span></span>
+<span id="L58"><span class="lineNum">      58</span>              :     static constexpr int getNumBins() { return SpectralGateTiptoe::kNumBins; }</span>
+<span id="L59"><span class="lineNum">      59</span>              : </span>
+<span id="L60"><span class="lineNum">      60</span>              :     // Editor size persistence</span>
+<span id="L61"><span class="lineNum">      61</span>              :     std::atomic&lt;int&gt; editorWidth  { KnobDesign::defaultWidth };</span>
+<span id="L62"><span class="lineNum">      62</span>              :     std::atomic&lt;int&gt; editorHeight { KnobDesign::defaultHeight };</span>
+<span id="L63"><span class="lineNum">      63</span>              : </span>
+<span id="L64"><span class="lineNum">      64</span>              : private:</span>
+<span id="L65"><span class="lineNum">      65</span>              :     juce::AudioProcessorValueTreeState apvts;</span>
+<span id="L66"><span class="lineNum">      66</span>              :     SpectralGateTiptoe gates[2]; // one per stereo channel</span>
+<span id="L67"><span class="lineNum">      67</span>              :     bool learning_ = false;</span>
+<span id="L68"><span class="lineNum">      68</span>              : </span>
+<span id="L69"><span class="lineNum">      69</span>              :     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();</span>
+<span id="L70"><span class="lineNum">      70</span>              : </span>
+<span id="L71"><span class="lineNum">      71</span>              :     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TiptoeAudioProcessor)</span>
+<span id="L72"><span class="lineNum">      72</span>              : };</span>
         </pre>
               </td>
             </tr>
