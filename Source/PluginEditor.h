@@ -2,6 +2,7 @@
 
 #include "PluginProcessor.h"
 #include "KnobDesign.h"
+#include "SpectrumGraph.h"
 #include "BinaryData.h"
 
 // ── Slider subclass that delegates double-click to the editor ──
@@ -76,6 +77,11 @@ private:
     juce::Label latencyLabel   { {}, "LATENCY: 0.000ms" };
 
     juce::TextButton learnButton { "START" };
+
+    SpectrumGraph spectrumGraph;
+
+    // Reused buffers for spectrum snapshots so we don't allocate per frame.
+    std::vector<float> scratchInputMags;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> reductionAttachment;

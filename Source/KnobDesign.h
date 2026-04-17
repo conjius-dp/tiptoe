@@ -30,12 +30,16 @@ namespace KnobDesign
     inline constexpr float latencyTextScale  = 0.017f;
 
     // ── Window ──
+    // Taller default than before so the spectrum graph fits above the knobs.
     inline constexpr int   defaultWidth      = 650;
-    inline constexpr int   defaultHeight     = 360;
+    inline constexpr int   defaultHeight     = 540;
     inline constexpr int   minWidth          = 400;
-    inline constexpr int   minHeight         = 280;
+    inline constexpr int   minHeight         = 420;
     inline constexpr int   maxWidth          = 1000;
-    inline constexpr int   maxHeight         = 700;
+    inline constexpr int   maxHeight         = 900;
+
+    // Fraction of the window height occupied by the spectrum graph at the top.
+    inline constexpr float graphAreaFrac     = 0.36f;
 
     // ── Angle helpers ──
     inline float normToAngleRad(float norm01)

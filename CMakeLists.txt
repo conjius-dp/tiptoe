@@ -39,7 +39,9 @@ target_sources(Tiptoe
     PRIVATE
         Source/PluginProcessor.cpp
         Source/PluginEditor.cpp
+        Source/SpectrumGraph.cpp
         Source/KnobDesign.h
+        Source/SpectrumGraph.h
 )
 
 juce_add_binary_data(TiptoeBinaryData

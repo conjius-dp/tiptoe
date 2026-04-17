@@ -92,6 +92,14 @@ TiptoeAudioProcessorEditor::TiptoeAudioProcessorEditor(TiptoeAudioProcessor& p)
     learnButton.setMouseCursor(juce::MouseCursor::PointingHandCursor);
     addAndMakeVisible(learnButton);
 
+    // ── Spectrum graph ──
+    spectrumGraph.setFftSize(TiptoeAudioProcessor::getFFTSize());
+    spectrumGraph.setSampleRate(processorRef.getDspSampleRate() > 0.0
+                                    ? processorRef.getDspSampleRate()
+                                    : 44100.0);
+    spectrumGraph.setInterceptsMouseClicks(false, false);
+    addAndMakeVisible(spectrumGraph);
+
     // ── Latency label ──
     latencyLabel.setJustificationType(juce::Justification::centredLeft);
     latencyLabel.setColour(juce::Label::textColourId, KnobDesign::accentColour.darker(0.3f));
@@ -174,6 +182,22 @@ void TiptoeAudioProcessorEditor::timerCallback()
         float ms = processorRef.getLastProcessingTimeMs();
         latencyLabel.setText("LATENCY: " + juce::String(ms, 3) + "ms",
                              juce::dontSendNotification);
+    }
+
+    // Pump the spectrum graph with the latest noise profile + live input
+    // snapshot, and the current threshold value so the threshold curve slides
+    // as the user drags the knob.
+    {
+        const double dspRate = processorRef.getDspSampleRate();
+        if (dspRate > 0.0)
+            spectrumGraph.setSampleRate(dspRate);
+
+        const float thr = processorRef.getAPVTS()
+                              .getRawParameterValue("threshold")->load();
+        spectrumGraph.setThresholdMultiplier(thr);
+
+        processorRef.copyInputMagnitudes(scratchInputMags);
+        spectrumGraph.setSnapshot(processorRef.getNoiseProfile(), scratchInputMags);
     }
 
     // Animate conjius logo hover state
@@ -309,7 +333,11 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
     }
 
     float w = static_cast<float>(getWidth());
-    float h = static_cast<float>(getHeight());
+    const float hTotal = static_cast<float>(getHeight());
+    // Match resized(): knob-area ratios are relative to the sub-window
+    // beneath the spectrum graph. Add graphH when translating to editor Y.
+    const float graphH = hTotal * KnobDesign::graphAreaFrac;
+    float h = hTotal - graphH;
 
     // Draw title logo at top-centre (small)
     if (titleLogoImage.isValid())
@@ -319,7 +347,7 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
                      / static_cast<float>(titleLogoImage.getHeight());
         float titleW = titleH * aspect;
         float titleX = (w - titleW) * 0.5f;
-        float titleY = h * 0.24f; // title+subtitle raised higher
+        float titleY = graphH + h * 0.24f; // title+subtitle raised higher
         g.drawImage(titleLogoImage,
                     juce::Rectangle<float>(titleX, titleY, titleW, titleH),
                     juce::RectanglePlacement::centred);
@@ -360,7 +388,7 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
     // Centre column between the two knobs — text sits just above the button
     float centreX = w * 0.5f;
     float btnH = h * 0.07f;
-    float btnY = h * 0.68f - btnH * 0.5f;
+    float btnY = h * 0.68f - btnH * 0.5f + graphH;
     float labelY = btnY - learnFontSize * 1.25f; // closer to the START/STOP button
 
     // Crossfade alphas between "Learn" and "Learning" (without the dots)
@@ -483,7 +511,23 @@ void TiptoeAudioProcessorEditor::resized()
     }
 
     float w = static_cast<float>(getWidth());
-    float h = static_cast<float>(getHeight());
+    const float hTotal = static_cast<float>(getHeight());
+
+    // Spectrum graph fills the top slice of the window, inset slightly so
+    // it sits inside the orange border.
+    const float pad = 20.0f * (w / static_cast<float>(KnobDesign::defaultWidth));
+    const float graphH = hTotal * KnobDesign::graphAreaFrac;
+    spectrumGraph.setBounds(static_cast<int>(pad),
+                            static_cast<int>(pad),
+                            static_cast<int>(w - 2.0f * pad),
+                            static_cast<int>(graphH - pad));
+
+    // All knob-area positioning below works in the SUB-window beneath the
+    // graph. Keep `h` as the remaining height so the existing ratios still
+    // map the knob/button/pill the way they used to; each setBounds()/paint
+    // Y gets `graphH` added back to translate into editor coords.
+    float h = hTotal - graphH;
+
     float margin = w * 0.05f;
 
     // Two knob columns: left 40%, right 40%, centre 20%
@@ -492,8 +536,8 @@ void TiptoeAudioProcessorEditor::resized()
     float knobColX0 = margin;
     float knobColX1 = w - margin - knobColW;
 
-    // ── Parameter labels at top ──
-    // Smaller font and positioned just below the orange border, above the
+    // ── Parameter labels ──
+    // Smaller font and positioned just below the graph area, above the
     // mid-tick label of each knob. The previous larger label collided with
     // the Reduction knob's centred "-30" top-tick label.
     float labelFontSize = w * KnobDesign::gainLabelScale / 2.5f;
@@ -502,21 +546,24 @@ void TiptoeAudioProcessorEditor::resized()
     reductionLabel.setFont(labelFont);
 
     int labelH = static_cast<int>(labelFontSize * 1.2f);
-    // More air between the labels and the top orange border than before.
-    int labelY = static_cast<int>(h * 0.12f);
+    int labelY = static_cast<int>(graphH + h * 0.04f);
     thresholdLabel.setBounds(static_cast<int>(knobColX0), labelY,
                              static_cast<int>(knobColW), labelH);
     reductionLabel.setBounds(static_cast<int>(knobColX1), labelY,
                              static_cast<int>(knobColW), labelH);
 
     // ── Knob sliders ──
-    // Expand slider bounds so the knob (centred at windowH/2) is drawn entirely
-    // INSIDE the slider's own bounds — avoids the hover-highlight arc being
-    // clipped by sibling components / parent clip regions.
+    // Expand slider bounds so the knob (centred at the knob-area's midpoint)
+    // is drawn entirely INSIDE the slider's own bounds — avoids the hover
+    // highlight being clipped by sibling components / parent clip regions.
     float dbFontSize = w * KnobDesign::dbTextScale;
     int sliderBottom = static_cast<int>(h * 0.96f);
     int sliderTop = static_cast<int>(h) - sliderBottom; // symmetric around h/2
     int sliderH = sliderBottom - sliderTop;
+
+    // Translate slider Y into editor coordinates (the Y offsets below already
+    // have graphH added when we call setBounds).
+    const int sliderTopEditor = sliderTop + static_cast<int>(graphH);
 
     // Tighten slider bounds to match visible knob area
     float sliderBoundsW = knobColW * 0.90f;
@@ -528,12 +575,12 @@ void TiptoeAudioProcessorEditor::resized()
 
     thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, textBoxW, textBoxH);
     thresholdSlider.setMouseDragSensitivity(static_cast<int>(w * 0.5f));
-    thresholdSlider.setBounds(static_cast<int>(sliderOffset0), sliderTop,
+    thresholdSlider.setBounds(static_cast<int>(sliderOffset0), sliderTopEditor,
                               static_cast<int>(sliderBoundsW), sliderH);
 
     reductionSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, textBoxW, textBoxH);
     reductionSlider.setMouseDragSensitivity(static_cast<int>(w * 0.5f));
-    reductionSlider.setBounds(static_cast<int>(sliderOffset1), sliderTop,
+    reductionSlider.setBounds(static_cast<int>(sliderOffset1), sliderTopEditor,
                               static_cast<int>(sliderBoundsW), sliderH);
 
     // Update text box fonts and allow pills to paint above label bounds
@@ -559,7 +606,7 @@ void TiptoeAudioProcessorEditor::resized()
     float btnW = centreColW * 0.75f;
     float btnH = h * 0.07f;
     float btnX = w * 0.5f - btnW * 0.5f;
-    float btnY = h * 0.68f - btnH * 0.5f;
+    float btnY = h * 0.68f - btnH * 0.5f + graphH;
 
     learnButton.setBounds(static_cast<int>(btnX), static_cast<int>(btnY),
                           static_cast<int>(btnW), static_cast<int>(btnH));

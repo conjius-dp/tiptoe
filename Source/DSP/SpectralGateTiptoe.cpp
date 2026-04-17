@@ -8,8 +8,10 @@ SpectralGateTiptoe::SpectralGateTiptoe()
 {
 }
 
-void SpectralGateTiptoe::prepare(double /*sampleRate*/, int /*maxBlockSize*/)
+void SpectralGateTiptoe::prepare(double sampleRate, int /*maxBlockSize*/)
 {
+    sampleRate_ = sampleRate;
+
     // Hann window
     window.resize(kFFTSize);
     for (int i = 0; i < kFFTSize; ++i)
@@ -35,6 +37,10 @@ void SpectralGateTiptoe::prepare(double /*sampleRate*/, int /*maxBlockSize*/)
 
     learnFifo_.resize(kFFTSize, 0.0f);
     learnFifoIndex_ = 0;
+
+    for (auto& buf : inputMagSnapshots_)
+        buf.assign(kNumBins, 0.0f);
+    inputMagWriteIndex_.store(0, std::memory_order_relaxed);
 }
 
 void SpectralGateTiptoe::reset()
@@ -147,6 +153,14 @@ float SpectralGateTiptoe::getLastProcessingTimeMs() const
     return lastProcessingTimeMs_;
 }
 
+void SpectralGateTiptoe::copyInputMagnitudes(std::vector<float>& out) const
+{
+    const int readIdx = inputMagWriteIndex_.load(std::memory_order_acquire);
+    const auto& src = inputMagSnapshots_[static_cast<size_t>(readIdx)];
+    out.resize(src.size());
+    std::copy(src.begin(), src.end(), out.begin());
+}
+
 void SpectralGateTiptoe::processMono(float* samples, int numSamples)
 {
     auto start = std::chrono::high_resolution_clock::now();
@@ -185,6 +199,20 @@ void SpectralGateTiptoe::processFrame()
     std::fill(fftWorkspace.begin() + kFFTSize, fftWorkspace.end(), 0.0f);
 
     fft.performRealOnlyForwardTransform(fftWorkspace.data());
+
+    // Snapshot per-bin magnitudes into the inactive buffer before gating
+    // modifies anything — then flip the write index so UI readers see it.
+    {
+        const int writeIdx = (inputMagWriteIndex_.load(std::memory_order_relaxed) + 1) & 1;
+        auto& dst = inputMagSnapshots_[static_cast<size_t>(writeIdx)];
+        for (int i = 0; i < kNumBins; ++i)
+        {
+            const float re = fftWorkspace[i * 2];
+            const float im = fftWorkspace[i * 2 + 1];
+            dst[static_cast<size_t>(i)] = std::sqrt(re * re + im * im);
+        }
+        inputMagWriteIndex_.store(writeIdx, std::memory_order_release);
+    }
 
     // Spectral gate — compare squared magnitudes (no sqrt)
     if (hasNoiseProfile_)

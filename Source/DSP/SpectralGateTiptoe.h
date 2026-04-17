@@ -1,6 +1,8 @@
 #pragma once
 
 #include <juce_dsp/juce_dsp.h>
+#include <array>
+#include <atomic>
 #include <vector>
 #include <chrono>
 
@@ -35,6 +37,14 @@ public:
     void setThreshold(float thresholdMultiplier);
     void setReduction(float reductionDB);
 
+    // Visualisation: copy the most recent input frame magnitude spectrum.
+    // Lock-free double-buffered snapshot written from processFrame() on the
+    // audio thread and read from the UI thread. `out` is resized to kNumBins.
+    void copyInputMagnitudes(std::vector<float>& out) const;
+
+    // Sample rate the DSP was prepared with (0 if prepare() hasn't run yet).
+    double getSampleRate() const { return sampleRate_; }
+
 private:
     juce::dsp::FFT fft;
 
@@ -63,6 +73,14 @@ private:
 
     // Timing
     float lastProcessingTimeMs_ = 0.0f;
+
+    // Visualisation snapshots — ping-pong double buffer of per-bin magnitudes
+    // for the most recent processed frame.
+    std::array<std::vector<float>, 2> inputMagSnapshots_;
+    mutable std::atomic<int> inputMagWriteIndex_ { 0 };
+
+    // Cached sample rate from prepare() — used by the editor to label axes.
+    double sampleRate_ = 0.0;
 
     // Parameters
     float thresholdMultiplier_ = 1.5f;
