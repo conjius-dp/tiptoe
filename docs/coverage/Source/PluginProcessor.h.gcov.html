@@ -37,7 +37,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-04-17 17:55:25</td>
+            <td class="headerValue">2026-04-17 18:24:06</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -99,7 +99,7 @@
 <span id="L37"><span class="lineNum">      37</span>              :     void getStateInformation(juce::MemoryBlock&amp; destData) override;</span>
 <span id="L38"><span class="lineNum">      38</span>              :     void setStateInformation(const void* data, int sizeInBytes) override;</span>
 <span id="L39"><span class="lineNum">      39</span>              : </span>
-<span id="L40"><span class="lineNum">      40</span> <span class="tlaGNC">         101 :     juce::AudioProcessorValueTreeState&amp; getAPVTS() { return apvts; }</span></span>
+<span id="L40"><span class="lineNum">      40</span> <span class="tlaGNC">          90 :     juce::AudioProcessorValueTreeState&amp; getAPVTS() { return apvts; }</span></span>
 <span id="L41"><span class="lineNum">      41</span>              : </span>
 <span id="L42"><span class="lineNum">      42</span>              :     // Noise learning control</span>
 <span id="L43"><span class="lineNum">      43</span>              :     void startLearning();</span>
@@ -112,10 +112,10 @@
 <span id="L50"><span class="lineNum">      50</span>              :     // Spectrum-graph accessors (read from the first channel — mono-safe view</span>
 <span id="L51"><span class="lineNum">      51</span>              :     // for visualisation). Lock-free: audio thread writes a double-buffered</span>
 <span id="L52"><span class="lineNum">      52</span>              :     // snapshot, UI reads the most recent one.</span>
-<span id="L53"><span class="lineNum">      53</span> <span class="tlaGNC">          81 :     void copyInputMagnitudes(std::vector&lt;float&gt;&amp; out) const { gates[0].copyInputMagnitudes(out); }</span></span>
-<span id="L54"><span class="lineNum">      54</span> <span class="tlaGNC">          81 :     void copyNoiseProfile(std::vector&lt;float&gt;&amp; out) const { gates[0].copyNoiseProfile(out); }</span></span>
+<span id="L53"><span class="lineNum">      53</span> <span class="tlaGNC">          70 :     void copyInputMagnitudes(std::vector&lt;float&gt;&amp; out) const { gates[0].copyInputMagnitudes(out); }</span></span>
+<span id="L54"><span class="lineNum">      54</span> <span class="tlaGNC">          70 :     void copyNoiseProfile(std::vector&lt;float&gt;&amp; out) const { gates[0].copyNoiseProfile(out); }</span></span>
 <span id="L55"><span class="lineNum">      55</span>              :     const std::vector&lt;float&gt;&amp; getNoiseProfile() const { return gates[0].getNoiseProfile(); }</span>
-<span id="L56"><span class="lineNum">      56</span> <span class="tlaGNC">          95 :     double getDspSampleRate() const { return gates[0].getSampleRate(); }</span></span>
+<span id="L56"><span class="lineNum">      56</span> <span class="tlaGNC">          84 :     double getDspSampleRate() const { return gates[0].getSampleRate(); }</span></span>
 <span id="L57"><span class="lineNum">      57</span> <span class="tlaGNC">          10 :     static constexpr int getFFTSize() { return SpectralGateTiptoe::kFFTSize; }</span></span>
 <span id="L58"><span class="lineNum">      58</span>              :     static constexpr int getNumBins() { return SpectralGateTiptoe::kNumBins; }</span>
 <span id="L59"><span class="lineNum">      59</span>              : </span>
