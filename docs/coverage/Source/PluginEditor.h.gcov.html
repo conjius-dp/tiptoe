@@ -37,7 +37,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-04-17 13:46:25</td>
+            <td class="headerValue">2026-04-17 14:13:58</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryLo">58.8&nbsp;%</td>
@@ -72,7 +72,7 @@
 <span id="L10"><span class="lineNum">      10</span>              : public:</span>
 <span id="L11"><span class="lineNum">      11</span>              :     std::function&lt;void()&gt; onDoubleClick;</span>
 <span id="L12"><span class="lineNum">      12</span>              : </span>
-<span id="L13"><span class="lineNum">      13</span> <span class="tlaUNC">           0 :     void mouseDoubleClick(const juce::MouseEvent&amp; e) override</span></span>
+<span id="L13"><span class="lineNum">      13</span> <span class="tlaUNC">           0 :     void mouseDoubleClick(const juce::MouseEvent&amp;) override</span></span>
 <span id="L14"><span class="lineNum">      14</span>              :     {</span>
 <span id="L15"><span class="lineNum">      15</span> <span class="tlaUNC">           0 :         if (onDoubleClick)</span></span>
 <span id="L16"><span class="lineNum">      16</span> <span class="tlaUNC">           0 :             onDoubleClick();</span></span>
@@ -120,76 +120,81 @@
 <span id="L58"><span class="lineNum">      58</span>              :     void mouseMove(const juce::MouseEvent&amp; e) override;</span>
 <span id="L59"><span class="lineNum">      59</span>              :     void mouseExit(const juce::MouseEvent&amp; e) override;</span>
 <span id="L60"><span class="lineNum">      60</span>              : </span>
-<span id="L61"><span class="lineNum">      61</span>              : private:</span>
-<span id="L62"><span class="lineNum">      62</span>              :     void timerCallback() override;</span>
-<span id="L63"><span class="lineNum">      63</span>              : </span>
-<span id="L64"><span class="lineNum">      64</span>              :     TiptoeAudioProcessor&amp; processorRef;</span>
-<span id="L65"><span class="lineNum">      65</span>              :     ConjusKnobLookAndFeel conjusLAF;</span>
-<span id="L66"><span class="lineNum">      66</span>              : </span>
-<span id="L67"><span class="lineNum">      67</span>              :     AnimatedSlider thresholdSlider;</span>
-<span id="L68"><span class="lineNum">      68</span>              :     AnimatedSlider reductionSlider;</span>
-<span id="L69"><span class="lineNum">      69</span>              :     juce::Label thresholdLabel { {}, &quot;THRESHOLD&quot; };</span>
-<span id="L70"><span class="lineNum">      70</span>              :     juce::Label reductionLabel { {}, &quot;REDUCTION&quot; };</span>
-<span id="L71"><span class="lineNum">      71</span>              :     juce::Label latencyLabel   { {}, &quot;LATENCY: 0.000ms&quot; };</span>
-<span id="L72"><span class="lineNum">      72</span>              : </span>
-<span id="L73"><span class="lineNum">      73</span>              :     juce::TextButton learnButton { &quot;START&quot; };</span>
-<span id="L74"><span class="lineNum">      74</span>              : </span>
-<span id="L75"><span class="lineNum">      75</span>              :     std::unique_ptr&lt;juce::AudioProcessorValueTreeState::SliderAttachment&gt; thresholdAttachment;</span>
-<span id="L76"><span class="lineNum">      76</span>              :     std::unique_ptr&lt;juce::AudioProcessorValueTreeState::SliderAttachment&gt; reductionAttachment;</span>
+<span id="L61"><span class="lineNum">      61</span>              :     // Hide the conjius logo + latency label — used by the headless screenshot</span>
+<span id="L62"><span class="lineNum">      62</span>              :     // tool so the README image doesn't include the footer chrome.</span>
+<span id="L63"><span class="lineNum">      63</span>              :     void setChromeVisible(bool visible);</span>
+<span id="L64"><span class="lineNum">      64</span>              : </span>
+<span id="L65"><span class="lineNum">      65</span>              : private:</span>
+<span id="L66"><span class="lineNum">      66</span>              :     bool showChrome = true;</span>
+<span id="L67"><span class="lineNum">      67</span>              :     void timerCallback() override;</span>
+<span id="L68"><span class="lineNum">      68</span>              : </span>
+<span id="L69"><span class="lineNum">      69</span>              :     TiptoeAudioProcessor&amp; processorRef;</span>
+<span id="L70"><span class="lineNum">      70</span>              :     ConjusKnobLookAndFeel conjusLAF;</span>
+<span id="L71"><span class="lineNum">      71</span>              : </span>
+<span id="L72"><span class="lineNum">      72</span>              :     AnimatedSlider thresholdSlider;</span>
+<span id="L73"><span class="lineNum">      73</span>              :     AnimatedSlider reductionSlider;</span>
+<span id="L74"><span class="lineNum">      74</span>              :     juce::Label thresholdLabel { {}, &quot;THRESHOLD&quot; };</span>
+<span id="L75"><span class="lineNum">      75</span>              :     juce::Label reductionLabel { {}, &quot;REDUCTION&quot; };</span>
+<span id="L76"><span class="lineNum">      76</span>              :     juce::Label latencyLabel   { {}, &quot;LATENCY: 0.000ms&quot; };</span>
 <span id="L77"><span class="lineNum">      77</span>              : </span>
-<span id="L78"><span class="lineNum">      78</span>              :     juce::Image logoImage;</span>
-<span id="L79"><span class="lineNum">      79</span>              :     juce::Image titleLogoImage;</span>
-<span id="L80"><span class="lineNum">      80</span>              : </span>
-<span id="L81"><span class="lineNum">      81</span>              :     // Custom resize corner — larger than JUCE's default 16x16</span>
-<span id="L82"><span class="lineNum">      82</span>              :     std::unique_ptr&lt;juce::ResizableCornerComponent&gt; resizer;</span>
-<span id="L83"><span class="lineNum">      83</span>              : </span>
-<span id="L84"><span class="lineNum">      84</span>              :     // Conjius logo hover animation (darker -&gt; bright + scale up on hover)</span>
-<span id="L85"><span class="lineNum">      85</span>              :     juce::Rectangle&lt;int&gt; logoBounds;</span>
-<span id="L86"><span class="lineNum">      86</span>              :     bool  logoHoverTarget   = false;</span>
-<span id="L87"><span class="lineNum">      87</span>              :     float logoHoverProgress = 0.0f; // 0 = dim+normal size, 1 = bright + 1.2x</span>
+<span id="L78"><span class="lineNum">      78</span>              :     juce::TextButton learnButton { &quot;START&quot; };</span>
+<span id="L79"><span class="lineNum">      79</span>              : </span>
+<span id="L80"><span class="lineNum">      80</span>              :     std::unique_ptr&lt;juce::AudioProcessorValueTreeState::SliderAttachment&gt; thresholdAttachment;</span>
+<span id="L81"><span class="lineNum">      81</span>              :     std::unique_ptr&lt;juce::AudioProcessorValueTreeState::SliderAttachment&gt; reductionAttachment;</span>
+<span id="L82"><span class="lineNum">      82</span>              : </span>
+<span id="L83"><span class="lineNum">      83</span>              :     juce::Image logoImage;</span>
+<span id="L84"><span class="lineNum">      84</span>              :     juce::Image titleLogoImage;</span>
+<span id="L85"><span class="lineNum">      85</span>              : </span>
+<span id="L86"><span class="lineNum">      86</span>              :     // Custom resize corner — larger than JUCE's default 16x16</span>
+<span id="L87"><span class="lineNum">      87</span>              :     std::unique_ptr&lt;juce::ResizableCornerComponent&gt; resizer;</span>
 <span id="L88"><span class="lineNum">      88</span>              : </span>
-<span id="L89"><span class="lineNum">      89</span>              :     // &quot;Learn&quot; / &quot;Learning...&quot; text crossfade + animated dots</span>
-<span id="L90"><span class="lineNum">      90</span>              :     juce::Rectangle&lt;int&gt; learnTextBounds;</span>
-<span id="L91"><span class="lineNum">      91</span>              :     float learningTextProgress = 0.0f; // 0 = &quot;Learn&quot;, 1 = &quot;Learning...&quot;</span>
-<span id="L92"><span class="lineNum">      92</span>              :     float dotAnimPhase         = 0.0f; // 0..1 loops while learning</span>
+<span id="L89"><span class="lineNum">      89</span>              :     // Conjius logo hover animation (darker -&gt; bright + scale up on hover)</span>
+<span id="L90"><span class="lineNum">      90</span>              :     juce::Rectangle&lt;int&gt; logoBounds;</span>
+<span id="L91"><span class="lineNum">      91</span>              :     bool  logoHoverTarget   = false;</span>
+<span id="L92"><span class="lineNum">      92</span>              :     float logoHoverProgress = 0.0f; // 0 = dim+normal size, 1 = bright + 1.2x</span>
 <span id="L93"><span class="lineNum">      93</span>              : </span>
-<span id="L94"><span class="lineNum">      94</span>              :     // Latency label hide/peek behaviour — click toggles hidden mode, hover peeks back in,</span>
-<span id="L95"><span class="lineNum">      95</span>              :     // hover always grows text 3x.</span>
-<span id="L96"><span class="lineNum">      96</span>              :     struct HitArea : juce::Component</span>
-<span id="L97"><span class="lineNum">      97</span>              :     {</span>
-<span id="L98"><span class="lineNum">      98</span>              :         std::function&lt;void()&gt; onClick;</span>
-<span id="L99"><span class="lineNum">      99</span>              :         std::function&lt;void(bool)&gt; onHover;</span>
-<span id="L100"><span class="lineNum">     100</span> <span class="tlaGNC">          20 :         HitArea() {</span></span>
-<span id="L101"><span class="lineNum">     101</span> <span class="tlaGNC">          10 :             setInterceptsMouseClicks(true, false);</span></span>
-<span id="L102"><span class="lineNum">     102</span> <span class="tlaGNC">          10 :             setMouseCursor(juce::MouseCursor::PointingHandCursor);</span></span>
-<span id="L103"><span class="lineNum">     103</span> <span class="tlaGNC">          20 :         }</span></span>
-<span id="L104"><span class="lineNum">     104</span> <span class="tlaUNC">           0 :         void mouseDown(const juce::MouseEvent&amp;) override { if (onClick) onClick(); }</span></span>
-<span id="L105"><span class="lineNum">     105</span> <span class="tlaUNC">           0 :         void mouseEnter(const juce::MouseEvent&amp;) override { if (onHover) onHover(true); }</span></span>
-<span id="L106"><span class="lineNum">     106</span> <span class="tlaUNC">           0 :         void mouseExit (const juce::MouseEvent&amp;) override { if (onHover) onHover(false); }</span></span>
-<span id="L107"><span class="lineNum">     107</span>              :     };</span>
-<span id="L108"><span class="lineNum">     108</span>              :     HitArea latencyHitArea;</span>
-<span id="L109"><span class="lineNum">     109</span>              :     juce::Rectangle&lt;int&gt; latencyBaseBounds;</span>
-<span id="L110"><span class="lineNum">     110</span>              :     float latencyBaseFontSize  = 1.0f;</span>
-<span id="L111"><span class="lineNum">     111</span>              :     bool  latencyHoverTarget   = false;</span>
-<span id="L112"><span class="lineNum">     112</span>              :     float latencyHoverProgress = 0.0f;   // 0 = normal, 1 = 3x</span>
-<span id="L113"><span class="lineNum">     113</span>              :     bool  latencyHidden        = false;  // toggled by click</span>
-<span id="L114"><span class="lineNum">     114</span>              :     float latencyHideProgress  = 0.0f;   // 0 = visible, 1 = slid out of window</span>
-<span id="L115"><span class="lineNum">     115</span>              : </span>
-<span id="L116"><span class="lineNum">     116</span>              :     // ── Snap-to-default animation ──</span>
-<span id="L117"><span class="lineNum">     117</span> <span class="tlaGNC">          20 :     struct SliderAnimation</span></span>
-<span id="L118"><span class="lineNum">     118</span>              :     {</span>
-<span id="L119"><span class="lineNum">     119</span> <span class="tlaGNC">          20 :         bool active = false;</span></span>
-<span id="L120"><span class="lineNum">     120</span> <span class="tlaGNC">          20 :         double targetValue = 0.0;</span></span>
-<span id="L121"><span class="lineNum">     121</span> <span class="tlaGNC">          20 :         double currentValue = 0.0;</span></span>
-<span id="L122"><span class="lineNum">     122</span>              :     };</span>
-<span id="L123"><span class="lineNum">     123</span>              :     SliderAnimation thresholdAnim;</span>
-<span id="L124"><span class="lineNum">     124</span>              :     SliderAnimation reductionAnim;</span>
-<span id="L125"><span class="lineNum">     125</span>              : </span>
-<span id="L126"><span class="lineNum">     126</span>              :     void startSnapAnimation(juce::Slider&amp; slider, SliderAnimation&amp; anim);</span>
-<span id="L127"><span class="lineNum">     127</span>              :     void updateSnapAnimation(juce::Slider&amp; slider, SliderAnimation&amp; anim);</span>
-<span id="L128"><span class="lineNum">     128</span>              : </span>
-<span id="L129"><span class="lineNum">     129</span>              :     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TiptoeAudioProcessorEditor)</span>
-<span id="L130"><span class="lineNum">     130</span>              : };</span>
+<span id="L94"><span class="lineNum">      94</span>              :     // &quot;Learn&quot; / &quot;Learning...&quot; text crossfade + animated dots</span>
+<span id="L95"><span class="lineNum">      95</span>              :     juce::Rectangle&lt;int&gt; learnTextBounds;</span>
+<span id="L96"><span class="lineNum">      96</span>              :     float learningTextProgress = 0.0f; // 0 = &quot;Learn&quot;, 1 = &quot;Learning...&quot;</span>
+<span id="L97"><span class="lineNum">      97</span>              :     float dotAnimPhase         = 0.0f; // 0..1 loops while learning</span>
+<span id="L98"><span class="lineNum">      98</span>              : </span>
+<span id="L99"><span class="lineNum">      99</span>              :     // Latency label hide/peek behaviour — click toggles hidden mode, hover peeks back in,</span>
+<span id="L100"><span class="lineNum">     100</span>              :     // hover always grows text 3x.</span>
+<span id="L101"><span class="lineNum">     101</span>              :     struct HitArea : juce::Component</span>
+<span id="L102"><span class="lineNum">     102</span>              :     {</span>
+<span id="L103"><span class="lineNum">     103</span>              :         std::function&lt;void()&gt; onClick;</span>
+<span id="L104"><span class="lineNum">     104</span>              :         std::function&lt;void(bool)&gt; onHover;</span>
+<span id="L105"><span class="lineNum">     105</span> <span class="tlaGNC">          20 :         HitArea() {</span></span>
+<span id="L106"><span class="lineNum">     106</span> <span class="tlaGNC">          10 :             setInterceptsMouseClicks(true, false);</span></span>
+<span id="L107"><span class="lineNum">     107</span> <span class="tlaGNC">          10 :             setMouseCursor(juce::MouseCursor::PointingHandCursor);</span></span>
+<span id="L108"><span class="lineNum">     108</span> <span class="tlaGNC">          20 :         }</span></span>
+<span id="L109"><span class="lineNum">     109</span> <span class="tlaUNC">           0 :         void mouseDown(const juce::MouseEvent&amp;) override { if (onClick) onClick(); }</span></span>
+<span id="L110"><span class="lineNum">     110</span> <span class="tlaUNC">           0 :         void mouseEnter(const juce::MouseEvent&amp;) override { if (onHover) onHover(true); }</span></span>
+<span id="L111"><span class="lineNum">     111</span> <span class="tlaUNC">           0 :         void mouseExit (const juce::MouseEvent&amp;) override { if (onHover) onHover(false); }</span></span>
+<span id="L112"><span class="lineNum">     112</span>              :     };</span>
+<span id="L113"><span class="lineNum">     113</span>              :     HitArea latencyHitArea;</span>
+<span id="L114"><span class="lineNum">     114</span>              :     juce::Rectangle&lt;int&gt; latencyBaseBounds;</span>
+<span id="L115"><span class="lineNum">     115</span>              :     float latencyBaseFontSize  = 1.0f;</span>
+<span id="L116"><span class="lineNum">     116</span>              :     bool  latencyHoverTarget   = false;</span>
+<span id="L117"><span class="lineNum">     117</span>              :     float latencyHoverProgress = 0.0f;   // 0 = normal, 1 = 3x</span>
+<span id="L118"><span class="lineNum">     118</span>              :     bool  latencyHidden        = false;  // toggled by click</span>
+<span id="L119"><span class="lineNum">     119</span>              :     float latencyHideProgress  = 0.0f;   // 0 = visible, 1 = slid out of window</span>
+<span id="L120"><span class="lineNum">     120</span>              : </span>
+<span id="L121"><span class="lineNum">     121</span>              :     // ── Snap-to-default animation ──</span>
+<span id="L122"><span class="lineNum">     122</span> <span class="tlaGNC">          20 :     struct SliderAnimation</span></span>
+<span id="L123"><span class="lineNum">     123</span>              :     {</span>
+<span id="L124"><span class="lineNum">     124</span> <span class="tlaGNC">          20 :         bool active = false;</span></span>
+<span id="L125"><span class="lineNum">     125</span> <span class="tlaGNC">          20 :         double targetValue = 0.0;</span></span>
+<span id="L126"><span class="lineNum">     126</span> <span class="tlaGNC">          20 :         double currentValue = 0.0;</span></span>
+<span id="L127"><span class="lineNum">     127</span>              :     };</span>
+<span id="L128"><span class="lineNum">     128</span>              :     SliderAnimation thresholdAnim;</span>
+<span id="L129"><span class="lineNum">     129</span>              :     SliderAnimation reductionAnim;</span>
+<span id="L130"><span class="lineNum">     130</span>              : </span>
+<span id="L131"><span class="lineNum">     131</span>              :     void startSnapAnimation(juce::Slider&amp; slider, SliderAnimation&amp; anim);</span>
+<span id="L132"><span class="lineNum">     132</span>              :     void updateSnapAnimation(juce::Slider&amp; slider, SliderAnimation&amp; anim);</span>
+<span id="L133"><span class="lineNum">     133</span>              : </span>
+<span id="L134"><span class="lineNum">     134</span>              :     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TiptoeAudioProcessorEditor)</span>
+<span id="L135"><span class="lineNum">     135</span>              : };</span>
         </pre>
               </td>
             </tr>
