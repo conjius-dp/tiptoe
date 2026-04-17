@@ -30,7 +30,7 @@ jobs:
             echo "No previous release tag found, proceeding with release"
             echo "plugin_changed=true" >> "$GITHUB_OUTPUT"
           else
-            CHANGED=$(git diff --name-only "$LAST_TAG"..HEAD -- Source/ Tests/ CMakeLists.txt .github/workflows/)
+            CHANGED=$(git diff --name-only "$LAST_TAG"..HEAD -- Source/ Tests/ Assets/ CMakeLists.txt .github/workflows/ ':(exclude)Assets/badges/*')
             if [ -n "$CHANGED" ]; then
               echo "plugin_changed=true" >> "$GITHUB_OUTPUT"
               echo "Plugin files changed since $LAST_TAG:"
