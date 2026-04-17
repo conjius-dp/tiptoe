@@ -67,10 +67,10 @@ int main(int argc, char** argv)
     }
 
     // Rounded corners + orange border around the edge.
-    // Radius matches the README download pill (16px at 1x); border uses the
-    // same accent colour as every other orange element in the plugin.
+    // Corner radius matches the knob radius at the default editor size
+    // (knob diameter ≈ 0.78 × min(sliderW, knobAreaH) ≈ 156px at 2x render).
     {
-        const float cornerRadius = 16.0f * scale;
+        const float cornerRadius = 78.0f * scale;
         const float borderW = 4.0f * scale;
         const float w = static_cast<float>(snap.getWidth());
         const float h = static_cast<float>(snap.getHeight());
