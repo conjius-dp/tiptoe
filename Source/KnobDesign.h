@@ -6,7 +6,7 @@ namespace KnobDesign
     // ── Colors (matching conji.us) ──
     inline const juce::Colour bgColour         { 0xff111111 };  // #111
     inline const juce::Colour accentColour     { 0xffd48300 };  // #d48300
-    inline const juce::Colour accentHoverColour{ 0xffe89a1a };  // #e89a1a (lighter orange for hover/press)
+    inline const juce::Colour accentHoverColour{ 0xffffb84d };  // much lighter orange for hover/press
 
     // ── Knob geometry (proportional to diameter) ──
     inline constexpr float knobStrokeFrac    = 0.033f;
@@ -164,6 +164,8 @@ public:
             juce::degreesToRadians(rotationEndAngle)
         };
 
+        // Ticks always use the base accent colour (no hover highlight)
+        g.setColour(accentColour);
         for (int i = 0; i < 3; ++i)
         {
             juce::Path tick;
@@ -177,10 +179,13 @@ public:
                                               juce::PathStrokeType::rounded));
         }
 
+        // Ticks and tick labels always use the base accent colour (no hover highlight)
+        // Note: the tick *marks* were drawn in the block above and still use interactiveColour —
+        // reset to accentColour so the numeric tick labels don't brighten.
         // ── Draw tick labels ──
         float fontSize = diameter * labelFontScale;
         float markerFontSize = fontSize * 0.85f;
-        g.setColour(interactiveColour);
+        g.setColour(accentColour);
         g.setFont(getBoldFont(markerFontSize));
 
         float labelR = tickEndR + markerFontSize * 0.8f;

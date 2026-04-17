@@ -13,14 +13,14 @@ TiptoeAudioProcessorEditor::TiptoeAudioProcessorEditor(TiptoeAudioProcessor& p)
     thresholdSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 120, 30);
     ConjusKnobLookAndFeel::setKnobType(thresholdSlider, KnobType::Threshold);
-    thresholdSlider.setMouseCursor(juce::MouseCursor::PointingHandCursor);
+    thresholdSlider.setMouseCursor(juce::MouseCursor::UpDownResizeCursor);
     addAndMakeVisible(thresholdSlider);
 
     // ── Reduction knob (-60 dB – 0 dB) ──
     reductionSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     reductionSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 120, 30);
     ConjusKnobLookAndFeel::setKnobType(reductionSlider, KnobType::Reduction);
-    reductionSlider.setMouseCursor(juce::MouseCursor::PointingHandCursor);
+    reductionSlider.setMouseCursor(juce::MouseCursor::UpDownResizeCursor);
     addAndMakeVisible(reductionSlider);
 
     // ── Labels ──
@@ -88,7 +88,13 @@ TiptoeAudioProcessorEditor::TiptoeAudioProcessorEditor(TiptoeAudioProcessor& p)
     // ── Latency label ──
     latencyLabel.setJustificationType(juce::Justification::centredLeft);
     latencyLabel.setColour(juce::Label::textColourId, KnobDesign::accentColour.darker(0.3f));
+    latencyLabel.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(latencyLabel);
+
+    latencyHitArea.onClick = [this]() { latencyHidden = !latencyHidden; };
+    latencyHitArea.onHover = [this](bool over) { latencyHoverTarget = over; };
+    addAndMakeVisible(latencyHitArea);
+    latencyHitArea.toFront(false);
 
     // ── Logo ──
     logoImage = juce::ImageCache::getFromMemory(
@@ -221,6 +227,31 @@ void TiptoeAudioProcessorEditor::timerCallback()
         if (needRepaint && !learnTextBounds.isEmpty())
             repaint(learnTextBounds);
     }
+
+    // Animate latency label: grows 3x on hover in both modes; slides out when hidden
+    {
+        float hoverDest = latencyHoverTarget ? 1.0f : 0.0f;
+        if (std::abs(hoverDest - latencyHoverProgress) > 0.002f)
+            latencyHoverProgress += (hoverDest - latencyHoverProgress) * 0.22f;
+
+        float hideDest = latencyHidden ? (latencyHoverTarget ? 0.0f : 1.0f) : 0.0f;
+        if (std::abs(hideDest - latencyHideProgress) > 0.002f)
+            latencyHideProgress += (hideDest - latencyHideProgress) * 0.18f;
+
+        if (!latencyBaseBounds.isEmpty())
+        {
+            float scale = 1.0f + 0.6f * latencyHoverProgress; // 1.0 → 1.6x
+            latencyLabel.setFont(conjusLAF.getRegularFont(latencyBaseFontSize * scale));
+
+            float slidePx = static_cast<float>(latencyBaseBounds.getHeight()) * 2.0f * latencyHideProgress;
+            int scaledH = static_cast<int>(latencyBaseBounds.getHeight() * scale);
+            int extra = scaledH - latencyBaseBounds.getHeight();
+            auto bounds = latencyBaseBounds.withY(latencyBaseBounds.getY() - extra)
+                                           .withHeight(scaledH)
+                                           .translated(0, static_cast<int>(slidePx));
+            latencyLabel.setBounds(bounds);
+        }
+    }
 }
 
 void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
@@ -317,7 +348,8 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
     {
         float learningW = labelFontLearn.getStringWidthFloat("Learning");
         float dotW      = labelFontLearn.getStringWidthFloat(".");
-        float fullW     = learningW + 3.0f * dotW;
+        float dotSpacing = dotW * 0.55f; // tighter than the glyph advance
+        float fullW     = learningW + 3.0f * dotSpacing;
 
         float baseX = centreX - fullW * 0.5f;
         auto colour = KnobDesign::accentColour.withMultipliedAlpha(alphaLearning);
@@ -369,7 +401,7 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
             if (a <= 0.001f)
                 continue;
 
-            float dotX = baseX + learningW + static_cast<float>(i) * dotW;
+            float dotX = baseX + learningW + static_cast<float>(i) * dotSpacing;
             float dotY = dotBaseY + slide * slideDistance;
             g.setColour(KnobDesign::accentColour.withMultipliedAlpha(a * alphaLearning));
             g.drawText(".",
@@ -568,7 +600,19 @@ void TiptoeAudioProcessorEditor::resized()
     latencyLabel.setFont(conjusLAF.getRegularFont(latencyFontSize));
     latencyLabel.setJustificationType(juce::Justification::centredBottom);
     int latencyH = static_cast<int>(latencyFontSize * 2.0f);
-    latencyLabel.setBounds(0, getHeight() - latencyH, getWidth(), latencyH);
+    latencyBaseBounds = { 0, getHeight() - latencyH, getWidth(), latencyH };
+    latencyBaseFontSize = latencyFontSize;
+    // Hit area: narrow — matches the actual text width with a small horizontal pad
+    auto latencyFont = conjusLAF.getRegularFont(latencyFontSize);
+    int textW = static_cast<int>(latencyFont.getStringWidthFloat("Latency: 0.000ms"));
+    int hitPadX = static_cast<int>(latencyFontSize * 0.8f);
+    int hitPadY = latencyH;
+    int hitW = textW + 2 * hitPadX;
+    int hitX = (getWidth() - hitW) / 2;
+    latencyHitArea.setBounds(hitX, getHeight() - latencyH - hitPadY, hitW, latencyH + hitPadY);
+    latencyHitArea.toFront(false);
+    int slideOffset = static_cast<int>(latencyH * 2.0f * latencyHideProgress);
+    latencyLabel.setBounds(latencyBaseBounds.translated(0, slideOffset));
 }
 
 void TiptoeAudioProcessorEditor::startSnapAnimation(juce::Slider& slider, SliderAnimation& anim)
