@@ -53,6 +53,34 @@ int main(int argc, char** argv)
 
     auto snap = editor->createComponentSnapshot(editor->getLocalBounds(), false, scale);
 
+    // Crop off the bottom band equal to the conjius logo height so the footer
+    // (latency label, etc.) doesn't appear in the published screenshot.
+    const int cropPx = static_cast<int>(37.5f
+                                        * (static_cast<float>(width) / static_cast<float>(KnobDesign::defaultWidth))
+                                        * scale);
+    if (cropPx > 0 && cropPx < snap.getHeight())
+    {
+        juce::Image cropped{ juce::Image::ARGB, snap.getWidth(), snap.getHeight() - cropPx, true };
+        juce::Graphics cg{ cropped };
+        cg.drawImageAt(snap, 0, 0); // anything past the cropped bounds is clipped off
+        snap = cropped;
+    }
+
+    // Rounded corners — match the README download pill radius (16px at 1x) scaled to render resolution.
+    {
+        const float cornerRadius = 16.0f * scale;
+        juce::Image rounded{ juce::Image::ARGB, snap.getWidth(), snap.getHeight(), true };
+        juce::Graphics rg{ rounded };
+        juce::Path mask;
+        mask.addRoundedRectangle(0.0f, 0.0f,
+                                 static_cast<float>(snap.getWidth()),
+                                 static_cast<float>(snap.getHeight()),
+                                 cornerRadius);
+        rg.reduceClipRegion(mask);
+        rg.drawImageAt(snap, 0, 0);
+        snap = rounded;
+    }
+
     outFile.deleteFile();
     juce::FileOutputStream stream{ outFile };
     if (!stream.openedOk())
