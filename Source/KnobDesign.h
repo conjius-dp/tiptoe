@@ -31,7 +31,7 @@ namespace KnobDesign
 
     // ── Window ──
     inline constexpr int   defaultWidth      = 650;
-    inline constexpr int   defaultHeight     = 450;
+    inline constexpr int   defaultHeight     = 360;
     inline constexpr int   minWidth          = 400;
     inline constexpr int   minHeight         = 280;
     inline constexpr int   maxWidth          = 1000;
@@ -84,22 +84,23 @@ public:
         return juce::Font(juce::FontOptions().withHeight(height));
     }
 
-    // Compact orange corner resizer — three thin diagonal lines in the accent colour,
-    // drawn into a smaller square so the affordance isn't too visually heavy.
+    // Orange corner resizer — three diagonal lines in the accent colour.
+    // Default state uses a brighter tint so the affordance is clearly visible
+    // at rest (previously very thin 1.5px strokes in the dim accent colour
+    // made it look invisible until the user happened to grab it).
     void drawCornerResizer(juce::Graphics& g, int w, int h,
                            bool isMouseOver, bool isMouseDragging) override
     {
         const auto colour = (isMouseOver || isMouseDragging)
                             ? KnobDesign::accentHoverColour
-                            : KnobDesign::accentColour;
+                            : KnobDesign::accentColour.brighter(0.2f);
         g.setColour(colour);
 
-        // Shrink the drawable area from JUCE's default triangle — gives a smaller,
-        // subtler handle that still reads as "resize here".
-        const float inset = juce::jmin(static_cast<float>(w), static_cast<float>(h)) * 0.35f;
+        const float minDim = juce::jmin(static_cast<float>(w), static_cast<float>(h));
+        const float inset = minDim * 0.20f;
         const float right = static_cast<float>(w);
         const float bottom = static_cast<float>(h);
-        const float strokeW = juce::jmax(1.5f, juce::jmin(static_cast<float>(w), static_cast<float>(h)) * 0.05f);
+        const float strokeW = juce::jmax(2.5f, minDim * 0.11f);
 
         for (int i = 1; i <= 3; ++i)
         {
@@ -131,13 +132,22 @@ public:
 
         auto bounds = juce::Rectangle<int>(x, y, width, height).toFloat();
 
-        // Use the slider's allocated area to determine knob size
+        // Use the slider's allocated area to determine knob size. The slider
+        // bounds now span most of the window height (to contain the knob at
+        // windowH/2), so cap diameter to a fraction of slider WIDTH to keep
+        // the visual size consistent with the previous "tight" layout.
         float sliderW = bounds.getWidth();
         float sliderH = bounds.getHeight();
-        float diameter = juce::jmin(sliderW, sliderH) * 0.78f;
+        float diameter = juce::jmin(juce::jmin(sliderW, sliderH) * 0.78f,
+                                    sliderW * 0.60f);
         float radius = diameter * 0.5f;
         float cx = bounds.getCentreX();
-        float cy = bounds.getCentreY() - diameter * 0.08f;
+        // Centre the knob at the vertical midpoint of the editor window so the
+        // gap to the orange border is identical above and below.
+        auto* parent = slider.getParentComponent();
+        const float windowH = parent ? static_cast<float>(parent->getHeight()) : bounds.getHeight();
+        const float sliderY = static_cast<float>(slider.getY());
+        float cy = windowH * 0.5f - sliderY;
 
         float strokeW = diameter * knobStrokeFrac;
         float indW = diameter * indicatorWidthFrac;
@@ -325,7 +335,9 @@ public:
 
             float labelW = static_cast<float>(label.getWidth());
             float pillX = (labelW - pillW) * 0.5f;
-            float pillUpShift = pillFontSize * 2.0f;
+            // pillUpShift reduced so the pill sits ~½ pillH lower on screen
+            // (tightens the gap to the bottom orange border).
+            float pillUpShift = pillFontSize * 1.25f;
             float pillY = (static_cast<float>(label.getHeight()) - pillH) * 0.5f - pillUpShift;
 
             auto pillBounds = juce::Rectangle<float>(pillX, pillY, pillW, pillH);

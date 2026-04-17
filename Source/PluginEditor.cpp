@@ -30,6 +30,13 @@ TiptoeAudioProcessorEditor::TiptoeAudioProcessorEditor(TiptoeAudioProcessor& p)
     reductionLabel.setJustificationType(juce::Justification::centredBottom);
     addAndMakeVisible(reductionLabel);
 
+    // Ensure the knob sliders paint IN FRONT of their column labels. With the
+    // knob centred at the window's vertical midpoint, the top of the ring
+    // extends upward into the bounds of the "THRESHOLD"/"REDUCTION" labels;
+    // without this, the label text would overpaint the bright hover arc.
+    thresholdLabel.toBack();
+    reductionLabel.toBack();
+
     // ── Attachments ──
     thresholdAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         processorRef.getAPVTS(), "threshold", thresholdSlider);
@@ -108,12 +115,19 @@ TiptoeAudioProcessorEditor::TiptoeAudioProcessorEditor(TiptoeAudioProcessor& p)
     // ── Window ──
     int savedW = processorRef.editorWidth.load();
     int savedH = processorRef.editorHeight.load();
-    setSize(savedW, savedH);
-    setResizable(true, true);
+    setResizable(true, false); // we provide our own, larger corner
     setResizeLimits(KnobDesign::minWidth, KnobDesign::minHeight,
                     KnobDesign::maxWidth, KnobDesign::maxHeight);
+    resizer = std::make_unique<juce::ResizableCornerComponent>(this, getConstrainer());
+    resizer->setLookAndFeel(&conjusLAF);
+    addAndMakeVisible(resizer.get());
     getConstrainer()->setFixedAspectRatio(
         static_cast<double>(KnobDesign::defaultWidth) / KnobDesign::defaultHeight);
+    // setSize() must come AFTER the resizer is created — it triggers resized()
+    // which positions the resizer. Before this reorder, resized() ran while
+    // `resizer` was still null, so the handle stayed at 0x0 until the first
+    // user-driven resize.
+    setSize(savedW, savedH);
 
     // Receive mouse events from self and child components (for conjius logo hover)
     addMouseListener(this, true);
@@ -123,6 +137,7 @@ TiptoeAudioProcessorEditor::TiptoeAudioProcessorEditor(TiptoeAudioProcessor& p)
 
 TiptoeAudioProcessorEditor::~TiptoeAudioProcessorEditor()
 {
+    if (resizer) resizer->setLookAndFeel(nullptr);
     setLookAndFeel(nullptr);
     stopTimer();
 }
@@ -236,11 +251,11 @@ void TiptoeAudioProcessorEditor::timerCallback()
 
         float hideDest = latencyHidden ? (latencyHoverTarget ? 0.0f : 1.0f) : 0.0f;
         if (std::abs(hideDest - latencyHideProgress) > 0.002f)
-            latencyHideProgress += (hideDest - latencyHideProgress) * 0.18f;
+            latencyHideProgress += (hideDest - latencyHideProgress) * 0.09f;
 
         if (!latencyBaseBounds.isEmpty())
         {
-            float scale = 1.0f + 0.6f * latencyHoverProgress; // 1.0 → 1.6x
+            float scale = 1.0f + 0.4f * latencyHoverProgress; // 1.0 → 1.4x
             latencyLabel.setFont(conjusLAF.getRegularFont(latencyBaseFontSize * scale));
 
             float slidePx = static_cast<float>(latencyBaseBounds.getHeight()) * 2.0f * latencyHideProgress;
@@ -294,19 +309,29 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
                      / static_cast<float>(titleLogoImage.getHeight());
         float titleW = titleH * aspect;
         float titleX = (w - titleW) * 0.5f;
-        float titleY = h * 0.055f; // slightly lower than before
+        float titleY = h * 0.24f; // title+subtitle raised higher
         g.drawImage(titleLogoImage,
                     juce::Rectangle<float>(titleX, titleY, titleW, titleH),
                     juce::RectanglePlacement::centred);
 
         // Subtitle: small "Spectral denoiser" tagline diagonally below/right of the logo
         float subFontSize = h * 0.028f;
+        auto subFont = conjusLAF.getBoldFont(subFontSize);
         g.setColour(KnobDesign::accentHoverColour);
-        g.setFont(conjusLAF.getBoldFont(subFontSize));
-        float subX = titleX + titleW * 0.55f;
+        g.setFont(subFont);
+        // Two-line, left-aligned subtitle with the rect sized exactly to the
+        // widest line so the "container" matches the text's actual width.
+        juce::GlyphArrangement ga;
+        ga.addLineOfText(subFont, "DENOISER", 0.0f, 0.0f);
+        const float subW = ga.getBoundingBox(0, ga.getNumGlyphs(), true).getWidth();
+        float subX = titleX + titleW * 0.48f;
         float subY = titleY + titleH * 0.70f;
-        g.drawText("SPECTRAL DENOISER",
-                   juce::Rectangle<float>(subX, subY, w * 0.4f, subFontSize * 1.4f),
+        const float subLineH = subFontSize * 1.1f;
+        g.drawText("SPECTRAL",
+                   juce::Rectangle<float>(subX, subY, subW, subFontSize * 1.4f),
+                   juce::Justification::topLeft, false);
+        g.drawText("DENOISER",
+                   juce::Rectangle<float>(subX, subY + subLineH, subW, subFontSize * 1.4f),
                    juce::Justification::topLeft, false);
     }
 
@@ -416,12 +441,38 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
         static_cast<int>(labelY - learnFontSize * 0.2f),
         static_cast<int>(w * 0.40f),
         static_cast<int>(learnFontSize * 2.2f));
+
+    // Rounded orange border inside ~20px of bg padding. Drawn last so it
+    // sits on top of any content near the edges.
+    {
+        const float scaleF  = static_cast<float>(getWidth())
+                            / static_cast<float>(KnobDesign::defaultWidth);
+        const float pad     = 20.0f * scaleF;
+        const float borderW = 4.0f  * scaleF;
+        const float radius  = 78.0f * scaleF;
+        juce::Rectangle<float> borderRect{ pad, pad,
+                                           static_cast<float>(getWidth())  - 2.0f * pad,
+                                           static_cast<float>(getHeight()) - 2.0f * pad };
+        juce::Path border;
+        border.addRoundedRectangle(borderRect, radius);
+        g.setColour(KnobDesign::accentColour);
+        g.strokePath(border, juce::PathStrokeType(borderW));
+    }
 }
 
 void TiptoeAudioProcessorEditor::resized()
 {
     processorRef.editorWidth.store(getWidth());
     processorRef.editorHeight.store(getHeight());
+
+    if (resizer != nullptr)
+    {
+        const int handleSize = 28; // bigger than JUCE's 16 default
+        resizer->setBounds(getWidth() - handleSize, getHeight() - handleSize,
+                           handleSize, handleSize);
+        resizer->toFront(false);
+        resizer->repaint(); // force initial paint so handle is visible at rest
+    }
 
     float w = static_cast<float>(getWidth());
     float h = static_cast<float>(getHeight());
@@ -430,7 +481,7 @@ void TiptoeAudioProcessorEditor::resized()
     // Title logo takes up top slice; shift knob/button UI down by this amount
     float titleOffset = h * 0.18f;
     // Labels sit higher — just below the title, with smaller offset
-    float labelTitleOffset = h * 0.14f;
+    float labelTitleOffset = h * 0.08f;
     // Extra vertical space between parameter labels and the knobs
     float labelKnobGap = h * 0.09f;
 
@@ -441,23 +492,29 @@ void TiptoeAudioProcessorEditor::resized()
     float knobColX1 = w - margin - knobColW;
 
     // ── Parameter labels at top ──
-    float labelFontSize = w * KnobDesign::gainLabelScale / 2.5f * 1.3f;
+    // Smaller font and positioned just below the orange border, above the
+    // mid-tick label of each knob. The previous larger label collided with
+    // the Reduction knob's centred "-30" top-tick label.
+    float labelFontSize = w * KnobDesign::gainLabelScale / 2.5f;
     auto labelFont = conjusLAF.getBoldFont(labelFontSize);
     thresholdLabel.setFont(labelFont);
     reductionLabel.setFont(labelFont);
 
     int labelH = static_cast<int>(labelFontSize * 1.2f);
-    int labelY = static_cast<int>(h * 0.05f + 50.0f * (h / static_cast<float>(KnobDesign::defaultHeight)) + labelTitleOffset);
+    // More air between the labels and the top orange border than before.
+    int labelY = static_cast<int>(h * 0.12f);
     thresholdLabel.setBounds(static_cast<int>(knobColX0), labelY,
                              static_cast<int>(knobColW), labelH);
     reductionLabel.setBounds(static_cast<int>(knobColX1), labelY,
                              static_cast<int>(knobColW), labelH);
 
     // ── Knob sliders ──
+    // Expand slider bounds so the knob (centred at windowH/2) is drawn entirely
+    // INSIDE the slider's own bounds — avoids the hover-highlight arc being
+    // clipped by sibling components / parent clip regions.
     float dbFontSize = w * KnobDesign::dbTextScale;
-    int sliderTop = labelY + labelH + static_cast<int>(labelKnobGap);
-    // Extend slider bounds so growing textBoxH (for tick/pill separation) doesn't shrink the knob
     int sliderBottom = static_cast<int>(h * 0.96f);
+    int sliderTop = static_cast<int>(h) - sliderBottom; // symmetric around h/2
     int sliderH = sliderBottom - sliderTop;
 
     // Tighten slider bounds to match visible knob area
