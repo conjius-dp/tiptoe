@@ -69,6 +69,11 @@ public:
     // tool so the README image doesn't include the footer chrome.
     void setChromeVisible(bool visible);
 
+    // Sync the spectrum graph with the processor's current snapshots without
+    // waiting for the timer. Used by the headless screenshot tool so the
+    // graph is populated at the moment createComponentSnapshot() runs.
+    void refreshSpectrumGraph();
+
 private:
     bool showChrome = true;
     void timerCallback() override;

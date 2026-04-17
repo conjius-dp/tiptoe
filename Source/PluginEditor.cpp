@@ -158,6 +158,22 @@ void TiptoeAudioProcessorEditor::setChromeVisible(bool visible)
     repaint();
 }
 
+void TiptoeAudioProcessorEditor::refreshSpectrumGraph()
+{
+    const double dspRate = processorRef.getDspSampleRate();
+    if (dspRate > 0.0)
+        spectrumGraph.setSampleRate(dspRate);
+
+    const float thr = processorRef.getAPVTS()
+                          .getRawParameterValue("threshold")->load();
+    spectrumGraph.setThresholdMultiplier(thr);
+
+    processorRef.copyInputMagnitudes(scratchInputMags);
+    processorRef.copyNoiseProfile(scratchNoiseMags);
+    spectrumGraph.setSnapshot(scratchNoiseMags, scratchInputMags);
+    spectrumGraph.repaint();
+}
+
 void TiptoeAudioProcessorEditor::mouseMove(const juce::MouseEvent& e)
 {
     auto pos = getLocalPoint(e.eventComponent, e.getPosition());
