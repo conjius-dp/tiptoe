@@ -361,7 +361,7 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
     float centreX = w * 0.5f;
     float btnH = h * 0.07f;
     float btnY = h * 0.68f - btnH * 0.5f;
-    float labelY = btnY - learnFontSize * 1.85f;
+    float labelY = btnY - learnFontSize * 1.25f; // closer to the START/STOP button
 
     // Crossfade alphas between "Learn" and "Learning" (without the dots)
     float alphaLearn    = juce::jmax(0.0f, 1.0f - 2.0f * learningTextProgress);
@@ -658,9 +658,9 @@ void TiptoeAudioProcessorEditor::resized()
     latencyLabel.setFont(conjusLAF.getRegularFont(latencyFontSize));
     latencyLabel.setJustificationType(juce::Justification::centredBottom);
     int latencyH = static_cast<int>(latencyFontSize * 2.0f);
-    // Sit a bit above the very bottom edge (peek position is the same since
+    // Sit clearly above the bottom edge (peek position is the same since
     // the peek animation just eases hideProgress back to 0).
-    int latencyLift = static_cast<int>(latencyFontSize * 0.8f);
+    int latencyLift = static_cast<int>(latencyFontSize * 3.0f);
     latencyBaseBounds = { 0, getHeight() - latencyH - latencyLift, getWidth(), latencyH };
     latencyBaseFontSize = latencyFontSize;
     // Hit area: narrow — matches the actual text width with a small horizontal pad
