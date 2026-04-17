@@ -66,19 +66,34 @@ int main(int argc, char** argv)
         snap = cropped;
     }
 
-    // Rounded corners — match the README download pill radius (16px at 1x) scaled to render resolution.
+    // Rounded corners + orange border around the edge.
+    // Radius matches the README download pill (16px at 1x); border uses the
+    // same accent colour as every other orange element in the plugin.
     {
         const float cornerRadius = 16.0f * scale;
-        juce::Image rounded{ juce::Image::ARGB, snap.getWidth(), snap.getHeight(), true };
-        juce::Graphics rg{ rounded };
+        const float borderW = 4.0f * scale;
+        const float w = static_cast<float>(snap.getWidth());
+        const float h = static_cast<float>(snap.getHeight());
+
+        juce::Image framed{ juce::Image::ARGB, snap.getWidth(), snap.getHeight(), true };
+        juce::Graphics rg{ framed };
+
+        // Clip to the rounded shape, then paint the editor snapshot
         juce::Path mask;
-        mask.addRoundedRectangle(0.0f, 0.0f,
-                                 static_cast<float>(snap.getWidth()),
-                                 static_cast<float>(snap.getHeight()),
-                                 cornerRadius);
+        mask.addRoundedRectangle(0.0f, 0.0f, w, h, cornerRadius);
         rg.reduceClipRegion(mask);
         rg.drawImageAt(snap, 0, 0);
-        snap = rounded;
+
+        // Stroke the accent-colour border along the same rounded path — the
+        // clip keeps the corners crisp and prevents the stroke bleeding out.
+        rg.setColour(KnobDesign::accentColour);
+        juce::Path border;
+        border.addRoundedRectangle(borderW * 0.5f, borderW * 0.5f,
+                                   w - borderW, h - borderW,
+                                   cornerRadius - borderW * 0.5f);
+        rg.strokePath(border, juce::PathStrokeType(borderW));
+
+        snap = framed;
     }
 
     outFile.deleteFile();
