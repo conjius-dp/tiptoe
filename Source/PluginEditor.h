@@ -66,11 +66,11 @@ private:
 
     AnimatedSlider thresholdSlider;
     AnimatedSlider reductionSlider;
-    juce::Label thresholdLabel { {}, "Threshold" };
-    juce::Label reductionLabel { {}, "Reduction" };
-    juce::Label latencyLabel   { {}, "Latency: 0.000ms" };
+    juce::Label thresholdLabel { {}, "THRESHOLD" };
+    juce::Label reductionLabel { {}, "REDUCTION" };
+    juce::Label latencyLabel   { {}, "LATENCY: 0.000ms" };
 
-    juce::TextButton learnButton { "Start" };
+    juce::TextButton learnButton { "START" };
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> reductionAttachment;

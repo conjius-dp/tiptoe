@@ -84,6 +84,32 @@ public:
         return juce::Font(juce::FontOptions().withHeight(height));
     }
 
+    // Compact orange corner resizer — three thin diagonal lines in the accent colour,
+    // drawn into a smaller square so the affordance isn't too visually heavy.
+    void drawCornerResizer(juce::Graphics& g, int w, int h,
+                           bool isMouseOver, bool isMouseDragging) override
+    {
+        const auto colour = (isMouseOver || isMouseDragging)
+                            ? KnobDesign::accentHoverColour
+                            : KnobDesign::accentColour;
+        g.setColour(colour);
+
+        // Shrink the drawable area from JUCE's default triangle — gives a smaller,
+        // subtler handle that still reads as "resize here".
+        const float inset = juce::jmin(static_cast<float>(w), static_cast<float>(h)) * 0.35f;
+        const float right = static_cast<float>(w);
+        const float bottom = static_cast<float>(h);
+        const float strokeW = juce::jmax(1.5f, juce::jmin(static_cast<float>(w), static_cast<float>(h)) * 0.05f);
+
+        for (int i = 1; i <= 3; ++i)
+        {
+            const float t = static_cast<float>(i) * (bottom - inset) / 4.0f;
+            juce::Line<float> line{ right - 2.0f, bottom - t - 2.0f,
+                                    right - t - 2.0f, bottom - 2.0f };
+            g.drawLine(line, strokeW);
+        }
+    }
+
     // Store knob type per slider via component properties
     static void setKnobType(juce::Slider& slider, KnobType type)
     {

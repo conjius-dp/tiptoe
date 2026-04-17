@@ -72,13 +72,13 @@ TiptoeAudioProcessorEditor::TiptoeAudioProcessorEditor(TiptoeAudioProcessor& p)
         if (processorRef.isLearning())
         {
             processorRef.stopLearning();
-            learnButton.setButtonText("Start");
+            learnButton.setButtonText("START");
             learnButton.getProperties().set("stateTarget", 0.0);
         }
         else
         {
             processorRef.startLearning();
-            learnButton.setButtonText("Stop");
+            learnButton.setButtonText("STOP");
             learnButton.getProperties().set("stateTarget", 1.0);
         }
     };
@@ -149,7 +149,7 @@ void TiptoeAudioProcessorEditor::timerCallback()
     {
         latencyTick = 0;
         float ms = processorRef.getLastProcessingTimeMs();
-        latencyLabel.setText("Latency: " + juce::String(ms, 3) + "ms",
+        latencyLabel.setText("LATENCY: " + juce::String(ms, 3) + "ms",
                              juce::dontSendNotification);
     }
 
@@ -181,14 +181,14 @@ void TiptoeAudioProcessorEditor::timerCallback()
     updateSnapAnimation(reductionSlider, reductionAnim);
 
     // Update learn button state (in case processor state changed externally)
-    if (processorRef.isLearning() && learnButton.getButtonText() != "Stop")
+    if (processorRef.isLearning() && learnButton.getButtonText() != "STOP")
     {
-        learnButton.setButtonText("Stop");
+        learnButton.setButtonText("STOP");
         learnButton.getProperties().set("stateTarget", 1.0);
     }
-    else if (!processorRef.isLearning() && learnButton.getButtonText() != "Start")
+    else if (!processorRef.isLearning() && learnButton.getButtonText() != "START")
     {
-        learnButton.setButtonText("Start");
+        learnButton.setButtonText("START");
         learnButton.getProperties().set("stateTarget", 0.0);
     }
 
@@ -305,7 +305,7 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
         g.setFont(conjusLAF.getBoldFont(subFontSize));
         float subX = titleX + titleW * 0.55f;
         float subY = titleY + titleH * 0.70f;
-        g.drawText("Spectral denoiser",
+        g.drawText("SPECTRAL DENOISER",
                    juce::Rectangle<float>(subX, subY, w * 0.4f, subFontSize * 1.4f),
                    juce::Justification::topLeft, false);
     }
@@ -338,7 +338,7 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
     if (alphaLearn > 0.001f)
     {
         g.setColour(KnobDesign::accentColour.withMultipliedAlpha(alphaLearn));
-        g.drawText("Learn",
+        g.drawText("LEARN",
                    juce::Rectangle<float>(centreX - w * 0.15f, labelY, w * 0.3f, learnFontSize * 1.2f),
                    juce::Justification::centred, false);
     }
@@ -346,7 +346,7 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
     // "Learning" + animated dots
     if (alphaLearning > 0.001f)
     {
-        float learningW = labelFontLearn.getStringWidthFloat("Learning");
+        float learningW = labelFontLearn.getStringWidthFloat("LEARNING");
         float dotW      = labelFontLearn.getStringWidthFloat(".");
         float dotSpacing = dotW * 0.55f; // tighter than the glyph advance
         float fullW     = learningW + 3.0f * dotSpacing;
@@ -355,7 +355,7 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
         auto colour = KnobDesign::accentColour.withMultipliedAlpha(alphaLearning);
 
         g.setColour(colour);
-        g.drawText("Learning",
+        g.drawText("LEARNING",
                    juce::Rectangle<float>(baseX, labelY, learningW, learnFontSize * 1.2f),
                    juce::Justification::centredLeft, false);
 
@@ -576,12 +576,12 @@ void TiptoeAudioProcessorEditor::resized()
             if (alphaStart > 0.001f)
             {
                 g.setColour(textColour.withMultipliedAlpha(alphaStart));
-                g.drawText("Start", bounds, juce::Justification::centred, false);
+                g.drawText("START", bounds, juce::Justification::centred, false);
             }
             if (alphaStop > 0.001f)
             {
                 g.setColour(textColour.withMultipliedAlpha(alphaStop));
-                g.drawText("Stop", bounds, juce::Justification::centred, false);
+                g.drawText("STOP", bounds, juce::Justification::centred, false);
             }
         }
     };
@@ -604,7 +604,7 @@ void TiptoeAudioProcessorEditor::resized()
     latencyBaseFontSize = latencyFontSize;
     // Hit area: narrow — matches the actual text width with a small horizontal pad
     auto latencyFont = conjusLAF.getRegularFont(latencyFontSize);
-    int textW = static_cast<int>(latencyFont.getStringWidthFloat("Latency: 0.000ms"));
+    int textW = static_cast<int>(latencyFont.getStringWidthFloat("LATENCY: 0.000ms"));
     int hitPadX = static_cast<int>(latencyFontSize * 0.8f);
     int hitPadY = latencyH;
     int hitW = textW + 2 * hitPadX;
