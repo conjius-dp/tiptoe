@@ -37,7 +37,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-04-17 11:00:59</td>
+            <td class="headerValue">2026-04-17 11:33:10</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
@@ -193,63 +193,63 @@
 <span id="L131"><span class="lineNum">     131</span> <span class="tlaGNC">           4 :     return noiseProfile_;</span></span>
 <span id="L132"><span class="lineNum">     132</span>              : }</span>
 <span id="L133"><span class="lineNum">     133</span>              : </span>
-<span id="L134"><span class="lineNum">     134</span> <span class="tlaGNC">      147273 : void SpectralGateTiptoe::setThreshold(float thresholdMultiplier)</span></span>
+<span id="L134"><span class="lineNum">     134</span> <span class="tlaGNC">      133075 : void SpectralGateTiptoe::setThreshold(float thresholdMultiplier)</span></span>
 <span id="L135"><span class="lineNum">     135</span>              : {</span>
-<span id="L136"><span class="lineNum">     136</span> <span class="tlaGNC">      147273 :     thresholdMultiplier_ = thresholdMultiplier;</span></span>
-<span id="L137"><span class="lineNum">     137</span> <span class="tlaGNC">      147273 :     thresholdSq_ = thresholdMultiplier * thresholdMultiplier;</span></span>
-<span id="L138"><span class="lineNum">     138</span> <span class="tlaGNC">      147273 : }</span></span>
+<span id="L136"><span class="lineNum">     136</span> <span class="tlaGNC">      133075 :     thresholdMultiplier_ = thresholdMultiplier;</span></span>
+<span id="L137"><span class="lineNum">     137</span> <span class="tlaGNC">      133075 :     thresholdSq_ = thresholdMultiplier * thresholdMultiplier;</span></span>
+<span id="L138"><span class="lineNum">     138</span> <span class="tlaGNC">      133075 : }</span></span>
 <span id="L139"><span class="lineNum">     139</span>              : </span>
-<span id="L140"><span class="lineNum">     140</span> <span class="tlaGNC">      147273 : void SpectralGateTiptoe::setReduction(float reductionDB)</span></span>
+<span id="L140"><span class="lineNum">     140</span> <span class="tlaGNC">      133075 : void SpectralGateTiptoe::setReduction(float reductionDB)</span></span>
 <span id="L141"><span class="lineNum">     141</span>              : {</span>
-<span id="L142"><span class="lineNum">     142</span> <span class="tlaGNC">      147273 :     reductionGain_ = std::pow(10.0f, reductionDB / 20.0f);</span></span>
-<span id="L143"><span class="lineNum">     143</span> <span class="tlaGNC">      147273 : }</span></span>
+<span id="L142"><span class="lineNum">     142</span> <span class="tlaGNC">      133075 :     reductionGain_ = std::pow(10.0f, reductionDB / 20.0f);</span></span>
+<span id="L143"><span class="lineNum">     143</span> <span class="tlaGNC">      133075 : }</span></span>
 <span id="L144"><span class="lineNum">     144</span>              : </span>
-<span id="L145"><span class="lineNum">     145</span> <span class="tlaGNC">          16 : float SpectralGateTiptoe::getLastProcessingTimeMs() const</span></span>
+<span id="L145"><span class="lineNum">     145</span> <span class="tlaGNC">          18 : float SpectralGateTiptoe::getLastProcessingTimeMs() const</span></span>
 <span id="L146"><span class="lineNum">     146</span>              : {</span>
-<span id="L147"><span class="lineNum">     147</span> <span class="tlaGNC">          16 :     return lastProcessingTimeMs_;</span></span>
+<span id="L147"><span class="lineNum">     147</span> <span class="tlaGNC">          18 :     return lastProcessingTimeMs_;</span></span>
 <span id="L148"><span class="lineNum">     148</span>              : }</span>
 <span id="L149"><span class="lineNum">     149</span>              : </span>
-<span id="L150"><span class="lineNum">     150</span> <span class="tlaGNC">      147445 : void SpectralGateTiptoe::processMono(float* samples, int numSamples)</span></span>
+<span id="L150"><span class="lineNum">     150</span> <span class="tlaGNC">      133247 : void SpectralGateTiptoe::processMono(float* samples, int numSamples)</span></span>
 <span id="L151"><span class="lineNum">     151</span>              : {</span>
-<span id="L152"><span class="lineNum">     152</span> <span class="tlaGNC">      147445 :     auto start = std::chrono::high_resolution_clock::now();</span></span>
+<span id="L152"><span class="lineNum">     152</span> <span class="tlaGNC">      133247 :     auto start = std::chrono::high_resolution_clock::now();</span></span>
 <span id="L153"><span class="lineNum">     153</span>              : </span>
-<span id="L154"><span class="lineNum">     154</span> <span class="tlaGNC">    10030209 :     for (int i = 0; i &lt; numSamples; ++i)</span></span>
+<span id="L154"><span class="lineNum">     154</span> <span class="tlaGNC">     9107339 :     for (int i = 0; i &lt; numSamples; ++i)</span></span>
 <span id="L155"><span class="lineNum">     155</span>              :     {</span>
-<span id="L156"><span class="lineNum">     156</span> <span class="tlaGNC">     9882764 :         inputFifo[inputFifoIndex] = samples[i];</span></span>
+<span id="L156"><span class="lineNum">     156</span> <span class="tlaGNC">     8974092 :         inputFifo[inputFifoIndex] = samples[i];</span></span>
 <span id="L157"><span class="lineNum">     157</span>              : </span>
-<span id="L158"><span class="lineNum">     158</span> <span class="tlaGNC">     9882764 :         samples[i] = outputFifo[inputFifoIndex];</span></span>
-<span id="L159"><span class="lineNum">     159</span> <span class="tlaGNC">     9882764 :         outputFifo[inputFifoIndex] = 0.0f;</span></span>
+<span id="L158"><span class="lineNum">     158</span> <span class="tlaGNC">     8974092 :         samples[i] = outputFifo[inputFifoIndex];</span></span>
+<span id="L159"><span class="lineNum">     159</span> <span class="tlaGNC">     8974092 :         outputFifo[inputFifoIndex] = 0.0f;</span></span>
 <span id="L160"><span class="lineNum">     160</span>              : </span>
-<span id="L161"><span class="lineNum">     161</span> <span class="tlaGNC">     9882764 :         ++inputFifoIndex;</span></span>
-<span id="L162"><span class="lineNum">     162</span> <span class="tlaGNC">     9882764 :         ++hopCounter;</span></span>
+<span id="L161"><span class="lineNum">     161</span> <span class="tlaGNC">     8974092 :         ++inputFifoIndex;</span></span>
+<span id="L162"><span class="lineNum">     162</span> <span class="tlaGNC">     8974092 :         ++hopCounter;</span></span>
 <span id="L163"><span class="lineNum">     163</span>              : </span>
-<span id="L164"><span class="lineNum">     164</span> <span class="tlaGNC">     9882764 :         if (hopCounter &gt;= kHopSize)</span></span>
+<span id="L164"><span class="lineNum">     164</span> <span class="tlaGNC">     8974092 :         if (hopCounter &gt;= kHopSize)</span></span>
 <span id="L165"><span class="lineNum">     165</span>              :         {</span>
-<span id="L166"><span class="lineNum">     166</span> <span class="tlaGNC">        9637 :             hopCounter = 0;</span></span>
-<span id="L167"><span class="lineNum">     167</span> <span class="tlaGNC">        9637 :             processFrame();</span></span>
-<span id="L168"><span class="lineNum">     168</span> <span class="tlaGNC">        9637 :         }</span></span>
+<span id="L166"><span class="lineNum">     166</span> <span class="tlaGNC">        8749 :             hopCounter = 0;</span></span>
+<span id="L167"><span class="lineNum">     167</span> <span class="tlaGNC">        8749 :             processFrame();</span></span>
+<span id="L168"><span class="lineNum">     168</span> <span class="tlaGNC">        8749 :         }</span></span>
 <span id="L169"><span class="lineNum">     169</span>              : </span>
-<span id="L170"><span class="lineNum">     170</span> <span class="tlaGNC">     9882764 :         inputFifoIndex &amp;= kFFTMask; // bitwise AND instead of modulo</span></span>
-<span id="L171"><span class="lineNum">     171</span> <span class="tlaGNC">     9882764 :     }</span></span>
+<span id="L170"><span class="lineNum">     170</span> <span class="tlaGNC">     8974092 :         inputFifoIndex &amp;= kFFTMask; // bitwise AND instead of modulo</span></span>
+<span id="L171"><span class="lineNum">     171</span> <span class="tlaGNC">     8974092 :     }</span></span>
 <span id="L172"><span class="lineNum">     172</span>              : </span>
-<span id="L173"><span class="lineNum">     173</span> <span class="tlaGNC">      147445 :     auto end = std::chrono::high_resolution_clock::now();</span></span>
-<span id="L174"><span class="lineNum">     174</span> <span class="tlaGNC">      147445 :     lastProcessingTimeMs_ = std::chrono::duration&lt;float, std::milli&gt;(end - start).count();</span></span>
-<span id="L175"><span class="lineNum">     175</span> <span class="tlaGNC">      147445 : }</span></span>
+<span id="L173"><span class="lineNum">     173</span> <span class="tlaGNC">      133247 :     auto end = std::chrono::high_resolution_clock::now();</span></span>
+<span id="L174"><span class="lineNum">     174</span> <span class="tlaGNC">      133247 :     lastProcessingTimeMs_ = std::chrono::duration&lt;float, std::milli&gt;(end - start).count();</span></span>
+<span id="L175"><span class="lineNum">     175</span> <span class="tlaGNC">      133247 : }</span></span>
 <span id="L176"><span class="lineNum">     176</span>              : </span>
-<span id="L177"><span class="lineNum">     177</span> <span class="tlaGNC">        9637 : void SpectralGateTiptoe::processFrame()</span></span>
+<span id="L177"><span class="lineNum">     177</span> <span class="tlaGNC">        8749 : void SpectralGateTiptoe::processFrame()</span></span>
 <span id="L178"><span class="lineNum">     178</span>              : {</span>
 <span id="L179"><span class="lineNum">     179</span>              :     // Gather and window using bitwise AND for wrap</span>
-<span id="L180"><span class="lineNum">     180</span> <span class="tlaGNC">    19746213 :     for (int i = 0; i &lt; kFFTSize; ++i)</span></span>
+<span id="L180"><span class="lineNum">     180</span> <span class="tlaGNC">    17926701 :     for (int i = 0; i &lt; kFFTSize; ++i)</span></span>
 <span id="L181"><span class="lineNum">     181</span>              :     {</span>
-<span id="L182"><span class="lineNum">     182</span> <span class="tlaGNC">    19736576 :         int idx = (inputFifoIndex + i) &amp; kFFTMask;</span></span>
-<span id="L183"><span class="lineNum">     183</span> <span class="tlaGNC">    19736576 :         fftWorkspace[i] = inputFifo[idx] * window[i];</span></span>
-<span id="L184"><span class="lineNum">     184</span> <span class="tlaGNC">    19736576 :     }</span></span>
-<span id="L185"><span class="lineNum">     185</span> <span class="tlaGNC">        9637 :     std::fill(fftWorkspace.begin() + kFFTSize, fftWorkspace.end(), 0.0f);</span></span>
+<span id="L182"><span class="lineNum">     182</span> <span class="tlaGNC">    17917952 :         int idx = (inputFifoIndex + i) &amp; kFFTMask;</span></span>
+<span id="L183"><span class="lineNum">     183</span> <span class="tlaGNC">    17917952 :         fftWorkspace[i] = inputFifo[idx] * window[i];</span></span>
+<span id="L184"><span class="lineNum">     184</span> <span class="tlaGNC">    17917952 :     }</span></span>
+<span id="L185"><span class="lineNum">     185</span> <span class="tlaGNC">        8749 :     std::fill(fftWorkspace.begin() + kFFTSize, fftWorkspace.end(), 0.0f);</span></span>
 <span id="L186"><span class="lineNum">     186</span>              : </span>
-<span id="L187"><span class="lineNum">     187</span> <span class="tlaGNC">        9637 :     fft.performRealOnlyForwardTransform(fftWorkspace.data());</span></span>
+<span id="L187"><span class="lineNum">     187</span> <span class="tlaGNC">        8749 :     fft.performRealOnlyForwardTransform(fftWorkspace.data());</span></span>
 <span id="L188"><span class="lineNum">     188</span>              : </span>
 <span id="L189"><span class="lineNum">     189</span>              :     // Spectral gate — compare squared magnitudes (no sqrt)</span>
-<span id="L190"><span class="lineNum">     190</span> <span class="tlaGNC">        9637 :     if (hasNoiseProfile_)</span></span>
+<span id="L190"><span class="lineNum">     190</span> <span class="tlaGNC">        8749 :     if (hasNoiseProfile_)</span></span>
 <span id="L191"><span class="lineNum">     191</span>              :     {</span>
 <span id="L192"><span class="lineNum">     192</span> <span class="tlaGNC">      223668 :         for (int i = 0; i &lt; kNumBins; ++i)</span></span>
 <span id="L193"><span class="lineNum">     193</span>              :         {</span>
@@ -267,15 +267,15 @@
 <span id="L205"><span class="lineNum">     205</span> <span class="tlaGNC">      223450 :         }</span></span>
 <span id="L206"><span class="lineNum">     206</span> <span class="tlaGNC">         218 :     }</span></span>
 <span id="L207"><span class="lineNum">     207</span>              : </span>
-<span id="L208"><span class="lineNum">     208</span> <span class="tlaGNC">        9637 :     fft.performRealOnlyInverseTransform(fftWorkspace.data());</span></span>
+<span id="L208"><span class="lineNum">     208</span> <span class="tlaGNC">        8749 :     fft.performRealOnlyInverseTransform(fftWorkspace.data());</span></span>
 <span id="L209"><span class="lineNum">     209</span>              : </span>
 <span id="L210"><span class="lineNum">     210</span>              :     // Overlap-add — no synthesis window needed with Hann analysis + 50% overlap (COLA = 1.0)</span>
-<span id="L211"><span class="lineNum">     211</span> <span class="tlaGNC">    19746213 :     for (int i = 0; i &lt; kFFTSize; ++i)</span></span>
+<span id="L211"><span class="lineNum">     211</span> <span class="tlaGNC">    17926701 :     for (int i = 0; i &lt; kFFTSize; ++i)</span></span>
 <span id="L212"><span class="lineNum">     212</span>              :     {</span>
-<span id="L213"><span class="lineNum">     213</span> <span class="tlaGNC">    19736576 :         int idx = (inputFifoIndex + i) &amp; kFFTMask;</span></span>
-<span id="L214"><span class="lineNum">     214</span> <span class="tlaGNC">    19736576 :         outputFifo[idx] += fftWorkspace[i];</span></span>
-<span id="L215"><span class="lineNum">     215</span> <span class="tlaGNC">    19736576 :     }</span></span>
-<span id="L216"><span class="lineNum">     216</span> <span class="tlaGNC">        9637 : }</span></span>
+<span id="L213"><span class="lineNum">     213</span> <span class="tlaGNC">    17917952 :         int idx = (inputFifoIndex + i) &amp; kFFTMask;</span></span>
+<span id="L214"><span class="lineNum">     214</span> <span class="tlaGNC">    17917952 :         outputFifo[idx] += fftWorkspace[i];</span></span>
+<span id="L215"><span class="lineNum">     215</span> <span class="tlaGNC">    17917952 :     }</span></span>
+<span id="L216"><span class="lineNum">     216</span> <span class="tlaGNC">        8749 : }</span></span>
         </pre>
               </td>
             </tr>
