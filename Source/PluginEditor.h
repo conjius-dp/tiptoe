@@ -2,6 +2,7 @@
 
 #include "PluginProcessor.h"
 #include "KnobDesign.h"
+#include "SpectrumGraph.h"
 #include "BinaryData.h"
 
 // ── Slider subclass that delegates double-click to the editor ──
@@ -18,24 +19,30 @@ public:
     }
 
     // Tight hit-test: only the knob circle and the value-pill rectangle intercept mouse events.
-    // Everywhere else within the slider's bounds, events pass through to the parent.
+    // Mirrors the geometry inside drawRotarySlider() so dragging the knob
+    // ring and double-clicking both stay accurate after the knob is shifted
+    // down (see knobShiftDown in drawRotarySlider).
     bool hitTest(int x, int y) override
     {
-        // Knob circle uses jmin(sliderW, knobAreaH) * 0.78 in drawRotarySlider;
-        // approximate using slider local dimensions minus a textbox allowance.
         float sw = static_cast<float>(getWidth());
         float sh = static_cast<float>(getHeight());
-        float textBoxH = sh * 0.25f; // ~matches editor layout ratio
-        float knobAreaH = sh - textBoxH;
-        float d = juce::jmin(sw, knobAreaH) * 0.78f;
+
+        float parentH = sh;
+        if (auto* editor = getParentComponent())
+            parentH = static_cast<float>(editor->getHeight());
+        const float knobShift = 70.0f * (parentH / static_cast<float>(KnobDesign::defaultHeight));
+
+        float d = juce::jmin(juce::jmin(sw, sh) * 0.78f, sw * 0.60f);
         float r = d * 0.5f;
         float cx = sw * 0.5f;
-        float cy = knobAreaH * 0.5f - d * 0.08f;
+        float cy = parentH * 0.5f - static_cast<float>(getY()) + knobShift;
+
         float dx = static_cast<float>(x) - cx;
         float dy = static_cast<float>(y) - cy;
         if (dx * dx + dy * dy <= r * r) return true;
 
-        // Pill rect — approx 60% width centred at the bottom text-box area
+        // Pill rect — bottom text-box area, unaffected by the knob shift.
+        float textBoxH = sh * 0.25f;
         int pillHalfW = static_cast<int>(sw * 0.30f);
         int pillTop    = static_cast<int>(sh - textBoxH * 0.85f);
         int pillBottom = static_cast<int>(sh - textBoxH * 0.05f);
@@ -76,6 +83,12 @@ private:
     juce::Label latencyLabel   { {}, "LATENCY: 0.000ms" };
 
     juce::TextButton learnButton { "START" };
+
+    SpectrumGraph spectrumGraph;
+
+    // Reused buffers for spectrum snapshots so we don't allocate per frame.
+    std::vector<float> scratchInputMags;
+    std::vector<float> scratchNoiseMags;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> reductionAttachment;

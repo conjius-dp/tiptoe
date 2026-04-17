@@ -30,12 +30,16 @@ namespace KnobDesign
     inline constexpr float latencyTextScale  = 0.017f;
 
     // ── Window ──
+    // Taller default than before so the spectrum graph fits above the knobs.
     inline constexpr int   defaultWidth      = 650;
-    inline constexpr int   defaultHeight     = 360;
+    inline constexpr int   defaultHeight     = 540;
     inline constexpr int   minWidth          = 400;
-    inline constexpr int   minHeight         = 280;
+    inline constexpr int   minHeight         = 420;
     inline constexpr int   maxWidth          = 1000;
-    inline constexpr int   maxHeight         = 700;
+    inline constexpr int   maxHeight         = 900;
+
+    // Fraction of the window height occupied by the spectrum graph at the top.
+    inline constexpr float graphAreaFrac     = 0.36f;
 
     // ── Angle helpers ──
     inline float normToAngleRad(float norm01)
@@ -150,13 +154,26 @@ public:
         float diameter = juce::jmin(juce::jmin(sliderW, sliderH) * 0.78f,
                                     sliderW * 0.60f);
         float radius = diameter * 0.5f;
+
+        // Knob-graphics offset (ring + ticks + tick labels only — the value
+        // pill is drawn in drawLabel() off the slider text box bounds, so it
+        // stays put when this offset is applied).
+        float parentH = 0.0f;
+        if (auto* editor = slider.getParentComponent())
+            parentH = static_cast<float>(editor->getHeight());
+        const float knobShiftDown = 70.0f * (parentH > 0.0f
+                                             ? parentH / static_cast<float>(KnobDesign::defaultHeight)
+                                             : 1.0f);
         float cx = bounds.getCentreX();
         // Centre the knob at the vertical midpoint of the editor window so the
-        // gap to the orange border is identical above and below.
+        // gap to the orange border is identical above and below, THEN apply
+        // the knob-graphics-only down-shift so the ring and tick labels move
+        // without dragging the value pill (the pill is drawn by drawLabel()
+        // against the slider's text-box bounds).
         auto* parent = slider.getParentComponent();
         const float windowH = parent ? static_cast<float>(parent->getHeight()) : bounds.getHeight();
         const float sliderY = static_cast<float>(slider.getY());
-        float cy = windowH * 0.5f - sliderY;
+        float cy = windowH * 0.5f - sliderY + knobShiftDown;
 
         float strokeW = diameter * knobStrokeFrac;
         float indW = diameter * indicatorWidthFrac;

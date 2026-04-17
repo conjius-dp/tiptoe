@@ -8,8 +8,10 @@ SpectralGateTiptoe::SpectralGateTiptoe()
 {
 }
 
-void SpectralGateTiptoe::prepare(double /*sampleRate*/, int /*maxBlockSize*/)
+void SpectralGateTiptoe::prepare(double sampleRate, int /*maxBlockSize*/)
 {
+    sampleRate_ = sampleRate;
+
     // Hann window
     window.resize(kFFTSize);
     for (int i = 0; i < kFFTSize; ++i)
@@ -35,6 +37,14 @@ void SpectralGateTiptoe::prepare(double /*sampleRate*/, int /*maxBlockSize*/)
 
     learnFifo_.resize(kFFTSize, 0.0f);
     learnFifoIndex_ = 0;
+
+    for (auto& buf : inputMagSnapshots_)
+        buf.assign(kNumBins, 0.0f);
+    inputMagWriteIndex_.store(0, std::memory_order_relaxed);
+
+    for (auto& buf : noiseSnapshots_)
+        buf.assign(kNumBins, 0.0f);
+    noiseWriteIndex_.store(0, std::memory_order_relaxed);
 }
 
 void SpectralGateTiptoe::reset()
@@ -84,6 +94,11 @@ void SpectralGateTiptoe::stopLearning()
         std::fill(noiseProfile_.begin(), noiseProfile_.end(), 0.0f);
         std::fill(noiseProfileSq_.begin(), noiseProfileSq_.end(), 0.0f);
     }
+
+    // Publish the final averaged profile as the visible snapshot.
+    const int writeIdx = (noiseWriteIndex_.load(std::memory_order_relaxed) + 1) & 1;
+    noiseSnapshots_[static_cast<size_t>(writeIdx)] = noiseProfile_;
+    noiseWriteIndex_.store(writeIdx, std::memory_order_release);
 }
 
 bool SpectralGateTiptoe::isLearning() const
@@ -116,14 +131,34 @@ void SpectralGateTiptoe::learnFrame(const float* frameData)
 
     fft.performRealOnlyForwardTransform(fftWorkspace.data());
 
+    // Publish per-bin magnitudes of THIS frame so the UI keeps seeing a live
+    // input curve during learning (processFrame() is never hit while learning
+    // because the processor short-circuits).
+    const int inputWriteIdx = (inputMagWriteIndex_.load(std::memory_order_relaxed) + 1) & 1;
+    auto& inputDst = inputMagSnapshots_[static_cast<size_t>(inputWriteIdx)];
+
     for (int i = 0; i < kNumBins; ++i)
     {
-        float re = fftWorkspace[i * 2];
-        float im = fftWorkspace[i * 2 + 1];
-        float mag = std::sqrt(re * re + im * im);
+        const float re = fftWorkspace[i * 2];
+        const float im = fftWorkspace[i * 2 + 1];
+        const float mag = std::sqrt(re * re + im * im);
+        inputDst[static_cast<size_t>(i)] = mag;
         noiseAccumulator_[i] += static_cast<double>(mag);
     }
+    inputMagWriteIndex_.store(inputWriteIdx, std::memory_order_release);
     ++noiseFrameCount_;
+
+    // Publish the running-average noise profile so the noise curve morphs
+    // visibly while the user is learning.
+    if (noiseFrameCount_ > 0)
+    {
+        const int noiseWriteIdx = (noiseWriteIndex_.load(std::memory_order_relaxed) + 1) & 1;
+        auto& noiseDst = noiseSnapshots_[static_cast<size_t>(noiseWriteIdx)];
+        const double inv = 1.0 / static_cast<double>(noiseFrameCount_);
+        for (int i = 0; i < kNumBins; ++i)
+            noiseDst[static_cast<size_t>(i)] = static_cast<float>(noiseAccumulator_[i] * inv);
+        noiseWriteIndex_.store(noiseWriteIdx, std::memory_order_release);
+    }
 }
 
 const std::vector<float>& SpectralGateTiptoe::getNoiseProfile() const
@@ -145,6 +180,22 @@ void SpectralGateTiptoe::setReduction(float reductionDB)
 float SpectralGateTiptoe::getLastProcessingTimeMs() const
 {
     return lastProcessingTimeMs_;
+}
+
+void SpectralGateTiptoe::copyInputMagnitudes(std::vector<float>& out) const
+{
+    const int readIdx = inputMagWriteIndex_.load(std::memory_order_acquire);
+    const auto& src = inputMagSnapshots_[static_cast<size_t>(readIdx)];
+    out.resize(src.size());
+    std::copy(src.begin(), src.end(), out.begin());
+}
+
+void SpectralGateTiptoe::copyNoiseProfile(std::vector<float>& out) const
+{
+    const int readIdx = noiseWriteIndex_.load(std::memory_order_acquire);
+    const auto& src = noiseSnapshots_[static_cast<size_t>(readIdx)];
+    out.resize(src.size());
+    std::copy(src.begin(), src.end(), out.begin());
 }
 
 void SpectralGateTiptoe::processMono(float* samples, int numSamples)
@@ -185,6 +236,20 @@ void SpectralGateTiptoe::processFrame()
     std::fill(fftWorkspace.begin() + kFFTSize, fftWorkspace.end(), 0.0f);
 
     fft.performRealOnlyForwardTransform(fftWorkspace.data());
+
+    // Snapshot per-bin magnitudes into the inactive buffer before gating
+    // modifies anything — then flip the write index so UI readers see it.
+    {
+        const int writeIdx = (inputMagWriteIndex_.load(std::memory_order_relaxed) + 1) & 1;
+        auto& dst = inputMagSnapshots_[static_cast<size_t>(writeIdx)];
+        for (int i = 0; i < kNumBins; ++i)
+        {
+            const float re = fftWorkspace[i * 2];
+            const float im = fftWorkspace[i * 2 + 1];
+            dst[static_cast<size_t>(i)] = std::sqrt(re * re + im * im);
+        }
+        inputMagWriteIndex_.store(writeIdx, std::memory_order_release);
+    }
 
     // Spectral gate — compare squared magnitudes (no sqrt)
     if (hasNoiseProfile_)

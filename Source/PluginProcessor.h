@@ -47,6 +47,16 @@ public:
     // Processing latency (max of both channels)
     float getLastProcessingTimeMs() const;
 
+    // Spectrum-graph accessors (read from the first channel — mono-safe view
+    // for visualisation). Lock-free: audio thread writes a double-buffered
+    // snapshot, UI reads the most recent one.
+    void copyInputMagnitudes(std::vector<float>& out) const { gates[0].copyInputMagnitudes(out); }
+    void copyNoiseProfile(std::vector<float>& out) const { gates[0].copyNoiseProfile(out); }
+    const std::vector<float>& getNoiseProfile() const { return gates[0].getNoiseProfile(); }
+    double getDspSampleRate() const { return gates[0].getSampleRate(); }
+    static constexpr int getFFTSize() { return SpectralGateTiptoe::kFFTSize; }
+    static constexpr int getNumBins() { return SpectralGateTiptoe::kNumBins; }
+
     // Editor size persistence
     std::atomic<int> editorWidth  { KnobDesign::defaultWidth };
     std::atomic<int> editorHeight { KnobDesign::defaultHeight };
