@@ -10,6 +10,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check-changes:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
@@ -74,14 +78,13 @@ jobs:
       - name: Configure (Release)
         run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
 
-      - name: Build Standalone
-        run: cmake --build build --target Tiptoe_Standalone
+      - name: Build plugin + screenshot (parallel)
+        # Single invocation builds all targets in parallel — reuses JUCE module
+        # objects across them so we don't recompile JUCE three or four times.
+        run: cmake --build build --target Tiptoe_Standalone Tiptoe_VST3 Tiptoe_AU TiptoeScreenshot
 
-      - name: Build VST3
-        run: cmake --build build --target Tiptoe_VST3
-
-      - name: Build AU
-        run: cmake --build build --target Tiptoe_AU
+      - name: Render screenshot PNG
+        run: ./build/TiptoeScreenshot screenshot.png
 
       - name: Zip Standalone
         run: |
@@ -107,14 +110,28 @@ jobs:
             Tiptoe-macOS-VST3.zip
             tiptoe-macOS-AU.zip
 
+      - name: Upload screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot
+          path: screenshot.png
+
   build-windows:
     needs: check-changes
     if: needs.check-changes.outputs.plugin_changed == 'true'
     runs-on: windows-latest
+    env:
+      SCCACHE_GHA_ENABLED: "true"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
+
+      - name: Setup MSVC dev environment
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Cache JUCE
         id: cache-juce
@@ -128,10 +145,10 @@ jobs:
         run: git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
 
       - name: Configure (Release)
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_C_COMPILER_LAUNCHER=sccache
 
       - name: Build VST3
-        run: cmake --build build --config Release --target Tiptoe_VST3
+        run: cmake --build build --target Tiptoe_VST3
 
       - name: Zip VST3
         run: Compress-Archive -Path "build\Tiptoe_artefacts\Release\VST3\tiptoe.vst3" -DestinationPath "Tiptoe-Windows-VST3.zip"
@@ -143,72 +160,8 @@ jobs:
           name: windows-artifacts
           path: Tiptoe-Windows-VST3.zip
 
-  screenshot:
-    needs: check-changes
-    if: needs.check-changes.outputs.plugin_changed == 'true'
-    runs-on: macos-15
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install ccache
-        run: brew install ccache
-
-      - name: Cache JUCE
-        id: cache-juce
-        uses: actions/cache@v4
-        with:
-          path: JUCE
-          key: juce-8.0.12
-
-      - name: Clone JUCE
-        if: steps.cache-juce.outputs.cache-hit != 'true'
-        run: git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
-
-      - name: Cache ccache
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Caches/ccache
-          key: ccache-screenshot-${{ hashFiles('Source/**', 'Tools/**', 'CMakeLists.txt') }}
-          restore-keys: ccache-screenshot-
-
-      - name: Configure (Release)
-        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
-
-      - name: Build screenshot tool
-        run: cmake --build build --target TiptoeScreenshot
-
-      - name: Render screenshot
-        run: ./build/TiptoeScreenshot screenshot.png
-
-      - name: Publish to gh-pages
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          REPO_URL="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
-          TMPDIR=$(mktemp -d)
-          # Create orphan gh-pages branch if it doesn't exist yet
-          if ! git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
-            git clone "$REPO_URL" "$TMPDIR"
-            cd "$TMPDIR"
-            git checkout --orphan gh-pages
-            git rm -rf . 2>/dev/null || true
-            touch .nojekyll
-          else
-            git clone --branch gh-pages --depth 1 "$REPO_URL" "$TMPDIR"
-            cd "$TMPDIR"
-          fi
-          # Always overwrite — we keep exactly one screenshot
-          cp "$GITHUB_WORKSPACE/screenshot.png" ./screenshot.png
-          touch .nojekyll
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Update plugin screenshot" || true
-          git push origin gh-pages
-
   release:
-    needs: [build-macos, build-windows, screenshot]
+    needs: [build-macos, build-windows]
     runs-on: ubuntu-latest
 
     steps:
@@ -226,6 +179,36 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: windows-artifacts
+
+      - name: Download screenshot artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: screenshot
+          path: screenshot-dir
+
+      - name: Publish screenshot to gh-pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          REPO_URL="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          TMPDIR=$(mktemp -d)
+          if ! git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git clone "$REPO_URL" "$TMPDIR"
+            cd "$TMPDIR"
+            git checkout --orphan gh-pages
+            git rm -rf . 2>/dev/null || true
+          else
+            git clone --branch gh-pages --depth 1 "$REPO_URL" "$TMPDIR"
+            cd "$TMPDIR"
+          fi
+          cp "$GITHUB_WORKSPACE/screenshot-dir/screenshot.png" ./screenshot.png
+          touch .nojekyll
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Update plugin screenshot" || true
+          git push origin gh-pages
+          cd "$GITHUB_WORKSPACE"
 
       - name: Bump version
         id: version

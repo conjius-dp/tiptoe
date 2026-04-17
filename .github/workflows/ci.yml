@@ -19,6 +19,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test-macos:
     runs-on: macos-15
@@ -60,10 +64,18 @@ jobs:
       - name: Run tests
         run: ./build/TiptoeTests
 
+      - name: Cache pluginval
+        uses: actions/cache@v4
+        with:
+          path: pluginval.app
+          key: pluginval-macos-latest
+
       - name: Validate VST3 with pluginval
         run: |
-          curl -LO https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip
-          unzip pluginval_macOS.zip
+          if [ ! -d pluginval.app ]; then
+            curl -LO https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip
+            unzip -o pluginval_macOS.zip
+          fi
           pluginval.app/Contents/MacOS/pluginval --validate build/Tiptoe_artefacts/Release/VST3/tiptoe.vst3 --strictness-level 5
 
       - name: Generate coverage report
@@ -112,10 +124,18 @@ jobs:
 
   build-and-test-windows:
     runs-on: windows-latest
+    env:
+      SCCACHE_GHA_ENABLED: "true"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
+
+      - name: Setup MSVC dev environment
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Cache JUCE
         id: cache-juce
@@ -129,13 +149,10 @@ jobs:
         run: git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
 
       - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_C_COMPILER_LAUNCHER=sccache
 
-      - name: Build VST3
-        run: cmake --build build --config Release --target Tiptoe_VST3
-
-      - name: Build Tests
-        run: cmake --build build --config Release --target TiptoeTests
+      - name: Build plugin + tests (parallel)
+        run: cmake --build build --target Tiptoe_VST3 TiptoeTests
 
       - name: Run tests
         run: |
@@ -144,9 +161,20 @@ jobs:
           & $exe.FullName
         shell: pwsh
 
+      - name: sccache stats
+        run: sccache --show-stats
+
+      - name: Cache pluginval
+        uses: actions/cache@v4
+        with:
+          path: pluginval
+          key: pluginval-windows-latest
+
       - name: Validate VST3 with pluginval
         run: |
-          Invoke-WebRequest -Uri https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip -OutFile pluginval_Windows.zip
-          Expand-Archive pluginval_Windows.zip -DestinationPath pluginval
+          if (-not (Test-Path pluginval/pluginval.exe)) {
+            Invoke-WebRequest -Uri https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip -OutFile pluginval_Windows.zip
+            Expand-Archive pluginval_Windows.zip -DestinationPath pluginval
+          }
           pluginval\pluginval.exe --validate build\Tiptoe_artefacts\Release\VST3\tiptoe.vst3 --strictness-level 5
         shell: pwsh
