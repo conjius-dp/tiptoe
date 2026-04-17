@@ -5,11 +5,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/conjius-dp/tiptoe/releases/latest/download/Tiptoe-macOS-VST3.zip"><img src="Assets/badges/download-vst3-macos.png" height="30" alt="Download VST3 for macOS"></a>
+  <a href="https://github.com/conjius-dp/tiptoe/releases/latest/download/Tiptoe-macOS-VST3.zip"><img src="Assets/badges/download-vst3-macos.png" height="32" alt="Download VST3 for macOS"></a>
   &nbsp;
-  <a href="https://github.com/conjius-dp/tiptoe/releases/latest/download/tiptoe-macOS-AU.zip"><img src="Assets/badges/download-au-macos.png" height="30" alt="Download AU for macOS"></a>
+  <a href="https://github.com/conjius-dp/tiptoe/releases/latest/download/tiptoe-macOS-AU.zip"><img src="Assets/badges/download-au-macos.png" height="32" alt="Download AU for macOS"></a>
   &nbsp;
-  <a href="https://github.com/conjius-dp/tiptoe/releases/latest/download/Tiptoe-Windows-VST3.zip"><img src="Assets/badges/download-vst3-windows.png" height="30" alt="Download VST3 for Windows"></a>
+  <a href="https://github.com/conjius-dp/tiptoe/releases/latest/download/Tiptoe-Windows-VST3.zip"><img src="Assets/badges/download-vst3-windows.png" height="32" alt="Download VST3 for Windows"></a>
 </p>
 
 <p align="center">
