@@ -281,12 +281,14 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
 {
     g.fillAll(KnobDesign::bgColour);
 
-    // Draw conjius logo in bottom-left corner — darker by default, brightens and grows on hover
+    // Draw conjius logo in bottom-left corner — tight to the bottom edge with
+    // only a small horizontal pad from the left. Darker by default, brightens
+    // and grows on hover.
     if (logoImage.isValid() && showChrome)
     {
         float scale = static_cast<float>(getWidth()) / static_cast<float>(KnobDesign::defaultWidth);
         int baseSize = static_cast<int>(37.5f * scale);
-        int padLeft = baseSize / 3;
+        int padLeft = static_cast<int>(6.0f * scale);
         int baseX = padLeft;
         int baseY = getHeight() - baseSize;
         logoBounds = { baseX, baseY, baseSize, baseSize };
@@ -350,7 +352,7 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
                         + h * 0.14f + h * 0.09f)) - textBoxH_est
         : static_cast<float>(tsBounds.getHeight()) - textBoxH_est;
     float learnDiameter = juce::jmin(sliderBoundsW_est, knobAreaH_est) * 0.78f;
-    float learnFontSize = learnDiameter * KnobDesign::labelFontScale * 0.85f; // == markerFontSize
+    float learnFontSize = learnDiameter * KnobDesign::labelFontScale * 0.65f; // smaller than markerFontSize
 
     auto labelFontLearn = conjusLAF.getBoldFont(learnFontSize);
     g.setFont(labelFontLearn);
@@ -656,7 +658,10 @@ void TiptoeAudioProcessorEditor::resized()
     latencyLabel.setFont(conjusLAF.getRegularFont(latencyFontSize));
     latencyLabel.setJustificationType(juce::Justification::centredBottom);
     int latencyH = static_cast<int>(latencyFontSize * 2.0f);
-    latencyBaseBounds = { 0, getHeight() - latencyH, getWidth(), latencyH };
+    // Sit a bit above the very bottom edge (peek position is the same since
+    // the peek animation just eases hideProgress back to 0).
+    int latencyLift = static_cast<int>(latencyFontSize * 0.8f);
+    latencyBaseBounds = { 0, getHeight() - latencyH - latencyLift, getWidth(), latencyH };
     latencyBaseFontSize = latencyFontSize;
     // Hit area: narrow — matches the actual text width with a small horizontal pad
     auto latencyFont = conjusLAF.getRegularFont(latencyFontSize);
