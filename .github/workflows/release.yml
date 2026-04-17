@@ -250,10 +250,6 @@ jobs:
 
           sed -i "s/project(Tiptoe VERSION ${CURRENT})/project(Tiptoe VERSION ${NEW_VERSION})/" CMakeLists.txt
 
-          # Bust the README screenshot cache by updating the ?v= query param so
-          # GitHub's image proxy (camo) fetches the freshly-rendered PNG.
-          sed -i "s|screenshot.png?v=[^\"]*|screenshot.png?v=${NEW_VERSION}|" README.md
-
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v${NEW_VERSION}" >> "$GITHUB_OUTPUT"
 
@@ -261,7 +257,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CMakeLists.txt README.md
+          git add CMakeLists.txt
           git commit -m "Bump version to ${{ steps.version.outputs.tag }}"
           git push
 
