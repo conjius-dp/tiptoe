@@ -54,10 +54,22 @@ jobs:
           restore-keys: ccache-ci-
 
       - name: Configure
-        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_FLAGS="--coverage" -DCMAKE_C_FLAGS="--coverage"
+        # -O1 for CI — compiles much faster than -O3 (release default); tests and
+        # pluginval still run fine. Release workflow keeps -O3 for production.
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_FLAGS_RELEASE="-O1 -DNDEBUG" \
+            -DCMAKE_C_FLAGS_RELEASE="-O1 -DNDEBUG" \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_FLAGS="--coverage" \
+            -DCMAKE_C_FLAGS="--coverage"
 
-      - name: Build all targets
-        run: cmake --build build
+      - name: Build plugin + tests (single invocation, shared JUCE objects)
+        # Only the targets CI needs: VST3 for pluginval + tests binary. Skipping
+        # Standalone/AU/Screenshot alone cuts ~half the JUCE module compilations.
+        run: cmake --build build --target Tiptoe_VST3 TiptoeTests
 
       - name: ccache stats
         run: ccache -s
@@ -164,7 +176,8 @@ jobs:
           restore-keys: sccache-ci-windows-
 
       - name: Configure
-        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_C_COMPILER_LAUNCHER=sccache
+        # /O1 for CI — faster compile than /O2 (release default). Release workflow keeps /O2.
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS_RELEASE="/O1 /DNDEBUG" -DCMAKE_C_FLAGS_RELEASE="/O1 /DNDEBUG" -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_C_COMPILER_LAUNCHER=sccache
 
       - name: Build plugin + tests (parallel)
         run: cmake --build build --target Tiptoe_VST3 TiptoeTests
