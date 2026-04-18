@@ -13,6 +13,9 @@
 </p>
 
 <p align="center">
+  <img src="https://repobeats.axiom.co/api/embed/ccbb782b0fcf93b609feffe2e10efebcdc9c738a.svg" width="900" alt="Repobeats analytics image">
+</p>
+<p align="center">
   <a href="https://github.com/conjius-dp/tiptoe/actions/workflows/ci.yml"><img src="https://github.com/conjius-dp/tiptoe/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/conjius-dp/tiptoe/actions/workflows/ci.yml"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fconjius-dp.github.io%2Ftiptoe%2Fcoverage.json" alt="Coverage"></a>
   <a href="https://github.com/conjius-dp/tiptoe/releases/latest"><img src="https://img.shields.io/github/v/release/conjius-dp/tiptoe?label=stable&color=brightgreen" alt="Stable"></a>
