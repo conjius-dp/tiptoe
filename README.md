@@ -62,3 +62,14 @@ Requires JUCE 8.0.12, CMake ≥ 3.22, a C++17 compiler.
 ```bash
 cmake --build build --target TiptoeTests && ./build/TiptoeTests
 ```
+
+## macOS: plugin won't open after download
+
+macOS quarantines anything downloaded from a browser and blocks unsigned plugins with a Gatekeeper dialog. Strip the quarantine flag once after dropping the plugin into its folder:
+
+```bash
+xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/tiptoe.vst3
+xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/Components/tiptoe.component
+```
+
+Restart your DAW and the plugin loads silently.
