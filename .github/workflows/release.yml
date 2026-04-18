@@ -1,129 +1,55 @@
 name: Release
 
+# Manual, tag-driven release. To cut a release:
+#   git tag vX.Y.Z
+#   git push origin vX.Y.Z
+# The workflow reads the version from the tag, builds the artifacts, and
+# publishes a GitHub release. No auto-bump, no nightlies.
 on:
-  workflow_dispatch:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    # All branches — main releases as stable, everything else as nightly.
+  push:
+    tags:
+      - 'v*.*.*'
 
 permissions:
   contents: write
   actions: write
-  pull-requests: read
 
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  check-changes:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+  version:
     runs-on: ubuntu-latest
     outputs:
-      should_release: ${{ steps.channel.outputs.should_release }}
-      channel: ${{ steps.channel.outputs.channel }}
-      branch: ${{ steps.channel.outputs.branch }}
-      head_sha: ${{ steps.channel.outputs.head_sha }}
-      plugin_changed: ${{ steps.filter.outputs.plugin_changed }}
-      version: ${{ steps.version.outputs.version }}
-      full_version: ${{ steps.version.outputs.full_version }}
-      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.v.outputs.version }}
+      tag: ${{ steps.v.outputs.tag }}
     steps:
-      - name: Determine branch, channel, and whether to release
-        id: channel
-        env:
-          GH_TOKEN: ${{ github.token }}
-        # Release rules:
-        #   main                                  => stable (always)
-        #   non-main with an OPEN PR targeting main => nightly
-        #   non-main with no open PR              => skip release
+      - name: Extract version from tag
+        id: v
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            BRANCH="${{ github.ref_name }}"
-            SHA="${{ github.sha }}"
-          else
-            BRANCH="${{ github.event.workflow_run.head_branch }}"
-            SHA="${{ github.event.workflow_run.head_sha }}"
-          fi
-
-          SHOULD_RELEASE=false
-          CHANNEL=""
-          if [ "$BRANCH" = "main" ]; then
-            CHANNEL=stable
-            SHOULD_RELEASE=true
-          else
-            PR_COUNT=$(gh pr list --repo "${{ github.repository }}" --head "$BRANCH" --state open --json number --jq 'length')
-            if [ "${PR_COUNT:-0}" -gt 0 ]; then
-              CHANNEL=nightly
-              SHOULD_RELEASE=true
-            else
-              echo "Branch '$BRANCH' has no open PR — skipping release."
-            fi
-          fi
-
-          echo "branch=$BRANCH"                 >> "$GITHUB_OUTPUT"
-          echo "head_sha=$SHA"                  >> "$GITHUB_OUTPUT"
-          echo "channel=$CHANNEL"               >> "$GITHUB_OUTPUT"
-          echo "should_release=$SHOULD_RELEASE" >> "$GITHUB_OUTPUT"
-          echo "Branch: $BRANCH  Channel: $CHANNEL  Release: $SHOULD_RELEASE"
-
-      - name: Checkout triggering commit
-        if: steps.channel.outputs.should_release == 'true'
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ steps.channel.outputs.head_sha }}
-
-      - name: Check for plugin code changes since last release
-        if: steps.channel.outputs.should_release == 'true'
-        id: filter
-        run: |
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -z "$LAST_TAG" ]; then
-            echo "No previous release tag found, proceeding with release"
-            echo "plugin_changed=true" >> "$GITHUB_OUTPUT"
-          else
-            CHANGED=$(git diff --name-only "$LAST_TAG"..HEAD -- Source/ Tests/ Tools/ Assets/ CMakeLists.txt .github/workflows/ ':(exclude)Assets/badges/*')
-            if [ -n "$CHANGED" ]; then
-              echo "plugin_changed=true" >> "$GITHUB_OUTPUT"
-              echo "Plugin files changed since $LAST_TAG:"
-              echo "$CHANGED"
-            else
-              echo "plugin_changed=false" >> "$GITHUB_OUTPUT"
-              echo "No plugin files changed since $LAST_TAG, skipping release"
-            fi
-          fi
-
-      - name: Compute next version
-        if: steps.channel.outputs.should_release == 'true'
-        id: version
-        run: |
-          CURRENT=$(sed -n 's/.*project(Tiptoe VERSION \([0-9]*\.[0-9]*\.[0-9]*\)).*/\1/p' CMakeLists.txt)
-          MAJOR=$(echo "$CURRENT" | cut -d. -f1)
-          MINOR=$(echo "$CURRENT" | cut -d. -f2)
-          PATCH=$(echo "$CURRENT" | cut -d. -f3)
-          NEW_PATCH=$((PATCH + 1))
-          NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
-          CHANNEL="${{ steps.channel.outputs.channel }}"
-          FULL="${NEW_VERSION}-${CHANNEL}"
-          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-          echo "full_version=$FULL" >> "$GITHUB_OUTPUT"
-          echo "tag=v${FULL}" >> "$GITHUB_OUTPUT"
-          echo "Next release: v${FULL}"
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Releasing $TAG"
 
   build-macos:
-    needs: check-changes
-    if: needs.check-changes.outputs.should_release == 'true' && needs.check-changes.outputs.plugin_changed == 'true'
+    needs: version
     runs-on: macos-15
     env:
-      FULL_VERSION: ${{ needs.check-changes.outputs.full_version }}
+      VERSION: ${{ needs.version.outputs.version }}
 
     steps:
-      - name: Checkout
+      - name: Checkout (tag)
         uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.check-changes.outputs.head_sha }}
+
+      - name: Patch CMakeLists version to match tag
+        run: |
+          CURRENT=$(sed -n 's/.*project(Tiptoe VERSION \([0-9]*\.[0-9]*\.[0-9]*\)).*/\1/p' CMakeLists.txt)
+          if [ "$CURRENT" != "$VERSION" ]; then
+            sed -i '' "s/project(Tiptoe VERSION ${CURRENT})/project(Tiptoe VERSION ${VERSION})/" CMakeLists.txt
+          fi
 
       - name: Install ccache
         run: brew install ccache
@@ -150,8 +76,6 @@ jobs:
         run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
 
       - name: Build plugin + screenshot (parallel)
-        # Single invocation builds all targets in parallel — reuses JUCE module
-        # objects across them so we don't recompile JUCE multiple times.
         run: cmake --build build --target Tiptoe_VST3 Tiptoe_AU TiptoeScreenshot
 
       - name: Render screenshot PNG
@@ -160,20 +84,20 @@ jobs:
       - name: Zip VST3
         run: |
           cd build/Tiptoe_artefacts/Release/VST3
-          zip -r "$GITHUB_WORKSPACE/tiptoe-${FULL_VERSION}-macos-vst3.zip" tiptoe.vst3
+          zip -r "$GITHUB_WORKSPACE/tiptoe-${VERSION}-macos-vst3.zip" tiptoe.vst3
 
       - name: Zip AU
         run: |
           cd build/Tiptoe_artefacts/Release/AU
-          zip -r "$GITHUB_WORKSPACE/tiptoe-${FULL_VERSION}-macos-au.zip" tiptoe.component
+          zip -r "$GITHUB_WORKSPACE/tiptoe-${VERSION}-macos-au.zip" tiptoe.component
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macos-artifacts
           path: |
-            tiptoe-${{ env.FULL_VERSION }}-macos-vst3.zip
-            tiptoe-${{ env.FULL_VERSION }}-macos-au.zip
+            tiptoe-${{ env.VERSION }}-macos-vst3.zip
+            tiptoe-${{ env.VERSION }}-macos-au.zip
 
       - name: Upload screenshot artifact
         uses: actions/upload-artifact@v4
@@ -186,20 +110,25 @@ jobs:
         uses: andymckay/cancel-action@0.5
 
   build-windows:
-    needs: check-changes
-    if: needs.check-changes.outputs.should_release == 'true' && needs.check-changes.outputs.plugin_changed == 'true'
+    needs: version
     runs-on: windows-latest
     env:
-      FULL_VERSION: ${{ needs.check-changes.outputs.full_version }}
+      VERSION: ${{ needs.version.outputs.version }}
       # Local disk cache for sccache (GHA backend is flaky).
       SCCACHE_DIR: ${{ github.workspace }}\sccache
       SCCACHE_CACHE_SIZE: 2G
 
     steps:
-      - name: Checkout
+      - name: Checkout (tag)
         uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.check-changes.outputs.head_sha }}
+
+      - name: Patch CMakeLists version to match tag
+        shell: bash
+        run: |
+          CURRENT=$(sed -n 's/.*project(Tiptoe VERSION \([0-9]*\.[0-9]*\.[0-9]*\)).*/\1/p' CMakeLists.txt)
+          if [ "$CURRENT" != "$VERSION" ]; then
+            sed -i "s/project(Tiptoe VERSION ${CURRENT})/project(Tiptoe VERSION ${VERSION})/" CMakeLists.txt
+          fi
 
       - name: Setup sccache
         uses: mozilla-actions/sccache-action@v0.0.6
@@ -240,34 +169,28 @@ jobs:
 
       - name: Zip VST3
         shell: pwsh
-        run: Compress-Archive -Path "build\Tiptoe_artefacts\Release\VST3\tiptoe.vst3" -DestinationPath "tiptoe-${env:FULL_VERSION}-windows-vst3.zip"
+        run: Compress-Archive -Path "build\Tiptoe_artefacts\Release\VST3\tiptoe.vst3" -DestinationPath "tiptoe-${env:VERSION}-windows-vst3.zip"
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-artifacts
-          path: tiptoe-${{ env.FULL_VERSION }}-windows-vst3.zip
+          path: tiptoe-${{ env.VERSION }}-windows-vst3.zip
 
       - name: Cancel workflow if this job failed
         if: failure()
         uses: andymckay/cancel-action@0.5
 
   release:
-    needs: [check-changes, build-macos, build-windows]
+    needs: [version, build-macos, build-windows]
     runs-on: ubuntu-latest
     env:
-      VERSION: ${{ needs.check-changes.outputs.version }}
-      FULL_VERSION: ${{ needs.check-changes.outputs.full_version }}
-      CHANNEL: ${{ needs.check-changes.outputs.channel }}
-      TAG: ${{ needs.check-changes.outputs.tag }}
-      BRANCH: ${{ needs.check-changes.outputs.branch }}
+      VERSION: ${{ needs.version.outputs.version }}
+      TAG: ${{ needs.version.outputs.tag }}
 
     steps:
-      - name: Checkout triggering commit
+      - name: Checkout (tag)
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ needs.check-changes.outputs.head_sha }}
 
       - name: Download macOS artifacts
         uses: actions/download-artifact@v4
@@ -309,37 +232,16 @@ jobs:
           git push origin gh-pages
           cd "$GITHUB_WORKSPACE"
 
-      - name: Bump CMakeLists version
-        run: |
-          CURRENT=$(sed -n 's/.*project(Tiptoe VERSION \([0-9]*\.[0-9]*\.[0-9]*\)).*/\1/p' CMakeLists.txt)
-          sed -i "s/project(Tiptoe VERSION ${CURRENT})/project(Tiptoe VERSION ${VERSION})/" CMakeLists.txt
-
-      - name: Commit version bump
-        # We're on a detached HEAD (checked out head_sha), so push explicitly
-        # back to the branch that triggered this release.
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CMakeLists.txt
-          git commit -m "Bump version to ${TAG}"
-          git push origin "HEAD:refs/heads/${BRANCH}"
-
-      - name: Tag release
-        run: |
-          git tag -a "${TAG}" -m "Release ${TAG}"
-          git push origin "${TAG}"
-
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG }}
-          name: tiptoe ${{ env.FULL_VERSION }}
-          body: |
-            **Artifacts:**
-            - `tiptoe-${{ env.FULL_VERSION }}-macos-vst3.zip` — macOS VST3 plugin
-            - `tiptoe-${{ env.FULL_VERSION }}-macos-au.zip` — macOS AU plugin
-            - `tiptoe-${{ env.FULL_VERSION }}-windows-vst3.zip` — Windows VST3 plugin
+          name: tiptoe ${{ env.VERSION }}
+          # Mark as pre-release when the version has a hyphen suffix
+          # (e.g. v1.2.3-rc.1, v1.2.3-beta) — standard semver convention.
+          prerelease: ${{ contains(env.VERSION, '-') }}
+          generate_release_notes: true
           files: |
-            tiptoe-${{ env.FULL_VERSION }}-macos-vst3.zip
-            tiptoe-${{ env.FULL_VERSION }}-macos-au.zip
-            tiptoe-${{ env.FULL_VERSION }}-windows-vst3.zip
+            tiptoe-${{ env.VERSION }}-macos-vst3.zip
+            tiptoe-${{ env.VERSION }}-macos-au.zip
+            tiptoe-${{ env.VERSION }}-windows-vst3.zip
