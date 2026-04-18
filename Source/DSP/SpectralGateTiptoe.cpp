@@ -17,9 +17,10 @@ void SpectralGateTiptoe::prepare(double sampleRate, int /*maxBlockSize*/)
     for (int i = 0; i < kFFTSize; ++i)
         window[i] = 0.5f * (1.0f - std::cos(2.0f * juce::MathConstants<float>::pi * static_cast<float>(i) / static_cast<float>(kFFTSize)));
 
-    // With 50% overlap and Hann window on analysis only, COLA sum = 1.0
-    // No normalization needed (invWindowSum_ = 1.0)
-    invWindowSum_ = 1.0f;
+    // Hann analysis window at 75 % overlap has COLA sum = 2.0, so scale
+    // the overlap-added output by 1/2 to keep unity gain through a
+    // silence→process→resynth round trip.
+    invWindowSum_ = 0.5f;
 
     inputFifo.resize(kFFTSize, 0.0f);
     outputFifo.resize(kFFTSize, 0.0f);
@@ -374,11 +375,12 @@ void SpectralGateTiptoe::processFrame()
 
     fft.performRealOnlyInverseTransform(fftWorkspace.data());
 
-    // Overlap-add — no synthesis window needed with Hann analysis + 50% overlap (COLA = 1.0)
+    // Overlap-add — Hann analysis at 75 % overlap has COLA sum 2.0, so scale
+    // by invWindowSum_ (= 0.5) to preserve unity gain.
     for (int i = 0; i < kFFTSize; ++i)
     {
         int idx = (inputFifoIndex + i) & kFFTMask;
-        outputFifo[idx] += fftWorkspace[i];
+        outputFifo[idx] += fftWorkspace[i] * invWindowSum_;
     }
 }
 

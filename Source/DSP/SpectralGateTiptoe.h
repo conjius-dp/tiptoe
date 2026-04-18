@@ -9,10 +9,25 @@
 class SpectralGateTiptoe
 {
 public:
-    static constexpr int kFFTOrder = 11;
-    static constexpr int kFFTSize = 1 << kFFTOrder;    // 2048
-    static constexpr int kHopSize = kFFTSize / 2;       // 1024 (50% overlap)
-    static constexpr int kNumBins = kFFTSize / 2 + 1;   // 1025
+    // FFT size chosen as the lowest power of two that still gives adequate
+    // bin resolution for broadband noise (86 Hz @ 44.1 kHz). Algorithmic
+    // latency ≈ kFFTSize samples (≈ 11.6 ms at 44.1 kHz) so the DAW can
+    // delay-compensate. Going lower (256) starts to smear low-freq noise.
+    //
+    // 75 % overlap (hop = size/4) is chosen over the classic 50 % for two
+    // reasons:
+    //   1) four analysis frames contribute to every output sample, so the
+    //      Hann cross-fade is smoother — eliminates residual "chirpy"
+    //      modulation from sudden per-bin gain changes.
+    //   2) the parameter smoother and per-bin temporal gate advance 4×
+    //      more often per second, so attack/release ms maps cleanly to
+    //      wall-clock time and automation feels continuous.
+    // COLA sum for Hann at 75 % overlap is 2.0 across all samples, so we
+    // divide overlap-added output by 2.0 to preserve unity gain.
+    static constexpr int kFFTOrder = 9;
+    static constexpr int kFFTSize = 1 << kFFTOrder;    // 512
+    static constexpr int kHopSize = kFFTSize / 4;       // 128 (75% overlap)
+    static constexpr int kNumBins = kFFTSize / 2 + 1;   // 257
     static constexpr int kFFTMask = kFFTSize - 1;        // bitmask for power-of-2 wrap
 
     SpectralGateTiptoe();

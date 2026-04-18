@@ -101,33 +101,53 @@ void SpectrumGraph::paint(juce::Graphics& g)
             g.drawLine(bounds.getX(), y, bounds.getRight(), y, 1.0f);
         }
 
-        // Vertical grid lines at 100 Hz, 1 kHz, 10 kHz.
-        const float decades[] = { 100.0f, 1000.0f, 10000.0f };
-        for (float f : decades)
+        // Vertical grid: full logarithmic set — every 1-2-3-...-9 multiplier
+        // within each decade, with decade boundaries (100, 1 k, 10 k) drawn
+        // slightly brighter so the eye can latch onto them. Minor lines at
+        // the intra-decade multipliers give the spectrum its "log paper" feel
+        // at a glance.
+        const float decadeStarts[] = { 10.0f, 100.0f, 1000.0f, 10000.0f };
+        for (float base : decadeStarts)
         {
-            const float x = bounds.getX() + freqToX(f, bounds.getWidth());
-            g.drawLine(x, bounds.getY(), x, bounds.getBottom(), 1.0f);
+            for (int m = 1; m <= 9; ++m)
+            {
+                const float f = base * static_cast<float>(m);
+                if (f < kFreqMin || f > kFreqMax) continue;
+                const bool isDecade = (m == 1);
+                g.setColour(KnobDesign::accentColour
+                                .withAlpha(isDecade ? 0.18f : 0.08f));
+                const float x = bounds.getX() + freqToX(f, bounds.getWidth());
+                g.drawLine(x, bounds.getY(), x, bounds.getBottom(), 1.0f);
+            }
         }
     }
 
-    // Noise profile — darker, thicker. Uses the darker accent so it reads as
-    // the baseline the gate was calibrated against.
+    // Rounded stroke style — same CPU cost as a plain stroke (JUCE computes
+    // join geometry once at stroke time) but turns the polyline jaggies into
+    // a softer, continuous curve. No per-point interpolation.
+    const juce::PathStrokeType rounded25 {
+        2.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded };
+    const juce::PathStrokeType rounded15 {
+        1.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded };
+    const juce::PathStrokeType rounded10 {
+        1.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded };
+
+    // Noise profile — darker, thicker.
     if (! noise_.empty())
     {
         juce::Path p;
         buildCurve(p, noise_, 1.0f, bounds);
         g.setColour(KnobDesign::accentColour.darker(0.2f));
-        g.strokePath(p, juce::PathStrokeType(2.5f));
+        g.strokePath(p, rounded25);
     }
 
     // Threshold — noise profile scaled by the current threshold knob.
-    // Medium brightness / medium thickness so it sits between the two others.
     if (! noise_.empty())
     {
         juce::Path p;
         buildCurve(p, noise_, thresholdMult_, bounds);
         g.setColour(KnobDesign::accentColour);
-        g.strokePath(p, juce::PathStrokeType(1.5f));
+        g.strokePath(p, rounded15);
     }
 
     // Live input — brightest, thinnest.
@@ -136,6 +156,30 @@ void SpectrumGraph::paint(juce::Graphics& g)
         juce::Path p;
         buildCurve(p, inputSmoothed_, 1.0f, bounds);
         g.setColour(KnobDesign::accentHoverColour);
-        g.strokePath(p, juce::PathStrokeType(1.0f));
+        g.strokePath(p, rounded10);
+    }
+
+    // Frequency labels — plain numbers, no ticks, each centred horizontally
+    // on its grid line and anchored to the bottom of the graph so they sit
+    // on top of the grid but don't interfere with the curves above them.
+    {
+        g.setColour(KnobDesign::accentColour.withAlpha(0.55f));
+        g.setFont(juce::FontOptions(10.0f));
+        const float labels[] = { 50.0f, 200.0f, 500.0f, 1000.0f,
+                                 5000.0f, 10000.0f, 15000.0f };
+        const int labelW = 36;
+        const int labelH = 12;
+        for (float f : labels)
+        {
+            const float x = bounds.getX() + freqToX(f, bounds.getWidth());
+            const juce::String txt = (f >= 1000.0f)
+                ? (juce::String(f / 1000.0f, (std::fmod(f, 1000.0f) == 0.0f) ? 0 : 1) + "k")
+                : juce::String(static_cast<int>(f));
+            const juce::Rectangle<int> r(
+                static_cast<int>(x) - labelW / 2,
+                static_cast<int>(bounds.getBottom()) - labelH - 1,
+                labelW, labelH);
+            g.drawText(txt, r, juce::Justification::centred, false);
+        }
     }
 }

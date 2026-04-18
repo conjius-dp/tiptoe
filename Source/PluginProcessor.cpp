@@ -43,8 +43,8 @@ void TiptoeAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
         g.prepare(sampleRate, samplesPerBlock);
 
     // Report algorithmic latency so the DAW can delay-compensate other
-    // tracks. With 2048-sample FFT + 50 % overlap-add Hann analysis, the
-    // input-to-output delay is kFFTSize samples (≈ 46 ms at 44.1 kHz).
+    // tracks. With 512-sample FFT + 75 % overlap-add Hann analysis, the
+    // input-to-output delay is kFFTSize samples (≈ 11.6 ms at 44.1 kHz).
     setLatencySamples(SpectralGateTiptoe::kFFTSize);
 }
 

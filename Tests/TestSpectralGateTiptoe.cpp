@@ -534,11 +534,13 @@ public:
             gate.setReduction(0.0f);
             expectWithinAbsoluteError(gate.getEffectiveReductionGain(), initialGain, 0.002f);
 
-            // After one hop, partway.
-            gate.processMono(zeros.data(), SpectralGateTiptoe::kHopSize);
-            const float afterOneHop = gate.getEffectiveReductionGain();
-            expect(afterOneHop > 0.1f, "reduction gain didn't move off the old value");
-            expect(afterOneHop < 0.95f, "reduction gain jumped straight to target");
+            // Partway through the 30 ms ramp. Use ~10 ms (≈ 441 samples at
+            // 44.1 kHz) so the smoother has advanced a meaningful fraction
+            // regardless of the FFT hop size.
+            gate.processMono(zeros.data(), 441);
+            const float partway = gate.getEffectiveReductionGain();
+            expect(partway > 0.1f, "reduction gain didn't move off the old value");
+            expect(partway < 0.95f, "reduction gain jumped straight to target");
 
             // Plenty of time to converge.
             gate.processMono(zeros.data(), 4096);
