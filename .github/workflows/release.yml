@@ -5,11 +5,12 @@ on:
   workflow_run:
     workflows: [CI]
     types: [completed]
-    branches: [main]
+    # All branches — main releases as stable, everything else as nightly.
 
 permissions:
   contents: write
   actions: write
+  pull-requests: read
 
 concurrency:
   group: release-${{ github.ref }}
@@ -20,18 +21,62 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     outputs:
-      plugin_changed: ${{ steps.filter.outputs.plugin_changed }}
+      should_release: ${{ steps.channel.outputs.should_release }}
       channel: ${{ steps.channel.outputs.channel }}
+      branch: ${{ steps.channel.outputs.branch }}
+      head_sha: ${{ steps.channel.outputs.head_sha }}
+      plugin_changed: ${{ steps.filter.outputs.plugin_changed }}
       version: ${{ steps.version.outputs.version }}
       full_version: ${{ steps.version.outputs.full_version }}
       tag: ${{ steps.version.outputs.tag }}
     steps:
-      - name: Checkout
+      - name: Determine branch, channel, and whether to release
+        id: channel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Release rules:
+        #   main                                  => stable (always)
+        #   non-main with an OPEN PR targeting main => nightly
+        #   non-main with no open PR              => skip release
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            BRANCH="${{ github.ref_name }}"
+            SHA="${{ github.sha }}"
+          else
+            BRANCH="${{ github.event.workflow_run.head_branch }}"
+            SHA="${{ github.event.workflow_run.head_sha }}"
+          fi
+
+          SHOULD_RELEASE=false
+          CHANNEL=""
+          if [ "$BRANCH" = "main" ]; then
+            CHANNEL=stable
+            SHOULD_RELEASE=true
+          else
+            PR_COUNT=$(gh pr list --repo "${{ github.repository }}" --head "$BRANCH" --state open --json number --jq 'length')
+            if [ "${PR_COUNT:-0}" -gt 0 ]; then
+              CHANNEL=nightly
+              SHOULD_RELEASE=true
+            else
+              echo "Branch '$BRANCH' has no open PR — skipping release."
+            fi
+          fi
+
+          echo "branch=$BRANCH"                 >> "$GITHUB_OUTPUT"
+          echo "head_sha=$SHA"                  >> "$GITHUB_OUTPUT"
+          echo "channel=$CHANNEL"               >> "$GITHUB_OUTPUT"
+          echo "should_release=$SHOULD_RELEASE" >> "$GITHUB_OUTPUT"
+          echo "Branch: $BRANCH  Channel: $CHANNEL  Release: $SHOULD_RELEASE"
+
+      - name: Checkout triggering commit
+        if: steps.channel.outputs.should_release == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ steps.channel.outputs.head_sha }}
 
       - name: Check for plugin code changes since last release
+        if: steps.channel.outputs.should_release == 'true'
         id: filter
         run: |
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
@@ -50,17 +95,8 @@ jobs:
             fi
           fi
 
-      - name: Determine release channel
-        id: channel
-        # Manual dispatch => stable, automatic CI trigger => nightly.
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "channel=stable" >> "$GITHUB_OUTPUT"
-          else
-            echo "channel=nightly" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Compute next version
+        if: steps.channel.outputs.should_release == 'true'
         id: version
         run: |
           CURRENT=$(sed -n 's/.*project(Tiptoe VERSION \([0-9]*\.[0-9]*\.[0-9]*\)).*/\1/p' CMakeLists.txt)
@@ -78,7 +114,7 @@ jobs:
 
   build-macos:
     needs: check-changes
-    if: needs.check-changes.outputs.plugin_changed == 'true'
+    if: needs.check-changes.outputs.should_release == 'true' && needs.check-changes.outputs.plugin_changed == 'true'
     runs-on: macos-15
     env:
       FULL_VERSION: ${{ needs.check-changes.outputs.full_version }}
@@ -86,6 +122,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check-changes.outputs.head_sha }}
 
       - name: Install ccache
         run: brew install ccache
@@ -149,7 +187,7 @@ jobs:
 
   build-windows:
     needs: check-changes
-    if: needs.check-changes.outputs.plugin_changed == 'true'
+    if: needs.check-changes.outputs.should_release == 'true' && needs.check-changes.outputs.plugin_changed == 'true'
     runs-on: windows-latest
     env:
       FULL_VERSION: ${{ needs.check-changes.outputs.full_version }}
@@ -160,6 +198,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check-changes.outputs.head_sha }}
 
       - name: Setup sccache
         uses: mozilla-actions/sccache-action@v0.0.6
@@ -220,12 +260,14 @@ jobs:
       FULL_VERSION: ${{ needs.check-changes.outputs.full_version }}
       CHANNEL: ${{ needs.check-changes.outputs.channel }}
       TAG: ${{ needs.check-changes.outputs.tag }}
+      BRANCH: ${{ needs.check-changes.outputs.branch }}
 
     steps:
-      - name: Checkout
+      - name: Checkout triggering commit
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ needs.check-changes.outputs.head_sha }}
 
       - name: Download macOS artifacts
         uses: actions/download-artifact@v4
@@ -273,12 +315,14 @@ jobs:
           sed -i "s/project(Tiptoe VERSION ${CURRENT})/project(Tiptoe VERSION ${VERSION})/" CMakeLists.txt
 
       - name: Commit version bump
+        # We're on a detached HEAD (checked out head_sha), so push explicitly
+        # back to the branch that triggered this release.
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add CMakeLists.txt
           git commit -m "Bump version to ${TAG}"
-          git push
+          git push origin "HEAD:refs/heads/${BRANCH}"
 
       - name: Tag release
         run: |
