@@ -96,6 +96,13 @@ TiptoeAudioProcessorEditor::TiptoeAudioProcessorEditor(TiptoeAudioProcessor& p)
     learnButton.setMouseCursor(juce::MouseCursor::PointingHandCursor);
     addAndMakeVisible(learnButton);
 
+    // Bypass button — circular power switch in the top-right corner. Click
+    // toggles the APVTS bool parameter, which processBlock early-returns
+    // on so the DSP is fully pass-through when bypassed.
+    addAndMakeVisible(bypassButton);
+    bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+        processorRef.getAPVTS(), "bypass", bypassButton);
+
     // ── Spectrum graph ──
     spectrumGraph.setFftSize(TiptoeAudioProcessor::getFFTSize());
     spectrumGraph.setSampleRate(processorRef.getDspSampleRate() > 0.0
@@ -555,6 +562,22 @@ void TiptoeAudioProcessorEditor::resized()
     {
         const float scaleF = w / static_cast<float>(KnobDesign::defaultWidth);
         spectrumGraph.setCornerRadius(78.0f * scaleF);
+    }
+
+    // Bypass button — tucked into the top-right corner just inside the
+    // orange border. Size scales with window width; small padding keeps it
+    // clear of both the border arc and the spectrum graph's rounded clip.
+    {
+        const float scaleF   = w / static_cast<float>(KnobDesign::defaultWidth);
+        const float btnPad   = 36.0f * scaleF;   // inset from border
+        const float btnSize  = 34.0f * scaleF;
+        const float btnX     = static_cast<float>(getWidth()) - btnPad - btnSize;
+        const float btnY     = btnPad;
+        bypassButton.setBounds(static_cast<int>(btnX),
+                               static_cast<int>(btnY),
+                               static_cast<int>(btnSize),
+                               static_cast<int>(btnSize));
+        bypassButton.toFront(false); // stay above the spectrum graph
     }
 
     // All knob-area positioning below works in the SUB-window beneath the
