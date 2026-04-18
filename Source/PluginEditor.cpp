@@ -207,8 +207,10 @@ void TiptoeAudioProcessorEditor::timerCallback()
     }
 
     // Pump the spectrum graph with the latest noise profile + live input
-    // snapshot, and the current threshold value so the threshold curve slides
-    // as the user drags the knob.
+    // snapshot at the full 60 Hz timer rate. Smoothness comes from the
+    // graph's time-domain exponential smoother (low alpha), not from
+    // sampling less often — so the curve keeps a responsive feel while
+    // easing between frames.
     {
         const double dspRate = processorRef.getDspSampleRate();
         if (dspRate > 0.0)
@@ -545,6 +547,13 @@ void TiptoeAudioProcessorEditor::resized()
                             static_cast<int>(pad),
                             static_cast<int>(w - 2.0f * pad),
                             static_cast<int>(graphH - pad));
+    // Match the outer orange border radius so the graph content clips
+    // against the same arc the border traces. Same 78 × scale formula used
+    // to draw the border in paint().
+    {
+        const float scaleF = w / static_cast<float>(KnobDesign::defaultWidth);
+        spectrumGraph.setCornerRadius(78.0f * scaleF);
+    }
 
     // All knob-area positioning below works in the SUB-window beneath the
     // graph. Keep `h` as the remaining height so the existing ratios still
