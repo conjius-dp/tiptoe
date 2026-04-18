@@ -2,6 +2,7 @@
 
 #include "PluginProcessor.h"
 #include "KnobDesign.h"
+#include "LayoutSizes.h"
 #include "SpectrumGraph.h"
 #include "BinaryData.h"
 

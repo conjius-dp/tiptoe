@@ -397,7 +397,8 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
                         + h * 0.14f + h * 0.09f)) - textBoxH_est
         : static_cast<float>(tsBounds.getHeight()) - textBoxH_est;
     float learnDiameter = juce::jmin(sliderBoundsW_est, knobAreaH_est) * 0.78f;
-    float learnFontSize = learnDiameter * KnobDesign::labelFontScale * 0.65f; // smaller than markerFontSize
+    float learnFontSize = learnDiameter * KnobDesign::labelFontScale
+                          * KnobDesign::learnTextFontScaleFactor();
 
     auto labelFontLearn = conjusLAF.getBoldFont(learnFontSize);
     g.setFont(labelFontLearn);
@@ -557,13 +558,13 @@ void TiptoeAudioProcessorEditor::resized()
     // Smaller font and positioned just below the graph area, above the
     // mid-tick label of each knob. The previous larger label collided with
     // the Reduction knob's centred "-30" top-tick label.
-    float labelFontSize = w * KnobDesign::gainLabelScale / 2.5f;
+    const float labelFontSize = KnobDesign::columnLabelFontSize(w);
     auto labelFont = conjusLAF.getBoldFont(labelFontSize);
     thresholdLabel.setFont(labelFont);
     reductionLabel.setFont(labelFont);
 
-    int labelH = static_cast<int>(labelFontSize * 1.2f);
-    int labelY = static_cast<int>(graphH + h * 0.04f);
+    const int labelH = static_cast<int>(KnobDesign::columnLabelHeight(w));
+    const int labelY = static_cast<int>(graphH + h * KnobDesign::columnLabelTopYInKnobArea());
     thresholdLabel.setBounds(static_cast<int>(knobColX0), labelY,
                              static_cast<int>(knobColW), labelH);
     reductionLabel.setBounds(static_cast<int>(knobColX1), labelY,
@@ -631,7 +632,7 @@ void TiptoeAudioProcessorEditor::resized()
                           static_cast<int>(btnW), static_cast<int>(btnH));
 
     // Pill with fully circular side edges + larger text
-    float btnFontSize = w * KnobDesign::gainLabelScale * 0.5f;
+    float btnFontSize = KnobDesign::learnButtonFontSize(w);
     learnButton.setConnectedEdges(0);
 
     // Custom LookAndFeel for pill shape button
