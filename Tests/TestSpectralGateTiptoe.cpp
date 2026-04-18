@@ -161,7 +161,12 @@ public:
 
             denoiser.processMono(quiet.data(), numSamples);
 
-            const int skip = SpectralGateTiptoe::kFFTSize;
+            // Skip past both the FFT priming AND the per-bin gate's attack
+            // ramp (~30 ms default × 3 time constants ≈ 4000 samples at
+            // 44.1 kHz). Without this, the measurement window straddles the
+            // ramp-in and the averaged RMS never reaches the steady-state
+            // reduction floor.
+            const int skip = 5000;
             float inputRMS = computeRMS(original.data() + skip, numSamples - skip);
             float outputRMS = computeRMS(quiet.data() + skip, numSamples - skip);
             float db = ratioToDb(outputRMS, inputRMS);
@@ -371,7 +376,9 @@ public:
 
             denoiser.processMono(quiet.data(), numSamples);
 
-            const int skip = SpectralGateTiptoe::kFFTSize;
+            // Skip past the gate's per-bin attack ramp — see the other
+            // "attenuates below noise floor" test for the rationale.
+            const int skip = 5000;
             float inputRMS = computeRMS(original.data() + skip, numSamples - skip);
             float outputRMS = computeRMS(quiet.data() + skip, numSamples - skip);
             float db = ratioToDb(outputRMS, inputRMS);

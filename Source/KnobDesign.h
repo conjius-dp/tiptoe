@@ -216,15 +216,25 @@ public:
 
         auto knobType = getKnobType(slider);
 
-        // Tick positions: left (min), middle (default), right (max)
+        // Tick positions: left (min), middle (default, optional), right (max)
         float defaultNorm = 0.0f;
+        bool  drawMidTick = true;
         if (knobType == KnobType::Sensitivity)
-            defaultNorm = (1.5f - 0.5f) / (5.0f - 0.5f);  // 1.5 is default, maps to ~0.222
+        {
+            // Range 0.1 – 3.0, default 1.0. The middle tick / number is
+            // intentionally omitted here — only the min and max labels are
+            // shown, and the default position shows up as the indicator
+            // line rather than a separate mark.
+            defaultNorm = (1.0f - 0.1f) / (3.0f - 0.1f);
+            drawMidTick = false;
+        }
         else
+        {
             // Reduction is stored as POSITIVE attenuation dB (0 – 60) with 30
             // as the default. Leftmost of the knob = 0 (no cut), rightmost =
             // 60 (-60 dB cut) — so "turn it up" to reduce more.
             defaultNorm = (30.0f - 0.0f) / (60.0f - 0.0f);  // 30 default -> 0.5
+        }
 
         float tickAngles[3] = {
             juce::degreesToRadians(rotationStartAngle),
@@ -236,6 +246,7 @@ public:
         g.setColour(accentColour);
         for (int i = 0; i < 3; ++i)
         {
+            if (i == 1 && ! drawMidTick) continue;
             juce::Path tick;
             tick.startNewSubPath(cx + std::sin(tickAngles[i]) * tickStartR,
                                 cy - std::cos(tickAngles[i]) * tickStartR);
@@ -262,9 +273,9 @@ public:
         juce::String leftLabel, midLabel, rightLabel;
         if (knobType == KnobType::Sensitivity)
         {
-            leftLabel = "0.5";
-            midLabel = "1.5";
-            rightLabel = "5.0";
+            leftLabel  = "0.1";
+            midLabel   = "";      // mid tick + label intentionally omitted
+            rightLabel = "3.0";
         }
         else
         {
@@ -294,7 +305,11 @@ public:
                                           fontSize * 5.0f, markerFontSize * 1.2f),
                    juce::Justification::centred, false);
 
-        // Middle label (above tick)
+        // Middle label (above tick) — skipped for knobs that don't have a
+        // middle tick (e.g. the Sensitivity knob, per design).
+        if (midLabel.isEmpty())
+            return;
+
         float aMid = normToAngleRad(defaultNorm);
         float topLabelR = tickEndR + markerFontSize * 0.3f;
         float midLabelW = KnobDesign::stringWidth(getBoldFont(markerFontSize), midLabel);

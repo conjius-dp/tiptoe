@@ -504,22 +504,24 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
         static_cast<int>(w * 0.40f),
         static_cast<int>(learnFontSize * 2.2f));
 
-    // Rounded orange border inside ~20px of bg padding. Drawn last so it
-    // sits on top of any content near the edges.
-    {
-        const float scaleF  = static_cast<float>(getWidth())
-                            / static_cast<float>(KnobDesign::defaultWidth);
-        const float pad     = 20.0f * scaleF;
-        const float borderW = 4.0f  * scaleF;
-        const float radius  = 78.0f * scaleF;
-        juce::Rectangle<float> borderRect{ pad, pad,
-                                           static_cast<float>(getWidth())  - 2.0f * pad,
-                                           static_cast<float>(getHeight()) - 2.0f * pad };
-        juce::Path border;
-        border.addRoundedRectangle(borderRect, radius);
-        g.setColour(KnobDesign::accentColour);
-        g.strokePath(border, juce::PathStrokeType(borderW));
-    }
+    // Border is drawn in paintOverChildren() so it sits on top of every
+    // child component, including the spectrum graph's curves.
+}
+
+void TiptoeAudioProcessorEditor::paintOverChildren(juce::Graphics& g)
+{
+    const float scaleF  = static_cast<float>(getWidth())
+                        / static_cast<float>(KnobDesign::defaultWidth);
+    const float pad     = 20.0f * scaleF;
+    const float borderW = 4.0f  * scaleF;
+    const float radius  = 78.0f * scaleF;
+    juce::Rectangle<float> borderRect{ pad, pad,
+                                       static_cast<float>(getWidth())  - 2.0f * pad,
+                                       static_cast<float>(getHeight()) - 2.0f * pad };
+    juce::Path border;
+    border.addRoundedRectangle(borderRect, radius);
+    g.setColour(KnobDesign::accentColour);
+    g.strokePath(border, juce::PathStrokeType(borderW));
 }
 
 void TiptoeAudioProcessorEditor::resized()

@@ -17,7 +17,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout TiptoeAudioProcessor::create
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID("sensitivity", 1), "Sensitivity",
-        juce::NormalisableRange<float>(0.5f, 5.0f, 0.01f), 1.5f));
+        juce::NormalisableRange<float>(0.1f, 3.0f, 0.01f), 1.0f));
 
     // Reduction is stored as a POSITIVE attenuation amount in dB (0 = no cut,
     // 60 = -60 dB cut). This is what makes the knob read left-to-right as
