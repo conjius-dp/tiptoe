@@ -191,12 +191,14 @@ void TiptoeAudioProcessorEditor::mouseExit(const juce::MouseEvent& e)
 void TiptoeAudioProcessorEditor::timerCallback()
 {
     static int latencyTick = 0;
-    // Update latency text only every 12th frame (~5 Hz) so the number is comfortably readable
+    // Update latency text only every 12th frame (~5 Hz) so the number is comfortably readable.
+    // Shows ALGORITHMIC latency (the FFT-buffering delay the DAW compensates
+    // for) — not the wall-clock processBlock time.
     if (++latencyTick >= 12)
     {
         latencyTick = 0;
-        float ms = processorRef.getLastProcessingTimeMs();
-        latencyLabel.setText("LATENCY: " + juce::String(ms, 3) + "ms",
+        float ms = processorRef.getAlgorithmicLatencyMs();
+        latencyLabel.setText("LATENCY: " + juce::String(ms, 1) + "ms",
                              juce::dontSendNotification);
     }
 

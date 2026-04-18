@@ -44,8 +44,19 @@ public:
     void stopLearning();
     bool isLearning() const;
 
-    // Processing latency (max of both channels)
+    // Wall-clock time the last processBlock took (CPU load indicator).
     float getLastProcessingTimeMs() const;
+
+    // Algorithmic latency in milliseconds — the buffering delay the FFT
+    // overlap-add introduces. This is the number the DAW compensates for
+    // and what the user hears vs. bypass.
+    float getAlgorithmicLatencyMs() const
+    {
+        const double sr = gates[0].getSampleRate();
+        if (sr <= 0.0) return 0.0f;
+        return static_cast<float>(
+            static_cast<double>(SpectralGateTiptoe::kFFTSize) / sr * 1000.0);
+    }
 
     // Spectrum-graph accessors (read from the first channel — mono-safe view
     // for visualisation). Lock-free: audio thread writes a double-buffered
