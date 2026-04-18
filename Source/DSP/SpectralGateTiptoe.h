@@ -9,10 +9,10 @@
 class SpectralGateTiptoe
 {
 public:
-    static constexpr int kFFTOrder = 11;
-    static constexpr int kFFTSize = 1 << kFFTOrder;    // 2048
-    static constexpr int kHopSize = kFFTSize / 2;       // 1024 (50% overlap)
-    static constexpr int kNumBins = kFFTSize / 2 + 1;   // 1025
+    static constexpr int kFFTOrder = 9;
+    static constexpr int kFFTSize = 1 << kFFTOrder;    // 512
+    static constexpr int kHopSize = kFFTSize / 2;       // 256 (50% overlap)
+    static constexpr int kNumBins = kFFTSize / 2 + 1;   // 257
     static constexpr int kFFTMask = kFFTSize - 1;        // bitmask for power-of-2 wrap
 
     SpectralGateTiptoe();
