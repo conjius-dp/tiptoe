@@ -59,6 +59,28 @@ public:
     // Sample rate the DSP was prepared with (0 if prepare() hasn't run yet).
     double getSampleRate() const { return sampleRate_; }
 
+    // ───────── Artifact-reduction / temporal-gating introspection ─────────
+    // Current smoothed gain applied to each bin (per-bin gate state). Lives
+    // in [reductionGain .. 1]. 1 = fully open. Initialised to 1 on reset().
+    float getBinGainState(int bin) const;
+
+    // Per-bin coefficient of variation (stddev / mean) of the noise magnitude
+    // measured during learning. 0 before learning; non-negative after.
+    float getBinVolatility(int bin) const;
+
+    // Attack / release times derived from per-bin volatility. Volatile bins
+    // get shorter time constants (gate reacts faster); stable bins get
+    // longer ones (smoother output). Defaults before learning.
+    float getBinAttackMs(int bin) const;
+    float getBinReleaseMs(int bin) const;
+
+    // Pure-function soft-knee gain: returns the gain factor to apply to a
+    // bin with magSq, given the bin's noise-threshold squared magnitude and
+    // a reduction gain. Smoothly interpolates between reductionGain (well
+    // below threshold) and 1.0 (well above). Exposed as a static so tests
+    // can validate the interpolation shape without setting up a gate.
+    static float softKneeGain(float magSq, float thresholdMagSq, float reductionGain);
+
 private:
     juce::dsp::FFT fft;
 
@@ -113,6 +135,53 @@ private:
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> reductionGainSmoothed_;
 
     static constexpr double kParamRampSeconds = 0.03;
+
+    // ───────── Artifact-reduction state ─────────
+    //
+    // Per-bin gate-gain state, updated once per processFrame with asymmetric
+    // attack / release. Initialised to 1.0 (gate open).
+    std::vector<float> gainState_;
+
+    // Per-bin exponential smoothing coefficients (alpha in [0,1] applied at
+    // the hop rate). Computed from per-bin time constants on prepare() and
+    // refreshed on stopLearning() from learned volatility.
+    std::vector<float> attackCoef_;
+    std::vector<float> releaseCoef_;
+
+    // Per-bin time constants — exposed via the ms getters. Start at the
+    // defaults below; after learning, each bin gets its own ms value scaled
+    // by the measured coefficient of variation of that bin's noise level.
+    std::vector<float> attackMs_;
+    std::vector<float> releaseMs_;
+
+    // Running magnitude-squared sum per bin during learning, used with
+    // noiseAccumulator_ to compute the coefficient of variation on stop.
+    std::vector<double> noiseMagSqAccumulator_;
+
+    // Coefficient of variation measured at stopLearning (stddev / mean).
+    // 0 by default; populated after learning a non-silent profile.
+    std::vector<float> volatility_;
+
+    // Spectral-smoothing scratch buffer (smoothed bin gains across
+    // neighbours). Sized to kNumBins on prepare. Avoids per-frame alloc.
+    std::vector<float> gainSmoothScratch_;
+
+    static constexpr float kOverSubtractionFactor = 1.5f;
+    static constexpr float kSoftKneeHalfWidthSq = 4.0f; // ± (4×=6 dB) around threshold
+    // Default time constants: chosen so a single FFT hop (~23 ms at the
+    // 2048/44.1k default) doesn't already complete the transition — that's
+    // what makes per-bin smoothing audible as a fade rather than a step.
+    static constexpr float kDefaultAttackMs  = 30.0f;
+    static constexpr float kDefaultReleaseMs = 120.0f;
+    static constexpr int   kSpectralSmoothHalfWidth = 1; // 3-bin box filter
+
+    // Convert a time constant in ms to a one-pole smoother coefficient
+    // that advances once per FFT hop. 1.0 = instant, 0.0 = frozen.
+    float msToHopCoef(float ms) const;
+
+    // Refresh attackCoef_ / releaseCoef_ from attackMs_ / releaseMs_.
+    // Called on prepare() and when learning updates the time constants.
+    void refreshTemporalCoefs();
 
     void processFrame();
     void learnFrame(const float* frameData);
