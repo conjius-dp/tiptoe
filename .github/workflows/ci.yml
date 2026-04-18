@@ -135,8 +135,12 @@ jobs:
             echo "Coverage unchanged, skipping commit"
           else
             git commit -m "Update coverage to ${LINE_PCT}%"
-            git pull --rebase -X theirs origin main || (git rebase --abort && git pull origin main --no-edit && git push && exit 0)
-            git push
+            git pull --rebase -X theirs origin main || (git rebase --abort && git pull origin main --no-edit && git push --no-verify 2>&1) || true
+            # Push is best-effort: if the branch ruleset blocks bot pushes, log
+            # a warning and move on instead of failing the whole CI run.
+            if ! git push 2>/tmp/push.err; then
+              echo "::warning::Could not push coverage update: $(cat /tmp/push.err)"
+            fi
           fi
 
   build-and-test-windows:
