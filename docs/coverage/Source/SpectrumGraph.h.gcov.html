@@ -37,7 +37,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-04-18 04:13:54</td>
+            <td class="headerValue">2026-04-18 04:48:40</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">90.0&nbsp;%</td>
@@ -79,10 +79,10 @@
 <span id="L17"><span class="lineNum">      17</span>              : public:</span>
 <span id="L18"><span class="lineNum">      18</span> <span class="tlaGNC">          30 :     SpectrumGraph() = default;</span></span>
 <span id="L19"><span class="lineNum">      19</span>              : </span>
-<span id="L20"><span class="lineNum">      20</span> <span class="tlaGNC">          73 :     void setSampleRate(double sr) { sampleRate_ = sr; }</span></span>
+<span id="L20"><span class="lineNum">      20</span> <span class="tlaGNC">          68 :     void setSampleRate(double sr) { sampleRate_ = sr; }</span></span>
 <span id="L21"><span class="lineNum">      21</span> <span class="tlaGNC">          10 :     void setFftSize(int fftSize) { fftSize_ = fftSize; }</span></span>
 <span id="L22"><span class="lineNum">      22</span>              : </span>
-<span id="L23"><span class="lineNum">      23</span> <span class="tlaGNC">          69 :     void setThresholdMultiplier(float mult) { thresholdMult_ = mult; }</span></span>
+<span id="L23"><span class="lineNum">      23</span> <span class="tlaGNC">          64 :     void setThresholdMultiplier(float mult) { thresholdMult_ = mult; }</span></span>
 <span id="L24"><span class="lineNum">      24</span>              : </span>
 <span id="L25"><span class="lineNum">      25</span>              :     // Called from the editor's timer. `noise` is the learned noise profile</span>
 <span id="L26"><span class="lineNum">      26</span>              :     // (may be empty before learning). `input` is the latest live magnitude</span>
@@ -109,12 +109,12 @@
 <span id="L47"><span class="lineNum">      47</span>              :     static constexpr float kFreqMax = 20000.0f;</span>
 <span id="L48"><span class="lineNum">      48</span>              : </span>
 <span id="L49"><span class="lineNum">      49</span>              :     // Magnitude reference so 0 dB = full-scale sine FFT bin magnitude.</span>
-<span id="L50"><span class="lineNum">      50</span> <span class="tlaGNC">      165921 :     float magRef() const { return static_cast&lt;float&gt;(fftSize_) * 0.25f; }</span></span>
+<span id="L50"><span class="lineNum">      50</span> <span class="tlaGNC">      158571 :     float magRef() const { return static_cast&lt;float&gt;(fftSize_) * 0.25f; }</span></span>
 <span id="L51"><span class="lineNum">      51</span>              : </span>
-<span id="L52"><span class="lineNum">      52</span> <span class="tlaGNC">      164229 :     float binToFreq(int bin) const</span></span>
+<span id="L52"><span class="lineNum">      52</span> <span class="tlaGNC">      157005 :     float binToFreq(int bin) const</span></span>
 <span id="L53"><span class="lineNum">      53</span>              :     {</span>
-<span id="L54"><span class="lineNum">      54</span> <span class="tlaGNC">      328458 :         return static_cast&lt;float&gt;(bin) * static_cast&lt;float&gt;(sampleRate_)</span></span>
-<span id="L55"><span class="lineNum">      55</span> <span class="tlaGNC">      164229 :              / static_cast&lt;float&gt;(fftSize_);</span></span>
+<span id="L54"><span class="lineNum">      54</span> <span class="tlaGNC">      314010 :         return static_cast&lt;float&gt;(bin) * static_cast&lt;float&gt;(sampleRate_)</span></span>
+<span id="L55"><span class="lineNum">      55</span> <span class="tlaGNC">      157005 :              / static_cast&lt;float&gt;(fftSize_);</span></span>
 <span id="L56"><span class="lineNum">      56</span>              :     }</span>
 <span id="L57"><span class="lineNum">      57</span>              : </span>
 <span id="L58"><span class="lineNum">      58</span>              :     float freqToX(float freq, float width) const;</span>
