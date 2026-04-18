@@ -83,8 +83,14 @@ public:
         // invariant this guarantees.
         if (bypassed && ringStrokeW_ > 0.0f)
         {
-            const float sw = juce::jmin(ringStrokeW_, diameter * 0.5f);
-            g.setColour(KnobDesign::accentColour);
+            // Half the knob stroke so the ring reads as a lighter
+            // outline around the bypass disc — still of the same visual
+            // family, but not as heavy as the knob's own rim.
+            const float sw = juce::jmin(ringStrokeW_ * 0.5f, diameter * 0.5f);
+            // Brighten on hover, matching the behaviour of the fill in
+            // the engaged state.
+            g.setColour(isMouseOver ? KnobDesign::accentHoverColour
+                                    : KnobDesign::accentColour);
             g.drawEllipse(cx - radius + sw * 0.5f,
                           cy - radius + sw * 0.5f,
                           diameter - sw,
