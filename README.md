@@ -24,25 +24,24 @@
   <a href="https://github.com/conjius-dp/tiptoe/graphs/commit-activity"><img src="https://repobeats.axiom.co/api/embed/ccbb782b0fcf93b609feffe2e10efebcdc9c738a.svg" width="700" alt="Repobeats analytics image"></a>
 </p>
 
-A general-purpose spectral gating audio plugin. Learns a noise profile from a sample of background noise, then attenuates matching frequencies in real time.
+Spectral-gating denoiser. Learn a noise profile, then attenuate matching frequencies in real time. 512-sample FFT, 75 % overlap Hann, soft-knee per-bin gate with learned attack/release, ~11.6 ms latency at 44.1 kHz.
 
-Available as **VST3** (macOS, Windows), **AU** & **Standalone** (macOS) formats with stereo input/output.
+VST3 (macOS, Windows), AU + Standalone (macOS). Stereo in/out.
 
-## How It Works
+## Usage
 
-1. Click **Learn Noise** during a section that contains only the noise you want to remove.
-2. Click again to stop learning.
-3. Adjust **Threshold** (how aggressively frequencies are gated) and **Reduction** (how much gated frequencies are attenuated in dB).
+1. **Learn Noise** during a noise-only section.
+2. Click again to stop.
+3. Dial **Sensitivity** and **Reduction**.
+4. Power button (top-right) hard-bypasses the plugin.
 
-The plugin uses an FFT-based spectral gate with a 2048-sample Hann window and 50% overlap-add for artefact-free reconstruction.
+## Parameters
 
-## Dependencies
-
-| Dependency | Version | Link |
+| Parameter | Range | Default |
 |---|---|---|
-| JUCE | 8.0.12 | [juce-framework/JUCE@8.0.12](https://github.com/juce-framework/JUCE/releases/tag/8.0.12) |
-| CMake | >= 3.22 | [cmake.org](https://cmake.org/download/) |
-| C++ compiler | C++17 | Clang, GCC, or MSVC |
+| Sensitivity | 0.1× – 3.0× | 1.0× |
+| Reduction   | 0 dB – −60 dB | −30 dB |
+| Bypass      | on / off | off |
 
 ## Build
 
@@ -54,31 +53,12 @@ cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER
 cmake --build build
 ```
 
-### Build Outputs
+VST3 / AU bundles are auto-copied to `~/Library/Audio/Plug-Ins/`.
 
-Plugins are built to `build/Tiptoe_artefacts/` and automatically copied to your system plugin directories:
-
-| Format | macOS Location |
-|---|---|
-| VST3 | `~/Library/Audio/Plug-Ins/VST3/` |
-| AU | `~/Library/Audio/Plug-Ins/Components/` |
-| Standalone | `build/Tiptoe_artefacts/Standalone/` |
+Requires JUCE 8.0.12, CMake ≥ 3.22, a C++17 compiler.
 
 ## Tests
 
 ```bash
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
-cmake --build build --target TiptoeTests
-./build/TiptoeTests
+cmake --build build --target TiptoeTests && ./build/TiptoeTests
 ```
-
-22 test cases covering FFT round-trip accuracy, noise profile learning, spectral gating behaviour, overlap-add continuity, processing latency measurement, and performance.
-
-Tests use JUCE's built-in `UnitTest` framework — no external test dependencies.
-
-## Parameters
-
-| Parameter | Range | Default | Description |
-|---|---|---|---|
-| Threshold | 0.5x -- 5.0x | 1.5x | Multiplier on the noise profile. Higher = more aggressive gating. |
-| Reduction | -60 dB -- 0 dB | -30 dB | Attenuation applied to gated frequency bins. |
