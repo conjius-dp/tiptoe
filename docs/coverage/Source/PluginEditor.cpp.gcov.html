@@ -37,7 +37,7 @@
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-04-17 18:24:06</td>
+            <td class="headerValue">2026-04-18 04:13:54</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">93.9&nbsp;%</td>
@@ -250,11 +250,11 @@
 <span id="L188"><span class="lineNum">     188</span> <span class="tlaUNC">           0 :         logoHoverTarget = false;</span></span>
 <span id="L189"><span class="lineNum">     189</span> <span class="tlaUNC">           0 : }</span></span>
 <span id="L190"><span class="lineNum">     190</span>              : </span>
-<span id="L191"><span class="lineNum">     191</span> <span class="tlaGNC">          70 : void TiptoeAudioProcessorEditor::timerCallback()</span></span>
+<span id="L191"><span class="lineNum">     191</span> <span class="tlaGNC">          69 : void TiptoeAudioProcessorEditor::timerCallback()</span></span>
 <span id="L192"><span class="lineNum">     192</span>              : {</span>
 <span id="L193"><span class="lineNum">     193</span>              :     static int latencyTick = 0;</span>
 <span id="L194"><span class="lineNum">     194</span>              :     // Update latency text only every 12th frame (~5 Hz) so the number is comfortably readable</span>
-<span id="L195"><span class="lineNum">     195</span> <span class="tlaGNC">          70 :     if (++latencyTick &gt;= 12)</span></span>
+<span id="L195"><span class="lineNum">     195</span> <span class="tlaGNC">          69 :     if (++latencyTick &gt;= 12)</span></span>
 <span id="L196"><span class="lineNum">     196</span>              :     {</span>
 <span id="L197"><span class="lineNum">     197</span> <span class="tlaGNC">           5 :         latencyTick = 0;</span></span>
 <span id="L198"><span class="lineNum">     198</span> <span class="tlaGNC">           5 :         float ms = processorRef.getLastProcessingTimeMs();</span></span>
@@ -266,53 +266,53 @@
 <span id="L204"><span class="lineNum">     204</span>              :     // snapshot, and the current threshold value so the threshold curve slides</span>
 <span id="L205"><span class="lineNum">     205</span>              :     // as the user drags the knob.</span>
 <span id="L206"><span class="lineNum">     206</span>              :     {</span>
-<span id="L207"><span class="lineNum">     207</span> <span class="tlaGNC">          70 :         const double dspRate = processorRef.getDspSampleRate();</span></span>
-<span id="L208"><span class="lineNum">     208</span> <span class="tlaGNC">          70 :         if (dspRate &gt; 0.0)</span></span>
-<span id="L209"><span class="lineNum">     209</span> <span class="tlaGNC">          64 :             spectrumGraph.setSampleRate(dspRate);</span></span>
+<span id="L207"><span class="lineNum">     207</span> <span class="tlaGNC">          69 :         const double dspRate = processorRef.getDspSampleRate();</span></span>
+<span id="L208"><span class="lineNum">     208</span> <span class="tlaGNC">          69 :         if (dspRate &gt; 0.0)</span></span>
+<span id="L209"><span class="lineNum">     209</span> <span class="tlaGNC">          63 :             spectrumGraph.setSampleRate(dspRate);</span></span>
 <span id="L210"><span class="lineNum">     210</span>              : </span>
-<span id="L211"><span class="lineNum">     211</span> <span class="tlaGNC">         140 :         const float thr = processorRef.getAPVTS()</span></span>
-<span id="L212"><span class="lineNum">     212</span> <span class="tlaGNC">          70 :                               .getRawParameterValue(&quot;threshold&quot;)-&gt;load();</span></span>
-<span id="L213"><span class="lineNum">     213</span> <span class="tlaGNC">          70 :         spectrumGraph.setThresholdMultiplier(thr);</span></span>
+<span id="L211"><span class="lineNum">     211</span> <span class="tlaGNC">         138 :         const float thr = processorRef.getAPVTS()</span></span>
+<span id="L212"><span class="lineNum">     212</span> <span class="tlaGNC">          69 :                               .getRawParameterValue(&quot;threshold&quot;)-&gt;load();</span></span>
+<span id="L213"><span class="lineNum">     213</span> <span class="tlaGNC">          69 :         spectrumGraph.setThresholdMultiplier(thr);</span></span>
 <span id="L214"><span class="lineNum">     214</span>              : </span>
-<span id="L215"><span class="lineNum">     215</span> <span class="tlaGNC">          70 :         processorRef.copyInputMagnitudes(scratchInputMags);</span></span>
-<span id="L216"><span class="lineNum">     216</span> <span class="tlaGNC">          70 :         processorRef.copyNoiseProfile(scratchNoiseMags);</span></span>
-<span id="L217"><span class="lineNum">     217</span> <span class="tlaGNC">          70 :         spectrumGraph.setSnapshot(scratchNoiseMags, scratchInputMags);</span></span>
-<span id="L218"><span class="lineNum">     218</span> <span class="tlaGNC">          70 :     }</span></span>
+<span id="L215"><span class="lineNum">     215</span> <span class="tlaGNC">          69 :         processorRef.copyInputMagnitudes(scratchInputMags);</span></span>
+<span id="L216"><span class="lineNum">     216</span> <span class="tlaGNC">          69 :         processorRef.copyNoiseProfile(scratchNoiseMags);</span></span>
+<span id="L217"><span class="lineNum">     217</span> <span class="tlaGNC">          69 :         spectrumGraph.setSnapshot(scratchNoiseMags, scratchInputMags);</span></span>
+<span id="L218"><span class="lineNum">     218</span> <span class="tlaGNC">          69 :     }</span></span>
 <span id="L219"><span class="lineNum">     219</span>              : </span>
 <span id="L220"><span class="lineNum">     220</span>              :     // Animate conjius logo hover state</span>
-<span id="L221"><span class="lineNum">     221</span> <span class="tlaGNC">          70 :     float target = logoHoverTarget ? 1.0f : 0.0f;</span></span>
-<span id="L222"><span class="lineNum">     222</span> <span class="tlaGNC">          70 :     if (std::abs(target - logoHoverProgress) &gt; 0.002f)</span></span>
+<span id="L221"><span class="lineNum">     221</span> <span class="tlaGNC">          69 :     float target = logoHoverTarget ? 1.0f : 0.0f;</span></span>
+<span id="L222"><span class="lineNum">     222</span> <span class="tlaGNC">          69 :     if (std::abs(target - logoHoverProgress) &gt; 0.002f)</span></span>
 <span id="L223"><span class="lineNum">     223</span>              :     {</span>
 <span id="L224"><span class="lineNum">     224</span> <span class="tlaUNC">           0 :         logoHoverProgress += (target - logoHoverProgress) * 0.18f;</span></span>
 <span id="L225"><span class="lineNum">     225</span> <span class="tlaUNC">           0 :         repaint(logoBounds.expanded(static_cast&lt;int&gt;(logoBounds.getWidth() * 0.2f)));</span></span>
 <span id="L226"><span class="lineNum">     226</span> <span class="tlaUNC">           0 :     }</span></span>
 <span id="L227"><span class="lineNum">     227</span>              : </span>
 <span id="L228"><span class="lineNum">     228</span>              :     // Animate hover colour interpolation for knobs and Learn button</span>
-<span id="L229"><span class="lineNum">     229</span> <span class="tlaGNC">         280 :     auto animateHover = [](juce::Component&amp; c, bool hovered) {</span></span>
-<span id="L230"><span class="lineNum">     230</span> <span class="tlaGNC">         210 :         float current = static_cast&lt;float&gt;(c.getProperties().getWithDefault(&quot;hoverProgress&quot;, 0.0));</span></span>
-<span id="L231"><span class="lineNum">     231</span> <span class="tlaGNC">         210 :         float dest = hovered ? 1.0f : 0.0f;</span></span>
-<span id="L232"><span class="lineNum">     232</span> <span class="tlaGNC">         210 :         if (std::abs(dest - current) &gt; 0.002f)</span></span>
+<span id="L229"><span class="lineNum">     229</span> <span class="tlaGNC">         276 :     auto animateHover = [](juce::Component&amp; c, bool hovered) {</span></span>
+<span id="L230"><span class="lineNum">     230</span> <span class="tlaGNC">         207 :         float current = static_cast&lt;float&gt;(c.getProperties().getWithDefault(&quot;hoverProgress&quot;, 0.0));</span></span>
+<span id="L231"><span class="lineNum">     231</span> <span class="tlaGNC">         207 :         float dest = hovered ? 1.0f : 0.0f;</span></span>
+<span id="L232"><span class="lineNum">     232</span> <span class="tlaGNC">         207 :         if (std::abs(dest - current) &gt; 0.002f)</span></span>
 <span id="L233"><span class="lineNum">     233</span>              :         {</span>
 <span id="L234"><span class="lineNum">     234</span> <span class="tlaUNC">           0 :             current += (dest - current) * 0.22f;</span></span>
 <span id="L235"><span class="lineNum">     235</span> <span class="tlaUNC">           0 :             c.getProperties().set(&quot;hoverProgress&quot;, current);</span></span>
 <span id="L236"><span class="lineNum">     236</span> <span class="tlaUNC">           0 :             c.repaint();</span></span>
 <span id="L237"><span class="lineNum">     237</span> <span class="tlaUNC">           0 :         }</span></span>
-<span id="L238"><span class="lineNum">     238</span> <span class="tlaGNC">         210 :     };</span></span>
-<span id="L239"><span class="lineNum">     239</span> <span class="tlaGNC">          70 :     animateHover(thresholdSlider, thresholdSlider.isMouseOverOrDragging(true));</span></span>
-<span id="L240"><span class="lineNum">     240</span> <span class="tlaGNC">          70 :     animateHover(reductionSlider, reductionSlider.isMouseOverOrDragging(true));</span></span>
-<span id="L241"><span class="lineNum">     241</span> <span class="tlaGNC">          70 :     animateHover(learnButton,     learnButton.isOver() || learnButton.isDown());</span></span>
+<span id="L238"><span class="lineNum">     238</span> <span class="tlaGNC">         207 :     };</span></span>
+<span id="L239"><span class="lineNum">     239</span> <span class="tlaGNC">          69 :     animateHover(thresholdSlider, thresholdSlider.isMouseOverOrDragging(true));</span></span>
+<span id="L240"><span class="lineNum">     240</span> <span class="tlaGNC">          69 :     animateHover(reductionSlider, reductionSlider.isMouseOverOrDragging(true));</span></span>
+<span id="L241"><span class="lineNum">     241</span> <span class="tlaGNC">          69 :     animateHover(learnButton,     learnButton.isOver() || learnButton.isDown());</span></span>
 <span id="L242"><span class="lineNum">     242</span>              : </span>
 <span id="L243"><span class="lineNum">     243</span>              :     // Update snap-to-default animations</span>
-<span id="L244"><span class="lineNum">     244</span> <span class="tlaGNC">          70 :     updateSnapAnimation(thresholdSlider, thresholdAnim);</span></span>
-<span id="L245"><span class="lineNum">     245</span> <span class="tlaGNC">          70 :     updateSnapAnimation(reductionSlider, reductionAnim);</span></span>
+<span id="L244"><span class="lineNum">     244</span> <span class="tlaGNC">          69 :     updateSnapAnimation(thresholdSlider, thresholdAnim);</span></span>
+<span id="L245"><span class="lineNum">     245</span> <span class="tlaGNC">          69 :     updateSnapAnimation(reductionSlider, reductionAnim);</span></span>
 <span id="L246"><span class="lineNum">     246</span>              : </span>
 <span id="L247"><span class="lineNum">     247</span>              :     // Update learn button state (in case processor state changed externally)</span>
-<span id="L248"><span class="lineNum">     248</span> <span class="tlaGNC">          70 :     if (processorRef.isLearning() &amp;&amp; learnButton.getButtonText() != &quot;STOP&quot;)</span></span>
+<span id="L248"><span class="lineNum">     248</span> <span class="tlaGNC">          69 :     if (processorRef.isLearning() &amp;&amp; learnButton.getButtonText() != &quot;STOP&quot;)</span></span>
 <span id="L249"><span class="lineNum">     249</span>              :     {</span>
 <span id="L250"><span class="lineNum">     250</span> <span class="tlaUNC">           0 :         learnButton.setButtonText(&quot;STOP&quot;);</span></span>
 <span id="L251"><span class="lineNum">     251</span> <span class="tlaUNC">           0 :         learnButton.getProperties().set(&quot;stateTarget&quot;, 1.0);</span></span>
 <span id="L252"><span class="lineNum">     252</span> <span class="tlaUNC">           0 :     }</span></span>
-<span id="L253"><span class="lineNum">     253</span> <span class="tlaGNC">          70 :     else if (!processorRef.isLearning() &amp;&amp; learnButton.getButtonText() != &quot;START&quot;)</span></span>
+<span id="L253"><span class="lineNum">     253</span> <span class="tlaGNC">          69 :     else if (!processorRef.isLearning() &amp;&amp; learnButton.getButtonText() != &quot;START&quot;)</span></span>
 <span id="L254"><span class="lineNum">     254</span>              :     {</span>
 <span id="L255"><span class="lineNum">     255</span> <span class="tlaUNC">           0 :         learnButton.setButtonText(&quot;START&quot;);</span></span>
 <span id="L256"><span class="lineNum">     256</span> <span class="tlaUNC">           0 :         learnButton.getProperties().set(&quot;stateTarget&quot;, 0.0);</span></span>
@@ -320,171 +320,171 @@
 <span id="L258"><span class="lineNum">     258</span>              : </span>
 <span id="L259"><span class="lineNum">     259</span>              :     // Animate Learn button visual state transition (Start &lt;-&gt; Stop)</span>
 <span id="L260"><span class="lineNum">     260</span>              :     {</span>
-<span id="L261"><span class="lineNum">     261</span> <span class="tlaGNC">          70 :         auto&amp; props = learnButton.getProperties();</span></span>
-<span id="L262"><span class="lineNum">     262</span> <span class="tlaGNC">          70 :         float stateDest = static_cast&lt;float&gt;(props.getWithDefault(&quot;stateTarget&quot;, 0.0));</span></span>
-<span id="L263"><span class="lineNum">     263</span> <span class="tlaGNC">          70 :         float current = static_cast&lt;float&gt;(props.getWithDefault(&quot;stateProgress&quot;, 0.0));</span></span>
-<span id="L264"><span class="lineNum">     264</span> <span class="tlaGNC">          70 :         if (std::abs(stateDest - current) &gt; 0.002f)</span></span>
+<span id="L261"><span class="lineNum">     261</span> <span class="tlaGNC">          69 :         auto&amp; props = learnButton.getProperties();</span></span>
+<span id="L262"><span class="lineNum">     262</span> <span class="tlaGNC">          69 :         float stateDest = static_cast&lt;float&gt;(props.getWithDefault(&quot;stateTarget&quot;, 0.0));</span></span>
+<span id="L263"><span class="lineNum">     263</span> <span class="tlaGNC">          69 :         float current = static_cast&lt;float&gt;(props.getWithDefault(&quot;stateProgress&quot;, 0.0));</span></span>
+<span id="L264"><span class="lineNum">     264</span> <span class="tlaGNC">          69 :         if (std::abs(stateDest - current) &gt; 0.002f)</span></span>
 <span id="L265"><span class="lineNum">     265</span>              :         {</span>
 <span id="L266"><span class="lineNum">     266</span> <span class="tlaUNC">           0 :             current += (stateDest - current) * 0.20f;</span></span>
 <span id="L267"><span class="lineNum">     267</span> <span class="tlaUNC">           0 :             props.set(&quot;stateProgress&quot;, current);</span></span>
 <span id="L268"><span class="lineNum">     268</span> <span class="tlaUNC">           0 :             learnButton.repaint();</span></span>
 <span id="L269"><span class="lineNum">     269</span> <span class="tlaUNC">           0 :         }</span></span>
-<span id="L270"><span class="lineNum">     270</span> <span class="tlaGNC">          70 :     }</span></span>
+<span id="L270"><span class="lineNum">     270</span> <span class="tlaGNC">          69 :     }</span></span>
 <span id="L271"><span class="lineNum">     271</span>              : </span>
 <span id="L272"><span class="lineNum">     272</span>              :     // Animate &quot;Learn&quot; &lt;-&gt; &quot;Learning...&quot; text crossfade and the three-dot loop</span>
 <span id="L273"><span class="lineNum">     273</span>              :     {</span>
-<span id="L274"><span class="lineNum">     274</span> <span class="tlaGNC">          70 :         float textTarget = processorRef.isLearning() ? 1.0f : 0.0f;</span></span>
-<span id="L275"><span class="lineNum">     275</span> <span class="tlaGNC">          70 :         bool needRepaint = false;</span></span>
+<span id="L274"><span class="lineNum">     274</span> <span class="tlaGNC">          69 :         float textTarget = processorRef.isLearning() ? 1.0f : 0.0f;</span></span>
+<span id="L275"><span class="lineNum">     275</span> <span class="tlaGNC">          69 :         bool needRepaint = false;</span></span>
 <span id="L276"><span class="lineNum">     276</span>              : </span>
-<span id="L277"><span class="lineNum">     277</span> <span class="tlaGNC">          70 :         if (std::abs(textTarget - learningTextProgress) &gt; 0.002f)</span></span>
+<span id="L277"><span class="lineNum">     277</span> <span class="tlaGNC">          69 :         if (std::abs(textTarget - learningTextProgress) &gt; 0.002f)</span></span>
 <span id="L278"><span class="lineNum">     278</span>              :         {</span>
 <span id="L279"><span class="lineNum">     279</span> <span class="tlaUNC">           0 :             learningTextProgress += (textTarget - learningTextProgress) * 0.20f;</span></span>
 <span id="L280"><span class="lineNum">     280</span> <span class="tlaUNC">           0 :             needRepaint = true;</span></span>
 <span id="L281"><span class="lineNum">     281</span> <span class="tlaUNC">           0 :         }</span></span>
 <span id="L282"><span class="lineNum">     282</span>              : </span>
 <span id="L283"><span class="lineNum">     283</span>              :         // Run the dot loop whenever &quot;Learning...&quot; is visible to any degree</span>
-<span id="L284"><span class="lineNum">     284</span> <span class="tlaGNC">          70 :         if (processorRef.isLearning() || learningTextProgress &gt; 0.01f)</span></span>
+<span id="L284"><span class="lineNum">     284</span> <span class="tlaGNC">          69 :         if (processorRef.isLearning() || learningTextProgress &gt; 0.01f)</span></span>
 <span id="L285"><span class="lineNum">     285</span>              :         {</span>
 <span id="L286"><span class="lineNum">     286</span> <span class="tlaUNC">           0 :             dotAnimPhase += 1.0f / 90.0f;  // ~1.5s per full cycle at 60 Hz</span></span>
 <span id="L287"><span class="lineNum">     287</span> <span class="tlaUNC">           0 :             if (dotAnimPhase &gt;= 1.0f) dotAnimPhase -= 1.0f;</span></span>
 <span id="L288"><span class="lineNum">     288</span> <span class="tlaUNC">           0 :             needRepaint = true;</span></span>
 <span id="L289"><span class="lineNum">     289</span> <span class="tlaUNC">           0 :         }</span></span>
 <span id="L290"><span class="lineNum">     290</span>              : </span>
-<span id="L291"><span class="lineNum">     291</span> <span class="tlaGNC">          70 :         if (needRepaint &amp;&amp; !learnTextBounds.isEmpty())</span></span>
+<span id="L291"><span class="lineNum">     291</span> <span class="tlaGNC">          69 :         if (needRepaint &amp;&amp; !learnTextBounds.isEmpty())</span></span>
 <span id="L292"><span class="lineNum">     292</span> <span class="tlaUNC">           0 :             repaint(learnTextBounds);</span></span>
-<span id="L293"><span class="lineNum">     293</span> <span class="tlaGNC">          70 :     }</span></span>
+<span id="L293"><span class="lineNum">     293</span> <span class="tlaGNC">          69 :     }</span></span>
 <span id="L294"><span class="lineNum">     294</span>              : </span>
 <span id="L295"><span class="lineNum">     295</span>              :     // Animate latency label: grows 3x on hover in both modes; slides out when hidden</span>
 <span id="L296"><span class="lineNum">     296</span>              :     {</span>
-<span id="L297"><span class="lineNum">     297</span> <span class="tlaGNC">          70 :         float hoverDest = latencyHoverTarget ? 1.0f : 0.0f;</span></span>
-<span id="L298"><span class="lineNum">     298</span> <span class="tlaGNC">          70 :         if (std::abs(hoverDest - latencyHoverProgress) &gt; 0.002f)</span></span>
+<span id="L297"><span class="lineNum">     297</span> <span class="tlaGNC">          69 :         float hoverDest = latencyHoverTarget ? 1.0f : 0.0f;</span></span>
+<span id="L298"><span class="lineNum">     298</span> <span class="tlaGNC">          69 :         if (std::abs(hoverDest - latencyHoverProgress) &gt; 0.002f)</span></span>
 <span id="L299"><span class="lineNum">     299</span> <span class="tlaUNC">           0 :             latencyHoverProgress += (hoverDest - latencyHoverProgress) * 0.22f;</span></span>
 <span id="L300"><span class="lineNum">     300</span>              : </span>
-<span id="L301"><span class="lineNum">     301</span> <span class="tlaGNC">          70 :         float hideDest = latencyHidden ? (latencyHoverTarget ? 0.0f : 1.0f) : 0.0f;</span></span>
-<span id="L302"><span class="lineNum">     302</span> <span class="tlaGNC">          70 :         if (std::abs(hideDest - latencyHideProgress) &gt; 0.002f)</span></span>
+<span id="L301"><span class="lineNum">     301</span> <span class="tlaGNC">          69 :         float hideDest = latencyHidden ? (latencyHoverTarget ? 0.0f : 1.0f) : 0.0f;</span></span>
+<span id="L302"><span class="lineNum">     302</span> <span class="tlaGNC">          69 :         if (std::abs(hideDest - latencyHideProgress) &gt; 0.002f)</span></span>
 <span id="L303"><span class="lineNum">     303</span> <span class="tlaUNC">           0 :             latencyHideProgress += (hideDest - latencyHideProgress) * 0.09f;</span></span>
 <span id="L304"><span class="lineNum">     304</span>              : </span>
-<span id="L305"><span class="lineNum">     305</span> <span class="tlaGNC">          70 :         if (!latencyBaseBounds.isEmpty())</span></span>
+<span id="L305"><span class="lineNum">     305</span> <span class="tlaGNC">          69 :         if (!latencyBaseBounds.isEmpty())</span></span>
 <span id="L306"><span class="lineNum">     306</span>              :         {</span>
-<span id="L307"><span class="lineNum">     307</span> <span class="tlaGNC">          70 :             float scale = 1.0f + 0.4f * latencyHoverProgress; // 1.0 → 1.4x</span></span>
-<span id="L308"><span class="lineNum">     308</span> <span class="tlaGNC">          70 :             latencyLabel.setFont(conjusLAF.getRegularFont(latencyBaseFontSize * scale));</span></span>
+<span id="L307"><span class="lineNum">     307</span> <span class="tlaGNC">          69 :             float scale = 1.0f + 0.4f * latencyHoverProgress; // 1.0 → 1.4x</span></span>
+<span id="L308"><span class="lineNum">     308</span> <span class="tlaGNC">          69 :             latencyLabel.setFont(conjusLAF.getRegularFont(latencyBaseFontSize * scale));</span></span>
 <span id="L309"><span class="lineNum">     309</span>              : </span>
-<span id="L310"><span class="lineNum">     310</span> <span class="tlaGNC">          70 :             float slidePx = static_cast&lt;float&gt;(latencyBaseBounds.getHeight()) * 2.0f * latencyHideProgress;</span></span>
-<span id="L311"><span class="lineNum">     311</span> <span class="tlaGNC">          70 :             int scaledH = static_cast&lt;int&gt;(latencyBaseBounds.getHeight() * scale);</span></span>
-<span id="L312"><span class="lineNum">     312</span> <span class="tlaGNC">          70 :             int extra = scaledH - latencyBaseBounds.getHeight();</span></span>
-<span id="L313"><span class="lineNum">     313</span> <span class="tlaGNC">         140 :             auto bounds = latencyBaseBounds.withY(latencyBaseBounds.getY() - extra)</span></span>
-<span id="L314"><span class="lineNum">     314</span> <span class="tlaGNC">          70 :                                            .withHeight(scaledH)</span></span>
-<span id="L315"><span class="lineNum">     315</span> <span class="tlaGNC">          70 :                                            .translated(0, static_cast&lt;int&gt;(slidePx));</span></span>
-<span id="L316"><span class="lineNum">     316</span> <span class="tlaGNC">          70 :             latencyLabel.setBounds(bounds);</span></span>
-<span id="L317"><span class="lineNum">     317</span> <span class="tlaGNC">          70 :         }</span></span>
-<span id="L318"><span class="lineNum">     318</span> <span class="tlaGNC">          70 :     }</span></span>
-<span id="L319"><span class="lineNum">     319</span> <span class="tlaGNC">          70 : }</span></span>
+<span id="L310"><span class="lineNum">     310</span> <span class="tlaGNC">          69 :             float slidePx = static_cast&lt;float&gt;(latencyBaseBounds.getHeight()) * 2.0f * latencyHideProgress;</span></span>
+<span id="L311"><span class="lineNum">     311</span> <span class="tlaGNC">          69 :             int scaledH = static_cast&lt;int&gt;(latencyBaseBounds.getHeight() * scale);</span></span>
+<span id="L312"><span class="lineNum">     312</span> <span class="tlaGNC">          69 :             int extra = scaledH - latencyBaseBounds.getHeight();</span></span>
+<span id="L313"><span class="lineNum">     313</span> <span class="tlaGNC">         138 :             auto bounds = latencyBaseBounds.withY(latencyBaseBounds.getY() - extra)</span></span>
+<span id="L314"><span class="lineNum">     314</span> <span class="tlaGNC">          69 :                                            .withHeight(scaledH)</span></span>
+<span id="L315"><span class="lineNum">     315</span> <span class="tlaGNC">          69 :                                            .translated(0, static_cast&lt;int&gt;(slidePx));</span></span>
+<span id="L316"><span class="lineNum">     316</span> <span class="tlaGNC">          69 :             latencyLabel.setBounds(bounds);</span></span>
+<span id="L317"><span class="lineNum">     317</span> <span class="tlaGNC">          69 :         }</span></span>
+<span id="L318"><span class="lineNum">     318</span> <span class="tlaGNC">          69 :     }</span></span>
+<span id="L319"><span class="lineNum">     319</span> <span class="tlaGNC">          69 : }</span></span>
 <span id="L320"><span class="lineNum">     320</span>              : </span>
-<span id="L321"><span class="lineNum">     321</span> <span class="tlaGNC">         100 : void TiptoeAudioProcessorEditor::paint(juce::Graphics&amp; g)</span></span>
+<span id="L321"><span class="lineNum">     321</span> <span class="tlaGNC">         111 : void TiptoeAudioProcessorEditor::paint(juce::Graphics&amp; g)</span></span>
 <span id="L322"><span class="lineNum">     322</span>              : {</span>
-<span id="L323"><span class="lineNum">     323</span> <span class="tlaGNC">         100 :     g.fillAll(KnobDesign::bgColour);</span></span>
+<span id="L323"><span class="lineNum">     323</span> <span class="tlaGNC">         111 :     g.fillAll(KnobDesign::bgColour);</span></span>
 <span id="L324"><span class="lineNum">     324</span>              : </span>
 <span id="L325"><span class="lineNum">     325</span>              :     // Draw conjius logo in bottom-left corner — tight to the bottom edge with</span>
 <span id="L326"><span class="lineNum">     326</span>              :     // only a small horizontal pad from the left. Darker by default, brightens</span>
 <span id="L327"><span class="lineNum">     327</span>              :     // and grows on hover.</span>
-<span id="L328"><span class="lineNum">     328</span> <span class="tlaGNC">         100 :     if (logoImage.isValid() &amp;&amp; showChrome)</span></span>
+<span id="L328"><span class="lineNum">     328</span> <span class="tlaGNC">         111 :     if (logoImage.isValid() &amp;&amp; showChrome)</span></span>
 <span id="L329"><span class="lineNum">     329</span>              :     {</span>
-<span id="L330"><span class="lineNum">     330</span> <span class="tlaGNC">         100 :         float scale = static_cast&lt;float&gt;(getWidth()) / static_cast&lt;float&gt;(KnobDesign::defaultWidth);</span></span>
-<span id="L331"><span class="lineNum">     331</span> <span class="tlaGNC">         100 :         int baseSize = static_cast&lt;int&gt;(37.5f * scale);</span></span>
-<span id="L332"><span class="lineNum">     332</span> <span class="tlaGNC">         100 :         int padLeft = static_cast&lt;int&gt;(6.0f * scale);</span></span>
-<span id="L333"><span class="lineNum">     333</span> <span class="tlaGNC">         100 :         int baseX = padLeft;</span></span>
-<span id="L334"><span class="lineNum">     334</span> <span class="tlaGNC">         100 :         int baseY = getHeight() - baseSize;</span></span>
-<span id="L335"><span class="lineNum">     335</span> <span class="tlaGNC">         100 :         logoBounds = { baseX, baseY, baseSize, baseSize };</span></span>
+<span id="L330"><span class="lineNum">     330</span> <span class="tlaGNC">         111 :         float scale = static_cast&lt;float&gt;(getWidth()) / static_cast&lt;float&gt;(KnobDesign::defaultWidth);</span></span>
+<span id="L331"><span class="lineNum">     331</span> <span class="tlaGNC">         111 :         int baseSize = static_cast&lt;int&gt;(37.5f * scale);</span></span>
+<span id="L332"><span class="lineNum">     332</span> <span class="tlaGNC">         111 :         int padLeft = static_cast&lt;int&gt;(6.0f * scale);</span></span>
+<span id="L333"><span class="lineNum">     333</span> <span class="tlaGNC">         111 :         int baseX = padLeft;</span></span>
+<span id="L334"><span class="lineNum">     334</span> <span class="tlaGNC">         111 :         int baseY = getHeight() - baseSize;</span></span>
+<span id="L335"><span class="lineNum">     335</span> <span class="tlaGNC">         111 :         logoBounds = { baseX, baseY, baseSize, baseSize };</span></span>
 <span id="L336"><span class="lineNum">     336</span>              : </span>
-<span id="L337"><span class="lineNum">     337</span> <span class="tlaGNC">         100 :         float hoverScale = 1.0f + 0.2f * logoHoverProgress; // 1.0 -&gt; 1.2</span></span>
-<span id="L338"><span class="lineNum">     338</span> <span class="tlaGNC">         100 :         int drawSize = static_cast&lt;int&gt;(baseSize * hoverScale);</span></span>
+<span id="L337"><span class="lineNum">     337</span> <span class="tlaGNC">         111 :         float hoverScale = 1.0f + 0.2f * logoHoverProgress; // 1.0 -&gt; 1.2</span></span>
+<span id="L338"><span class="lineNum">     338</span> <span class="tlaGNC">         111 :         int drawSize = static_cast&lt;int&gt;(baseSize * hoverScale);</span></span>
 <span id="L339"><span class="lineNum">     339</span>              :         // Grow around the centre of the base rect so the logo feels like it &quot;pops&quot;</span>
-<span id="L340"><span class="lineNum">     340</span> <span class="tlaGNC">         100 :         int drawX = baseX + (baseSize - drawSize) / 2;</span></span>
-<span id="L341"><span class="lineNum">     341</span> <span class="tlaGNC">         100 :         int drawY = baseY + (baseSize - drawSize) / 2;</span></span>
+<span id="L340"><span class="lineNum">     340</span> <span class="tlaGNC">         111 :         int drawX = baseX + (baseSize - drawSize) / 2;</span></span>
+<span id="L341"><span class="lineNum">     341</span> <span class="tlaGNC">         111 :         int drawY = baseY + (baseSize - drawSize) / 2;</span></span>
 <span id="L342"><span class="lineNum">     342</span>              : </span>
 <span id="L343"><span class="lineNum">     343</span>              :         // Dim by default (0.35 opacity), brighten on hover (to 1.0)</span>
-<span id="L344"><span class="lineNum">     344</span> <span class="tlaGNC">         100 :         float brightness = 0.35f + 0.65f * logoHoverProgress;</span></span>
-<span id="L345"><span class="lineNum">     345</span> <span class="tlaGNC">         100 :         g.setOpacity(brightness);</span></span>
-<span id="L346"><span class="lineNum">     346</span> <span class="tlaGNC">         200 :         g.drawImage(logoImage,</span></span>
-<span id="L347"><span class="lineNum">     347</span> <span class="tlaGNC">         100 :                     drawX, drawY, drawSize, drawSize,</span></span>
-<span id="L348"><span class="lineNum">     348</span> <span class="tlaGNC">         100 :                     0, 0, logoImage.getWidth(), logoImage.getHeight());</span></span>
-<span id="L349"><span class="lineNum">     349</span> <span class="tlaGNC">         100 :         g.setOpacity(1.0f);</span></span>
-<span id="L350"><span class="lineNum">     350</span> <span class="tlaGNC">         100 :     }</span></span>
+<span id="L344"><span class="lineNum">     344</span> <span class="tlaGNC">         111 :         float brightness = 0.35f + 0.65f * logoHoverProgress;</span></span>
+<span id="L345"><span class="lineNum">     345</span> <span class="tlaGNC">         111 :         g.setOpacity(brightness);</span></span>
+<span id="L346"><span class="lineNum">     346</span> <span class="tlaGNC">         222 :         g.drawImage(logoImage,</span></span>
+<span id="L347"><span class="lineNum">     347</span> <span class="tlaGNC">         111 :                     drawX, drawY, drawSize, drawSize,</span></span>
+<span id="L348"><span class="lineNum">     348</span> <span class="tlaGNC">         111 :                     0, 0, logoImage.getWidth(), logoImage.getHeight());</span></span>
+<span id="L349"><span class="lineNum">     349</span> <span class="tlaGNC">         111 :         g.setOpacity(1.0f);</span></span>
+<span id="L350"><span class="lineNum">     350</span> <span class="tlaGNC">         111 :     }</span></span>
 <span id="L351"><span class="lineNum">     351</span>              : </span>
-<span id="L352"><span class="lineNum">     352</span> <span class="tlaGNC">         100 :     float w = static_cast&lt;float&gt;(getWidth());</span></span>
-<span id="L353"><span class="lineNum">     353</span> <span class="tlaGNC">         100 :     const float hTotal = static_cast&lt;float&gt;(getHeight());</span></span>
+<span id="L352"><span class="lineNum">     352</span> <span class="tlaGNC">         111 :     float w = static_cast&lt;float&gt;(getWidth());</span></span>
+<span id="L353"><span class="lineNum">     353</span> <span class="tlaGNC">         111 :     const float hTotal = static_cast&lt;float&gt;(getHeight());</span></span>
 <span id="L354"><span class="lineNum">     354</span>              :     // Match resized(): knob-area ratios are relative to the sub-window</span>
 <span id="L355"><span class="lineNum">     355</span>              :     // beneath the spectrum graph. Add graphH when translating to editor Y.</span>
-<span id="L356"><span class="lineNum">     356</span> <span class="tlaGNC">         100 :     const float graphH = hTotal * KnobDesign::graphAreaFrac;</span></span>
-<span id="L357"><span class="lineNum">     357</span> <span class="tlaGNC">         100 :     float h = hTotal - graphH;</span></span>
+<span id="L356"><span class="lineNum">     356</span> <span class="tlaGNC">         111 :     const float graphH = hTotal * KnobDesign::graphAreaFrac;</span></span>
+<span id="L357"><span class="lineNum">     357</span> <span class="tlaGNC">         111 :     float h = hTotal - graphH;</span></span>
 <span id="L358"><span class="lineNum">     358</span>              : </span>
 <span id="L359"><span class="lineNum">     359</span>              :     // Draw title logo at top-centre (small)</span>
-<span id="L360"><span class="lineNum">     360</span> <span class="tlaGNC">         100 :     if (titleLogoImage.isValid())</span></span>
+<span id="L360"><span class="lineNum">     360</span> <span class="tlaGNC">         111 :     if (titleLogoImage.isValid())</span></span>
 <span id="L361"><span class="lineNum">     361</span>              :     {</span>
-<span id="L362"><span class="lineNum">     362</span> <span class="tlaGNC">         100 :         float titleH = h * 0.146f; // 1.5x the previous size</span></span>
-<span id="L363"><span class="lineNum">     363</span> <span class="tlaGNC">         200 :         float aspect = static_cast&lt;float&gt;(titleLogoImage.getWidth())</span></span>
-<span id="L364"><span class="lineNum">     364</span> <span class="tlaGNC">         100 :                      / static_cast&lt;float&gt;(titleLogoImage.getHeight());</span></span>
-<span id="L365"><span class="lineNum">     365</span> <span class="tlaGNC">         100 :         float titleW = titleH * aspect;</span></span>
-<span id="L366"><span class="lineNum">     366</span> <span class="tlaGNC">         100 :         float titleX = (w - titleW) * 0.5f;</span></span>
-<span id="L367"><span class="lineNum">     367</span> <span class="tlaGNC">         100 :         float titleY = graphH + h * 0.24f; // title+subtitle raised higher</span></span>
-<span id="L368"><span class="lineNum">     368</span> <span class="tlaGNC">         300 :         g.drawImage(titleLogoImage,</span></span>
-<span id="L369"><span class="lineNum">     369</span> <span class="tlaGNC">         100 :                     juce::Rectangle&lt;float&gt;(titleX, titleY, titleW, titleH),</span></span>
-<span id="L370"><span class="lineNum">     370</span> <span class="tlaGNC">         100 :                     juce::RectanglePlacement::centred);</span></span>
+<span id="L362"><span class="lineNum">     362</span> <span class="tlaGNC">         111 :         float titleH = h * 0.146f; // 1.5x the previous size</span></span>
+<span id="L363"><span class="lineNum">     363</span> <span class="tlaGNC">         222 :         float aspect = static_cast&lt;float&gt;(titleLogoImage.getWidth())</span></span>
+<span id="L364"><span class="lineNum">     364</span> <span class="tlaGNC">         111 :                      / static_cast&lt;float&gt;(titleLogoImage.getHeight());</span></span>
+<span id="L365"><span class="lineNum">     365</span> <span class="tlaGNC">         111 :         float titleW = titleH * aspect;</span></span>
+<span id="L366"><span class="lineNum">     366</span> <span class="tlaGNC">         111 :         float titleX = (w - titleW) * 0.5f;</span></span>
+<span id="L367"><span class="lineNum">     367</span> <span class="tlaGNC">         111 :         float titleY = graphH + h * 0.24f; // title+subtitle raised higher</span></span>
+<span id="L368"><span class="lineNum">     368</span> <span class="tlaGNC">         333 :         g.drawImage(titleLogoImage,</span></span>
+<span id="L369"><span class="lineNum">     369</span> <span class="tlaGNC">         111 :                     juce::Rectangle&lt;float&gt;(titleX, titleY, titleW, titleH),</span></span>
+<span id="L370"><span class="lineNum">     370</span> <span class="tlaGNC">         111 :                     juce::RectanglePlacement::centred);</span></span>
 <span id="L371"><span class="lineNum">     371</span>              : </span>
 <span id="L372"><span class="lineNum">     372</span>              :         // Subtitle: small &quot;Spectral denoiser&quot; tagline diagonally below/right of the logo</span>
-<span id="L373"><span class="lineNum">     373</span> <span class="tlaGNC">         100 :         float subFontSize = h * 0.028f;</span></span>
-<span id="L374"><span class="lineNum">     374</span> <span class="tlaGNC">         100 :         auto subFont = conjusLAF.getBoldFont(subFontSize);</span></span>
-<span id="L375"><span class="lineNum">     375</span> <span class="tlaGNC">         100 :         g.setColour(KnobDesign::accentHoverColour);</span></span>
-<span id="L376"><span class="lineNum">     376</span> <span class="tlaGNC">         100 :         g.setFont(subFont);</span></span>
+<span id="L373"><span class="lineNum">     373</span> <span class="tlaGNC">         111 :         float subFontSize = h * 0.028f;</span></span>
+<span id="L374"><span class="lineNum">     374</span> <span class="tlaGNC">         111 :         auto subFont = conjusLAF.getBoldFont(subFontSize);</span></span>
+<span id="L375"><span class="lineNum">     375</span> <span class="tlaGNC">         111 :         g.setColour(KnobDesign::accentHoverColour);</span></span>
+<span id="L376"><span class="lineNum">     376</span> <span class="tlaGNC">         111 :         g.setFont(subFont);</span></span>
 <span id="L377"><span class="lineNum">     377</span>              :         // Two-line, left-aligned subtitle with the rect sized exactly to the</span>
 <span id="L378"><span class="lineNum">     378</span>              :         // widest line so the &quot;container&quot; matches the text's actual width.</span>
-<span id="L379"><span class="lineNum">     379</span> <span class="tlaGNC">         100 :         const float subW = KnobDesign::stringWidth(subFont, &quot;DENOISER&quot;);</span></span>
-<span id="L380"><span class="lineNum">     380</span> <span class="tlaGNC">         100 :         float subX = titleX + titleW * 0.48f;</span></span>
-<span id="L381"><span class="lineNum">     381</span> <span class="tlaGNC">         100 :         float subY = titleY + titleH * 0.70f;</span></span>
-<span id="L382"><span class="lineNum">     382</span> <span class="tlaGNC">         100 :         const float subLineH = subFontSize * 1.1f;</span></span>
-<span id="L383"><span class="lineNum">     383</span> <span class="tlaGNC">         100 :         g.drawText(&quot;SPECTRAL&quot;,</span></span>
-<span id="L384"><span class="lineNum">     384</span> <span class="tlaGNC">         100 :                    juce::Rectangle&lt;float&gt;(subX, subY, subW, subFontSize * 1.4f),</span></span>
-<span id="L385"><span class="lineNum">     385</span> <span class="tlaGNC">         100 :                    juce::Justification::topLeft, false);</span></span>
-<span id="L386"><span class="lineNum">     386</span> <span class="tlaGNC">         100 :         g.drawText(&quot;DENOISER&quot;,</span></span>
-<span id="L387"><span class="lineNum">     387</span> <span class="tlaGNC">         100 :                    juce::Rectangle&lt;float&gt;(subX, subY + subLineH, subW, subFontSize * 1.4f),</span></span>
-<span id="L388"><span class="lineNum">     388</span> <span class="tlaGNC">         100 :                    juce::Justification::topLeft, false);</span></span>
-<span id="L389"><span class="lineNum">     389</span> <span class="tlaGNC">         100 :     }</span></span>
+<span id="L379"><span class="lineNum">     379</span> <span class="tlaGNC">         111 :         const float subW = KnobDesign::stringWidth(subFont, &quot;DENOISER&quot;);</span></span>
+<span id="L380"><span class="lineNum">     380</span> <span class="tlaGNC">         111 :         float subX = titleX + titleW * 0.48f;</span></span>
+<span id="L381"><span class="lineNum">     381</span> <span class="tlaGNC">         111 :         float subY = titleY + titleH * 0.70f;</span></span>
+<span id="L382"><span class="lineNum">     382</span> <span class="tlaGNC">         111 :         const float subLineH = subFontSize * 1.1f;</span></span>
+<span id="L383"><span class="lineNum">     383</span> <span class="tlaGNC">         111 :         g.drawText(&quot;SPECTRAL&quot;,</span></span>
+<span id="L384"><span class="lineNum">     384</span> <span class="tlaGNC">         111 :                    juce::Rectangle&lt;float&gt;(subX, subY, subW, subFontSize * 1.4f),</span></span>
+<span id="L385"><span class="lineNum">     385</span> <span class="tlaGNC">         111 :                    juce::Justification::topLeft, false);</span></span>
+<span id="L386"><span class="lineNum">     386</span> <span class="tlaGNC">         111 :         g.drawText(&quot;DENOISER&quot;,</span></span>
+<span id="L387"><span class="lineNum">     387</span> <span class="tlaGNC">         111 :                    juce::Rectangle&lt;float&gt;(subX, subY + subLineH, subW, subFontSize * 1.4f),</span></span>
+<span id="L388"><span class="lineNum">     388</span> <span class="tlaGNC">         111 :                    juce::Justification::topLeft, false);</span></span>
+<span id="L389"><span class="lineNum">     389</span> <span class="tlaGNC">         111 :     }</span></span>
 <span id="L390"><span class="lineNum">     390</span>              : </span>
 <span id="L391"><span class="lineNum">     391</span>              :     // Draw &quot;Learn&quot; / &quot;Learning...&quot; label above the button — size matches knob tick labels</span>
-<span id="L392"><span class="lineNum">     392</span> <span class="tlaGNC">         100 :     float textBoxH_est = w * KnobDesign::dbTextScale * 2.6f;</span></span>
-<span id="L393"><span class="lineNum">     393</span> <span class="tlaGNC">         100 :     float sliderBoundsW_est = w * 0.40f * 0.90f;</span></span>
-<span id="L394"><span class="lineNum">     394</span> <span class="tlaGNC">         100 :     auto tsBounds = thresholdSlider.getBounds();</span></span>
-<span id="L395"><span class="lineNum">     395</span> <span class="tlaGNC">         100 :     float knobAreaH_est = tsBounds.isEmpty()</span></span>
+<span id="L392"><span class="lineNum">     392</span> <span class="tlaGNC">         111 :     float textBoxH_est = w * KnobDesign::dbTextScale * 2.6f;</span></span>
+<span id="L393"><span class="lineNum">     393</span> <span class="tlaGNC">         111 :     float sliderBoundsW_est = w * 0.40f * 0.90f;</span></span>
+<span id="L394"><span class="lineNum">     394</span> <span class="tlaGNC">         111 :     auto tsBounds = thresholdSlider.getBounds();</span></span>
+<span id="L395"><span class="lineNum">     395</span> <span class="tlaGNC">         111 :     float knobAreaH_est = tsBounds.isEmpty()</span></span>
 <span id="L396"><span class="lineNum">     396</span> <span class="tlaUNC">           0 :         ? (h * 0.96f - (h * 0.05f + 50.0f * (h / static_cast&lt;float&gt;(KnobDesign::defaultHeight))</span></span>
 <span id="L397"><span class="lineNum">     397</span> <span class="tlaUNC">           0 :                         + h * 0.14f + h * 0.09f)) - textBoxH_est</span></span>
-<span id="L398"><span class="lineNum">     398</span> <span class="tlaGNC">         100 :         : static_cast&lt;float&gt;(tsBounds.getHeight()) - textBoxH_est;</span></span>
-<span id="L399"><span class="lineNum">     399</span> <span class="tlaGNC">         100 :     float learnDiameter = juce::jmin(sliderBoundsW_est, knobAreaH_est) * 0.78f;</span></span>
-<span id="L400"><span class="lineNum">     400</span> <span class="tlaGNC">         100 :     float learnFontSize = learnDiameter * KnobDesign::labelFontScale * 0.65f; // smaller than markerFontSize</span></span>
+<span id="L398"><span class="lineNum">     398</span> <span class="tlaGNC">         111 :         : static_cast&lt;float&gt;(tsBounds.getHeight()) - textBoxH_est;</span></span>
+<span id="L399"><span class="lineNum">     399</span> <span class="tlaGNC">         111 :     float learnDiameter = juce::jmin(sliderBoundsW_est, knobAreaH_est) * 0.78f;</span></span>
+<span id="L400"><span class="lineNum">     400</span> <span class="tlaGNC">         111 :     float learnFontSize = learnDiameter * KnobDesign::labelFontScale * 0.65f; // smaller than markerFontSize</span></span>
 <span id="L401"><span class="lineNum">     401</span>              : </span>
-<span id="L402"><span class="lineNum">     402</span> <span class="tlaGNC">         100 :     auto labelFontLearn = conjusLAF.getBoldFont(learnFontSize);</span></span>
-<span id="L403"><span class="lineNum">     403</span> <span class="tlaGNC">         100 :     g.setFont(labelFontLearn);</span></span>
+<span id="L402"><span class="lineNum">     402</span> <span class="tlaGNC">         111 :     auto labelFontLearn = conjusLAF.getBoldFont(learnFontSize);</span></span>
+<span id="L403"><span class="lineNum">     403</span> <span class="tlaGNC">         111 :     g.setFont(labelFontLearn);</span></span>
 <span id="L404"><span class="lineNum">     404</span>              : </span>
 <span id="L405"><span class="lineNum">     405</span>              :     // Centre column between the two knobs — text sits just above the button</span>
-<span id="L406"><span class="lineNum">     406</span> <span class="tlaGNC">         100 :     float centreX = w * 0.5f;</span></span>
-<span id="L407"><span class="lineNum">     407</span> <span class="tlaGNC">         100 :     float btnH = h * 0.07f;</span></span>
-<span id="L408"><span class="lineNum">     408</span> <span class="tlaGNC">         100 :     float btnY = h * 0.68f - btnH * 0.5f + graphH;</span></span>
-<span id="L409"><span class="lineNum">     409</span> <span class="tlaGNC">         100 :     float labelY = btnY - learnFontSize * 1.25f; // closer to the START/STOP button</span></span>
+<span id="L406"><span class="lineNum">     406</span> <span class="tlaGNC">         111 :     float centreX = w * 0.5f;</span></span>
+<span id="L407"><span class="lineNum">     407</span> <span class="tlaGNC">         111 :     float btnH = h * 0.07f;</span></span>
+<span id="L408"><span class="lineNum">     408</span> <span class="tlaGNC">         111 :     float btnY = h * 0.68f - btnH * 0.5f + graphH;</span></span>
+<span id="L409"><span class="lineNum">     409</span> <span class="tlaGNC">         111 :     float labelY = btnY - learnFontSize * 1.25f; // closer to the START/STOP button</span></span>
 <span id="L410"><span class="lineNum">     410</span>              : </span>
 <span id="L411"><span class="lineNum">     411</span>              :     // Crossfade alphas between &quot;Learn&quot; and &quot;Learning&quot; (without the dots)</span>
-<span id="L412"><span class="lineNum">     412</span> <span class="tlaGNC">         100 :     float alphaLearn    = juce::jmax(0.0f, 1.0f - 2.0f * learningTextProgress);</span></span>
-<span id="L413"><span class="lineNum">     413</span> <span class="tlaGNC">         100 :     float alphaLearning = juce::jmax(0.0f, 2.0f * learningTextProgress - 1.0f);</span></span>
+<span id="L412"><span class="lineNum">     412</span> <span class="tlaGNC">         111 :     float alphaLearn    = juce::jmax(0.0f, 1.0f - 2.0f * learningTextProgress);</span></span>
+<span id="L413"><span class="lineNum">     413</span> <span class="tlaGNC">         111 :     float alphaLearning = juce::jmax(0.0f, 2.0f * learningTextProgress - 1.0f);</span></span>
 <span id="L414"><span class="lineNum">     414</span>              : </span>
 <span id="L415"><span class="lineNum">     415</span>              :     // &quot;Learn&quot; (static, centred)</span>
-<span id="L416"><span class="lineNum">     416</span> <span class="tlaGNC">         100 :     if (alphaLearn &gt; 0.001f)</span></span>
+<span id="L416"><span class="lineNum">     416</span> <span class="tlaGNC">         111 :     if (alphaLearn &gt; 0.001f)</span></span>
 <span id="L417"><span class="lineNum">     417</span>              :     {</span>
-<span id="L418"><span class="lineNum">     418</span> <span class="tlaGNC">         100 :         g.setColour(KnobDesign::accentColour.withMultipliedAlpha(alphaLearn));</span></span>
-<span id="L419"><span class="lineNum">     419</span> <span class="tlaGNC">         100 :         g.drawText(&quot;LEARN&quot;,</span></span>
-<span id="L420"><span class="lineNum">     420</span> <span class="tlaGNC">         100 :                    juce::Rectangle&lt;float&gt;(centreX - w * 0.15f, labelY, w * 0.3f, learnFontSize * 1.2f),</span></span>
-<span id="L421"><span class="lineNum">     421</span> <span class="tlaGNC">         100 :                    juce::Justification::centred, false);</span></span>
-<span id="L422"><span class="lineNum">     422</span> <span class="tlaGNC">         100 :     }</span></span>
+<span id="L418"><span class="lineNum">     418</span> <span class="tlaGNC">         111 :         g.setColour(KnobDesign::accentColour.withMultipliedAlpha(alphaLearn));</span></span>
+<span id="L419"><span class="lineNum">     419</span> <span class="tlaGNC">         111 :         g.drawText(&quot;LEARN&quot;,</span></span>
+<span id="L420"><span class="lineNum">     420</span> <span class="tlaGNC">         111 :                    juce::Rectangle&lt;float&gt;(centreX - w * 0.15f, labelY, w * 0.3f, learnFontSize * 1.2f),</span></span>
+<span id="L421"><span class="lineNum">     421</span> <span class="tlaGNC">         111 :                    juce::Justification::centred, false);</span></span>
+<span id="L422"><span class="lineNum">     422</span> <span class="tlaGNC">         111 :     }</span></span>
 <span id="L423"><span class="lineNum">     423</span>              : </span>
 <span id="L424"><span class="lineNum">     424</span>              :     // &quot;Learning&quot; + animated dots</span>
-<span id="L425"><span class="lineNum">     425</span> <span class="tlaGNC">         100 :     if (alphaLearning &gt; 0.001f)</span></span>
+<span id="L425"><span class="lineNum">     425</span> <span class="tlaGNC">         111 :     if (alphaLearning &gt; 0.001f)</span></span>
 <span id="L426"><span class="lineNum">     426</span>              :     {</span>
 <span id="L427"><span class="lineNum">     427</span> <span class="tlaUNC">           0 :         float learningW = KnobDesign::stringWidth(labelFontLearn, &quot;LEARNING&quot;);</span></span>
 <span id="L428"><span class="lineNum">     428</span> <span class="tlaUNC">           0 :         float dotW      = KnobDesign::stringWidth(labelFontLearn, &quot;.&quot;);</span></span>
@@ -551,29 +551,29 @@
 <span id="L489"><span class="lineNum">     489</span> <span class="tlaUNC">           0 :     }</span></span>
 <span id="L490"><span class="lineNum">     490</span>              : </span>
 <span id="L491"><span class="lineNum">     491</span>              :     // Cache the area used for the label so the timer can repaint it cheaply</span>
-<span id="L492"><span class="lineNum">     492</span> <span class="tlaGNC">         200 :     learnTextBounds = juce::Rectangle&lt;int&gt;(</span></span>
-<span id="L493"><span class="lineNum">     493</span> <span class="tlaGNC">         100 :         static_cast&lt;int&gt;(centreX - w * 0.20f),</span></span>
-<span id="L494"><span class="lineNum">     494</span> <span class="tlaGNC">         100 :         static_cast&lt;int&gt;(labelY - learnFontSize * 0.2f),</span></span>
-<span id="L495"><span class="lineNum">     495</span> <span class="tlaGNC">         100 :         static_cast&lt;int&gt;(w * 0.40f),</span></span>
-<span id="L496"><span class="lineNum">     496</span> <span class="tlaGNC">         100 :         static_cast&lt;int&gt;(learnFontSize * 2.2f));</span></span>
+<span id="L492"><span class="lineNum">     492</span> <span class="tlaGNC">         222 :     learnTextBounds = juce::Rectangle&lt;int&gt;(</span></span>
+<span id="L493"><span class="lineNum">     493</span> <span class="tlaGNC">         111 :         static_cast&lt;int&gt;(centreX - w * 0.20f),</span></span>
+<span id="L494"><span class="lineNum">     494</span> <span class="tlaGNC">         111 :         static_cast&lt;int&gt;(labelY - learnFontSize * 0.2f),</span></span>
+<span id="L495"><span class="lineNum">     495</span> <span class="tlaGNC">         111 :         static_cast&lt;int&gt;(w * 0.40f),</span></span>
+<span id="L496"><span class="lineNum">     496</span> <span class="tlaGNC">         111 :         static_cast&lt;int&gt;(learnFontSize * 2.2f));</span></span>
 <span id="L497"><span class="lineNum">     497</span>              : </span>
 <span id="L498"><span class="lineNum">     498</span>              :     // Rounded orange border inside ~20px of bg padding. Drawn last so it</span>
 <span id="L499"><span class="lineNum">     499</span>              :     // sits on top of any content near the edges.</span>
 <span id="L500"><span class="lineNum">     500</span>              :     {</span>
-<span id="L501"><span class="lineNum">     501</span> <span class="tlaGNC">         200 :         const float scaleF  = static_cast&lt;float&gt;(getWidth())</span></span>
-<span id="L502"><span class="lineNum">     502</span> <span class="tlaGNC">         100 :                             / static_cast&lt;float&gt;(KnobDesign::defaultWidth);</span></span>
-<span id="L503"><span class="lineNum">     503</span> <span class="tlaGNC">         100 :         const float pad     = 20.0f * scaleF;</span></span>
-<span id="L504"><span class="lineNum">     504</span> <span class="tlaGNC">         100 :         const float borderW = 4.0f  * scaleF;</span></span>
-<span id="L505"><span class="lineNum">     505</span> <span class="tlaGNC">         100 :         const float radius  = 78.0f * scaleF;</span></span>
-<span id="L506"><span class="lineNum">     506</span> <span class="tlaGNC">         200 :         juce::Rectangle&lt;float&gt; borderRect{ pad, pad,</span></span>
-<span id="L507"><span class="lineNum">     507</span> <span class="tlaGNC">         100 :                                            static_cast&lt;float&gt;(getWidth())  - 2.0f * pad,</span></span>
-<span id="L508"><span class="lineNum">     508</span> <span class="tlaGNC">         100 :                                            static_cast&lt;float&gt;(getHeight()) - 2.0f * pad };</span></span>
-<span id="L509"><span class="lineNum">     509</span> <span class="tlaGNC">         100 :         juce::Path border;</span></span>
-<span id="L510"><span class="lineNum">     510</span> <span class="tlaGNC">         100 :         border.addRoundedRectangle(borderRect, radius);</span></span>
-<span id="L511"><span class="lineNum">     511</span> <span class="tlaGNC">         100 :         g.setColour(KnobDesign::accentColour);</span></span>
-<span id="L512"><span class="lineNum">     512</span> <span class="tlaGNC">         100 :         g.strokePath(border, juce::PathStrokeType(borderW));</span></span>
-<span id="L513"><span class="lineNum">     513</span> <span class="tlaGNC">         100 :     }</span></span>
-<span id="L514"><span class="lineNum">     514</span> <span class="tlaGNC">         100 : }</span></span>
+<span id="L501"><span class="lineNum">     501</span> <span class="tlaGNC">         222 :         const float scaleF  = static_cast&lt;float&gt;(getWidth())</span></span>
+<span id="L502"><span class="lineNum">     502</span> <span class="tlaGNC">         111 :                             / static_cast&lt;float&gt;(KnobDesign::defaultWidth);</span></span>
+<span id="L503"><span class="lineNum">     503</span> <span class="tlaGNC">         111 :         const float pad     = 20.0f * scaleF;</span></span>
+<span id="L504"><span class="lineNum">     504</span> <span class="tlaGNC">         111 :         const float borderW = 4.0f  * scaleF;</span></span>
+<span id="L505"><span class="lineNum">     505</span> <span class="tlaGNC">         111 :         const float radius  = 78.0f * scaleF;</span></span>
+<span id="L506"><span class="lineNum">     506</span> <span class="tlaGNC">         222 :         juce::Rectangle&lt;float&gt; borderRect{ pad, pad,</span></span>
+<span id="L507"><span class="lineNum">     507</span> <span class="tlaGNC">         111 :                                            static_cast&lt;float&gt;(getWidth())  - 2.0f * pad,</span></span>
+<span id="L508"><span class="lineNum">     508</span> <span class="tlaGNC">         111 :                                            static_cast&lt;float&gt;(getHeight()) - 2.0f * pad };</span></span>
+<span id="L509"><span class="lineNum">     509</span> <span class="tlaGNC">         111 :         juce::Path border;</span></span>
+<span id="L510"><span class="lineNum">     510</span> <span class="tlaGNC">         111 :         border.addRoundedRectangle(borderRect, radius);</span></span>
+<span id="L511"><span class="lineNum">     511</span> <span class="tlaGNC">         111 :         g.setColour(KnobDesign::accentColour);</span></span>
+<span id="L512"><span class="lineNum">     512</span> <span class="tlaGNC">         111 :         g.strokePath(border, juce::PathStrokeType(borderW));</span></span>
+<span id="L513"><span class="lineNum">     513</span> <span class="tlaGNC">         111 :     }</span></span>
+<span id="L514"><span class="lineNum">     514</span> <span class="tlaGNC">         111 : }</span></span>
 <span id="L515"><span class="lineNum">     515</span>              : </span>
 <span id="L516"><span class="lineNum">     516</span> <span class="tlaGNC">          20 : void TiptoeAudioProcessorEditor::resized()</span></span>
 <span id="L517"><span class="lineNum">     517</span>              : {</span>
@@ -703,73 +703,73 @@
 <span id="L641"><span class="lineNum">     641</span>              :         float knobStrokeW;</span>
 <span id="L642"><span class="lineNum">     642</span> <span class="tlaGNC">          40 :         PillButtonLAF(juce::Font f, float ksw) : font(f), knobStrokeW(ksw) {}</span></span>
 <span id="L643"><span class="lineNum">     643</span>              : </span>
-<span id="L644"><span class="lineNum">     644</span> <span class="tlaGNC">         124 :         static juce::Rectangle&lt;float&gt; pressBounds(juce::Button&amp; button, bool isButtonDown)</span></span>
+<span id="L644"><span class="lineNum">     644</span> <span class="tlaGNC">         126 :         static juce::Rectangle&lt;float&gt; pressBounds(juce::Button&amp; button, bool isButtonDown)</span></span>
 <span id="L645"><span class="lineNum">     645</span>              :         {</span>
-<span id="L646"><span class="lineNum">     646</span> <span class="tlaGNC">         124 :             auto b = button.getLocalBounds().toFloat();</span></span>
-<span id="L647"><span class="lineNum">     647</span> <span class="tlaGNC">         124 :             if (isButtonDown)</span></span>
+<span id="L646"><span class="lineNum">     646</span> <span class="tlaGNC">         126 :             auto b = button.getLocalBounds().toFloat();</span></span>
+<span id="L647"><span class="lineNum">     647</span> <span class="tlaGNC">         126 :             if (isButtonDown)</span></span>
 <span id="L648"><span class="lineNum">     648</span> <span class="tlaUNC">           0 :                 b = b.reduced(b.getWidth() * 0.04f, b.getHeight() * 0.10f);</span></span>
-<span id="L649"><span class="lineNum">     649</span> <span class="tlaGNC">         124 :             return b;</span></span>
+<span id="L649"><span class="lineNum">     649</span> <span class="tlaGNC">         126 :             return b;</span></span>
 <span id="L650"><span class="lineNum">     650</span>              :         }</span>
 <span id="L651"><span class="lineNum">     651</span>              : </span>
-<span id="L652"><span class="lineNum">     652</span> <span class="tlaGNC">          62 :         void drawButtonBackground(juce::Graphics&amp; g, juce::Button&amp; button,</span></span>
+<span id="L652"><span class="lineNum">     652</span> <span class="tlaGNC">          63 :         void drawButtonBackground(juce::Graphics&amp; g, juce::Button&amp; button,</span></span>
 <span id="L653"><span class="lineNum">     653</span>              :                                   const juce::Colour&amp; /*backgroundColour*/,</span>
 <span id="L654"><span class="lineNum">     654</span>              :                                   bool /*isMouseOver*/, bool isButtonDown) override</span>
 <span id="L655"><span class="lineNum">     655</span>              :         {</span>
-<span id="L656"><span class="lineNum">     656</span> <span class="tlaGNC">          62 :             auto bounds = pressBounds(button, isButtonDown);</span></span>
-<span id="L657"><span class="lineNum">     657</span> <span class="tlaGNC">          62 :             float cornerR = bounds.getHeight() * 0.5f;</span></span>
-<span id="L658"><span class="lineNum">     658</span> <span class="tlaGNC">          62 :             float hoverProgress = static_cast&lt;float&gt;(</span></span>
-<span id="L659"><span class="lineNum">     659</span> <span class="tlaGNC">          62 :                 button.getProperties().getWithDefault(&quot;hoverProgress&quot;, 0.0));</span></span>
-<span id="L660"><span class="lineNum">     660</span> <span class="tlaGNC">          62 :             float stateProgress = static_cast&lt;float&gt;(</span></span>
-<span id="L661"><span class="lineNum">     661</span> <span class="tlaGNC">          62 :                 button.getProperties().getWithDefault(&quot;stateProgress&quot;, 0.0));</span></span>
+<span id="L656"><span class="lineNum">     656</span> <span class="tlaGNC">          63 :             auto bounds = pressBounds(button, isButtonDown);</span></span>
+<span id="L657"><span class="lineNum">     657</span> <span class="tlaGNC">          63 :             float cornerR = bounds.getHeight() * 0.5f;</span></span>
+<span id="L658"><span class="lineNum">     658</span> <span class="tlaGNC">          63 :             float hoverProgress = static_cast&lt;float&gt;(</span></span>
+<span id="L659"><span class="lineNum">     659</span> <span class="tlaGNC">          63 :                 button.getProperties().getWithDefault(&quot;hoverProgress&quot;, 0.0));</span></span>
+<span id="L660"><span class="lineNum">     660</span> <span class="tlaGNC">          63 :             float stateProgress = static_cast&lt;float&gt;(</span></span>
+<span id="L661"><span class="lineNum">     661</span> <span class="tlaGNC">          63 :                 button.getProperties().getWithDefault(&quot;stateProgress&quot;, 0.0));</span></span>
 <span id="L662"><span class="lineNum">     662</span>              : </span>
-<span id="L663"><span class="lineNum">     663</span> <span class="tlaGNC">          62 :             auto interactiveAccent = KnobDesign::accentColour</span></span>
-<span id="L664"><span class="lineNum">     664</span> <span class="tlaGNC">          62 :                 .interpolatedWith(KnobDesign::accentHoverColour, hoverProgress);</span></span>
+<span id="L663"><span class="lineNum">     663</span> <span class="tlaGNC">          63 :             auto interactiveAccent = KnobDesign::accentColour</span></span>
+<span id="L664"><span class="lineNum">     664</span> <span class="tlaGNC">          63 :                 .interpolatedWith(KnobDesign::accentHoverColour, hoverProgress);</span></span>
 <span id="L665"><span class="lineNum">     665</span>              : </span>
 <span id="L666"><span class="lineNum">     666</span>              :             // Fill: smoothly morph from orange (Start) to dark bg (Stop)</span>
-<span id="L667"><span class="lineNum">     667</span> <span class="tlaGNC">          62 :             auto fill = interactiveAccent.interpolatedWith(KnobDesign::bgColour, stateProgress);</span></span>
-<span id="L668"><span class="lineNum">     668</span> <span class="tlaGNC">          62 :             g.setColour(fill);</span></span>
-<span id="L669"><span class="lineNum">     669</span> <span class="tlaGNC">          62 :             g.fillRoundedRectangle(bounds, cornerR);</span></span>
+<span id="L667"><span class="lineNum">     667</span> <span class="tlaGNC">          63 :             auto fill = interactiveAccent.interpolatedWith(KnobDesign::bgColour, stateProgress);</span></span>
+<span id="L668"><span class="lineNum">     668</span> <span class="tlaGNC">          63 :             g.setColour(fill);</span></span>
+<span id="L669"><span class="lineNum">     669</span> <span class="tlaGNC">          63 :             g.fillRoundedRectangle(bounds, cornerR);</span></span>
 <span id="L670"><span class="lineNum">     670</span>              : </span>
 <span id="L671"><span class="lineNum">     671</span>              :             // Border: 0 width on Start, ramps up to 70% of knob stroke on Stop</span>
-<span id="L672"><span class="lineNum">     672</span> <span class="tlaGNC">          62 :             float stopBorderW = knobStrokeW * 0.70f;</span></span>
-<span id="L673"><span class="lineNum">     673</span> <span class="tlaGNC">          62 :             float borderW = stopBorderW * stateProgress;</span></span>
-<span id="L674"><span class="lineNum">     674</span> <span class="tlaGNC">          62 :             if (borderW &gt; 0.001f)</span></span>
+<span id="L672"><span class="lineNum">     672</span> <span class="tlaGNC">          63 :             float stopBorderW = knobStrokeW * 0.70f;</span></span>
+<span id="L673"><span class="lineNum">     673</span> <span class="tlaGNC">          63 :             float borderW = stopBorderW * stateProgress;</span></span>
+<span id="L674"><span class="lineNum">     674</span> <span class="tlaGNC">          63 :             if (borderW &gt; 0.001f)</span></span>
 <span id="L675"><span class="lineNum">     675</span>              :             {</span>
 <span id="L676"><span class="lineNum">     676</span> <span class="tlaUNC">           0 :                 g.setColour(interactiveAccent);</span></span>
 <span id="L677"><span class="lineNum">     677</span> <span class="tlaUNC">           0 :                 g.drawRoundedRectangle(bounds.reduced(borderW * 0.5f), cornerR, borderW);</span></span>
 <span id="L678"><span class="lineNum">     678</span> <span class="tlaUNC">           0 :             }</span></span>
-<span id="L679"><span class="lineNum">     679</span> <span class="tlaGNC">          62 :         }</span></span>
-<span id="L680"><span class="lineNum">     680</span> <span class="tlaGNC">          62 :         void drawButtonText(juce::Graphics&amp; g, juce::TextButton&amp; button,</span></span>
+<span id="L679"><span class="lineNum">     679</span> <span class="tlaGNC">          63 :         }</span></span>
+<span id="L680"><span class="lineNum">     680</span> <span class="tlaGNC">          63 :         void drawButtonText(juce::Graphics&amp; g, juce::TextButton&amp; button,</span></span>
 <span id="L681"><span class="lineNum">     681</span>              :                             bool /*isMouseOver*/, bool isButtonDown) override</span>
 <span id="L682"><span class="lineNum">     682</span>              :         {</span>
-<span id="L683"><span class="lineNum">     683</span> <span class="tlaGNC">          62 :             auto bounds = pressBounds(button, isButtonDown);</span></span>
-<span id="L684"><span class="lineNum">     684</span> <span class="tlaGNC">          62 :             float hoverProgress = static_cast&lt;float&gt;(</span></span>
-<span id="L685"><span class="lineNum">     685</span> <span class="tlaGNC">          62 :                 button.getProperties().getWithDefault(&quot;hoverProgress&quot;, 0.0));</span></span>
-<span id="L686"><span class="lineNum">     686</span> <span class="tlaGNC">          62 :             float stateProgress = static_cast&lt;float&gt;(</span></span>
-<span id="L687"><span class="lineNum">     687</span> <span class="tlaGNC">          62 :                 button.getProperties().getWithDefault(&quot;stateProgress&quot;, 0.0));</span></span>
+<span id="L683"><span class="lineNum">     683</span> <span class="tlaGNC">          63 :             auto bounds = pressBounds(button, isButtonDown);</span></span>
+<span id="L684"><span class="lineNum">     684</span> <span class="tlaGNC">          63 :             float hoverProgress = static_cast&lt;float&gt;(</span></span>
+<span id="L685"><span class="lineNum">     685</span> <span class="tlaGNC">          63 :                 button.getProperties().getWithDefault(&quot;hoverProgress&quot;, 0.0));</span></span>
+<span id="L686"><span class="lineNum">     686</span> <span class="tlaGNC">          63 :             float stateProgress = static_cast&lt;float&gt;(</span></span>
+<span id="L687"><span class="lineNum">     687</span> <span class="tlaGNC">          63 :                 button.getProperties().getWithDefault(&quot;stateProgress&quot;, 0.0));</span></span>
 <span id="L688"><span class="lineNum">     688</span>              : </span>
-<span id="L689"><span class="lineNum">     689</span> <span class="tlaGNC">          62 :             auto interactiveAccent = KnobDesign::accentColour</span></span>
-<span id="L690"><span class="lineNum">     690</span> <span class="tlaGNC">          62 :                 .interpolatedWith(KnobDesign::accentHoverColour, hoverProgress);</span></span>
+<span id="L689"><span class="lineNum">     689</span> <span class="tlaGNC">          63 :             auto interactiveAccent = KnobDesign::accentColour</span></span>
+<span id="L690"><span class="lineNum">     690</span> <span class="tlaGNC">          63 :                 .interpolatedWith(KnobDesign::accentHoverColour, hoverProgress);</span></span>
 <span id="L691"><span class="lineNum">     691</span>              :             // Text colour morphs from dark (Start, on orange fill) to orange (Stop, on dark fill)</span>
-<span id="L692"><span class="lineNum">     692</span> <span class="tlaGNC">          62 :             auto textColour = KnobDesign::bgColour.interpolatedWith(interactiveAccent, stateProgress);</span></span>
+<span id="L692"><span class="lineNum">     692</span> <span class="tlaGNC">          63 :             auto textColour = KnobDesign::bgColour.interpolatedWith(interactiveAccent, stateProgress);</span></span>
 <span id="L693"><span class="lineNum">     693</span>              : </span>
 <span id="L694"><span class="lineNum">     694</span>              :             // Crossfade between &quot;Start&quot; and &quot;Stop&quot;: old text fades out in the first half,</span>
 <span id="L695"><span class="lineNum">     695</span>              :             // new text fades in in the second half. Works in both click directions.</span>
-<span id="L696"><span class="lineNum">     696</span> <span class="tlaGNC">          62 :             float alphaStart = juce::jmax(0.0f, 1.0f - 2.0f * stateProgress);</span></span>
-<span id="L697"><span class="lineNum">     697</span> <span class="tlaGNC">          62 :             float alphaStop  = juce::jmax(0.0f, 2.0f * stateProgress - 1.0f);</span></span>
+<span id="L696"><span class="lineNum">     696</span> <span class="tlaGNC">          63 :             float alphaStart = juce::jmax(0.0f, 1.0f - 2.0f * stateProgress);</span></span>
+<span id="L697"><span class="lineNum">     697</span> <span class="tlaGNC">          63 :             float alphaStop  = juce::jmax(0.0f, 2.0f * stateProgress - 1.0f);</span></span>
 <span id="L698"><span class="lineNum">     698</span>              : </span>
-<span id="L699"><span class="lineNum">     699</span> <span class="tlaGNC">          62 :             g.setFont(font);</span></span>
-<span id="L700"><span class="lineNum">     700</span> <span class="tlaGNC">          62 :             if (alphaStart &gt; 0.001f)</span></span>
+<span id="L699"><span class="lineNum">     699</span> <span class="tlaGNC">          63 :             g.setFont(font);</span></span>
+<span id="L700"><span class="lineNum">     700</span> <span class="tlaGNC">          63 :             if (alphaStart &gt; 0.001f)</span></span>
 <span id="L701"><span class="lineNum">     701</span>              :             {</span>
-<span id="L702"><span class="lineNum">     702</span> <span class="tlaGNC">          62 :                 g.setColour(textColour.withMultipliedAlpha(alphaStart));</span></span>
-<span id="L703"><span class="lineNum">     703</span> <span class="tlaGNC">          62 :                 g.drawText(&quot;START&quot;, bounds, juce::Justification::centred, false);</span></span>
-<span id="L704"><span class="lineNum">     704</span> <span class="tlaGNC">          62 :             }</span></span>
-<span id="L705"><span class="lineNum">     705</span> <span class="tlaGNC">          62 :             if (alphaStop &gt; 0.001f)</span></span>
+<span id="L702"><span class="lineNum">     702</span> <span class="tlaGNC">          63 :                 g.setColour(textColour.withMultipliedAlpha(alphaStart));</span></span>
+<span id="L703"><span class="lineNum">     703</span> <span class="tlaGNC">          63 :                 g.drawText(&quot;START&quot;, bounds, juce::Justification::centred, false);</span></span>
+<span id="L704"><span class="lineNum">     704</span> <span class="tlaGNC">          63 :             }</span></span>
+<span id="L705"><span class="lineNum">     705</span> <span class="tlaGNC">          63 :             if (alphaStop &gt; 0.001f)</span></span>
 <span id="L706"><span class="lineNum">     706</span>              :             {</span>
 <span id="L707"><span class="lineNum">     707</span> <span class="tlaUNC">           0 :                 g.setColour(textColour.withMultipliedAlpha(alphaStop));</span></span>
 <span id="L708"><span class="lineNum">     708</span> <span class="tlaUNC">           0 :                 g.drawText(&quot;STOP&quot;, bounds, juce::Justification::centred, false);</span></span>
 <span id="L709"><span class="lineNum">     709</span> <span class="tlaUNC">           0 :             }</span></span>
-<span id="L710"><span class="lineNum">     710</span> <span class="tlaGNC">          62 :         }</span></span>
+<span id="L710"><span class="lineNum">     710</span> <span class="tlaGNC">          63 :         }</span></span>
 <span id="L711"><span class="lineNum">     711</span>              :     };</span>
 <span id="L712"><span class="lineNum">     712</span>              :     static PillButtonLAF* pillLAF = nullptr;</span>
 <span id="L713"><span class="lineNum">     713</span> <span class="tlaGNC">          20 :     delete pillLAF;</span></span>
@@ -816,9 +816,9 @@
 <span id="L754"><span class="lineNum">     754</span> <span class="tlaUNC">           0 :     anim.active = true;</span></span>
 <span id="L755"><span class="lineNum">     755</span> <span class="tlaUNC">           0 : }</span></span>
 <span id="L756"><span class="lineNum">     756</span>              : </span>
-<span id="L757"><span class="lineNum">     757</span> <span class="tlaGNC">         140 : void TiptoeAudioProcessorEditor::updateSnapAnimation(juce::Slider&amp; slider, SliderAnimation&amp; anim)</span></span>
+<span id="L757"><span class="lineNum">     757</span> <span class="tlaGNC">         138 : void TiptoeAudioProcessorEditor::updateSnapAnimation(juce::Slider&amp; slider, SliderAnimation&amp; anim)</span></span>
 <span id="L758"><span class="lineNum">     758</span>              : {</span>
-<span id="L759"><span class="lineNum">     759</span> <span class="tlaGNC">         140 :     if (!anim.active) return;</span></span>
+<span id="L759"><span class="lineNum">     759</span> <span class="tlaGNC">         138 :     if (!anim.active) return;</span></span>
 <span id="L760"><span class="lineNum">     760</span>              : </span>
 <span id="L761"><span class="lineNum">     761</span> <span class="tlaUNC">           0 :     constexpr double smoothing = 0.15; // lerp factor per frame at 30Hz</span></span>
 <span id="L762"><span class="lineNum">     762</span> <span class="tlaUNC">           0 :     anim.currentValue += (anim.targetValue - anim.currentValue) * smoothing;</span></span>
@@ -831,7 +831,7 @@
 <span id="L769"><span class="lineNum">     769</span> <span class="tlaUNC">           0 :     }</span></span>
 <span id="L770"><span class="lineNum">     770</span>              : </span>
 <span id="L771"><span class="lineNum">     771</span> <span class="tlaUNC">           0 :     slider.setValue(anim.currentValue, juce::sendNotificationAsync);</span></span>
-<span id="L772"><span class="lineNum">     772</span> <span class="tlaGNC">         140 : }</span></span>
+<span id="L772"><span class="lineNum">     772</span> <span class="tlaGNC">         138 : }</span></span>
         </pre>
               </td>
             </tr>
