@@ -132,28 +132,11 @@ void SpectrumGraph::paint(juce::Graphics& g)
 {
     const auto bounds = getLocalBounds().toFloat();
 
-    // Rounded-corner clip — mirrors the plugin's outer orange border so the
-    // grid / curves / labels tuck inside the border arc instead of squaring
-    // off against the component's rectangular bounds. Only the top corners
-    // are rounded; the bottom meets the knob area where no border runs.
-    if (cornerRadius_ > 0.5f)
-    {
-        const float w = bounds.getWidth();
-        const float h = bounds.getHeight();
-        const float r = juce::jmin(cornerRadius_, juce::jmin(w, h) * 0.5f);
-
-        juce::Path clip;
-        clip.startNewSubPath(bounds.getX(),                bounds.getY() + r);
-        clip.quadraticTo(bounds.getX(),                    bounds.getY(),
-                         bounds.getX() + r,                bounds.getY());
-        clip.lineTo     (bounds.getRight() - r,            bounds.getY());
-        clip.quadraticTo(bounds.getRight(),                bounds.getY(),
-                         bounds.getRight(),                bounds.getY() + r);
-        clip.lineTo     (bounds.getRight(),                bounds.getBottom());
-        clip.lineTo     (bounds.getX(),                    bounds.getBottom());
-        clip.closeSubPath();
-        g.reduceClipRegion(clip);
-    }
+    // Rounded-corner masking is done at the END of paint() by filling the
+    // triangular slivers between the bounds corner and the rounded-border
+    // arc with the editor's bg colour. That's more reliable than
+    // reduceClipRegion(Path) — which rasterises to a RectangleList and can
+    // leave sub-pixel slivers along the curve.
 
     // Soft grid — horizontal dB lines at every 20 dB.
     {
@@ -258,5 +241,42 @@ void SpectrumGraph::paint(juce::Graphics& g)
                 labelW, labelH);
             g.drawText(txt, r, juce::Justification::centred, false);
         }
+    }
+
+    // Corner masks — belt-and-braces. Paint the triangular slivers
+    // OUTSIDE the rounded curve (between the curve and the component's
+    // rectangular bounds) with the editor's bg colour, so any strokes or
+    // labels that leaked past the path-based clip get overpainted. The
+    // orange border (drawn later by paintOverChildren) sits on top of
+    // these masks.
+    if (cornerRadius_ > 0.5f)
+    {
+        const float w = bounds.getWidth();
+        const float h = bounds.getHeight();
+        const float r = juce::jmin(cornerRadius_, juce::jmin(w, h) * 0.5f);
+        const float L = bounds.getX();
+        const float T = bounds.getY();
+        const float R = bounds.getRight();
+
+        // Top-left sliver: square corner (L, T)–(L+r, T+r) minus the
+        // quarter-disc anchored at (L+r, T+r). The curve below is the same
+        // one used by the clip path above — same endpoints, same control
+        // point — so the two paint against each other exactly.
+        juce::Path topLeft;
+        topLeft.startNewSubPath(L,     T);
+        topLeft.lineTo        (L + r, T);
+        topLeft.quadraticTo   (L,     T,   L, T + r);
+        topLeft.closeSubPath();
+
+        // Top-right sliver (mirror).
+        juce::Path topRight;
+        topRight.startNewSubPath(R,     T);
+        topRight.lineTo        (R,     T + r);
+        topRight.quadraticTo   (R,     T,   R - r, T);
+        topRight.closeSubPath();
+
+        g.setColour(KnobDesign::bgColour);
+        g.fillPath(topLeft);
+        g.fillPath(topRight);
     }
 }

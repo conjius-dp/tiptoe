@@ -216,17 +216,12 @@ public:
 
         auto knobType = getKnobType(slider);
 
-        // Tick positions: left (min), middle (default, optional), right (max)
+        // Tick positions: left (min), middle (default), right (max).
         float defaultNorm = 0.0f;
-        bool  drawMidTick = true;
         if (knobType == KnobType::Sensitivity)
         {
-            // Range 0.1 – 3.0, default 1.0. The middle tick / number is
-            // intentionally omitted here — only the min and max labels are
-            // shown, and the default position shows up as the indicator
-            // line rather than a separate mark.
+            // Range 0.1 – 3.0, default 1.0. Tick + label sit at the default.
             defaultNorm = (1.0f - 0.1f) / (3.0f - 0.1f);
-            drawMidTick = false;
         }
         else
         {
@@ -246,7 +241,6 @@ public:
         g.setColour(accentColour);
         for (int i = 0; i < 3; ++i)
         {
-            if (i == 1 && ! drawMidTick) continue;
             juce::Path tick;
             tick.startNewSubPath(cx + std::sin(tickAngles[i]) * tickStartR,
                                 cy - std::cos(tickAngles[i]) * tickStartR);
@@ -274,7 +268,7 @@ public:
         if (knobType == KnobType::Sensitivity)
         {
             leftLabel  = "0.1";
-            midLabel   = "";      // mid tick + label intentionally omitted
+            midLabel   = "1.0";
             rightLabel = "3.0";
         }
         else
@@ -305,11 +299,7 @@ public:
                                           fontSize * 5.0f, markerFontSize * 1.2f),
                    juce::Justification::centred, false);
 
-        // Middle label (above tick) — skipped for knobs that don't have a
-        // middle tick (e.g. the Sensitivity knob, per design).
-        if (midLabel.isEmpty())
-            return;
-
+        // Middle label (above tick)
         float aMid = normToAngleRad(defaultNorm);
         float topLabelR = tickEndR + markerFontSize * 0.3f;
         float midLabelW = KnobDesign::stringWidth(getBoldFont(markerFontSize), midLabel);
