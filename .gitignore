@@ -22,3 +22,9 @@ JUCE/
 *.vst3
 *.component
 *.app
+
+# Coverage-generated files — Codecov hosts these now; we never commit them.
+coverage.info
+coverage-html/
+docs/coverage/
+docs/badges/
