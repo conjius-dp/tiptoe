@@ -304,7 +304,9 @@ public:
         float topLabelR = tickEndR + markerFontSize * 0.3f;
         float midLabelW = KnobDesign::stringWidth(getBoldFont(markerFontSize), midLabel);
         float midXShift = (knobType == KnobType::Sensitivity) ? -midLabelW * 0.5f : 0.0f;
-        float midYShift = (knobType == KnobType::Sensitivity) ? markerFontSize * 0.3f : 0.0f;
+        // Sensitivity knob: nudge the "1.0" label slightly UP so it sits a
+        // touch closer to (but still clear of) the default tick mark.
+        float midYShift = (knobType == KnobType::Sensitivity) ? -markerFontSize * 0.15f : 0.0f;
         float lxM = cx + std::sin(aMid) * topLabelR + midXShift;
         float lyM = cy - std::cos(aMid) * topLabelR - markerFontSize * 0.5f + midYShift;
         g.drawText(midLabel,
