@@ -28,6 +28,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout TiptoeAudioProcessor::create
         juce::ParameterID("reduction", 1), "Reduction",
         juce::NormalisableRange<float>(0.0f, 60.0f, 0.1f), 30.0f));
 
+    // Bypass — exposed to the host via getBypassParameter() so DAWs that
+    // drive native bypass through an automatable parameter stay in sync
+    // with the in-plugin power button.
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID("bypass", 1), "Bypass", false));
+
     return { params.begin(), params.end() };
 }
 
@@ -81,6 +87,12 @@ void TiptoeAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, buffer.getNumSamples());
+
+    // Hard bypass — input → output untouched, no gate, no learning, no
+    // latency measurement. Returns before any parameter reads so the DSP
+    // state is left exactly as it was.
+    if (apvts.getRawParameterValue("bypass")->load() >= 0.5f)
+        return;
 
     // Update parameters.
     // The "reduction" parameter is stored as positive attenuation dB (0 – 60)

@@ -39,6 +39,15 @@ public:
 
     juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; }
 
+    // Host-integrated bypass — returning our APVTS bool parameter here
+    // lets DAWs drive the plugin's bypass state through automation without
+    // a custom handshake. processBlock early-returns on this param too,
+    // so the in-plugin power button and host bypass behave identically.
+    juce::AudioParameterBool* getBypassParameter() const override
+    {
+        return dynamic_cast<juce::AudioParameterBool*>(apvts.getParameter("bypass"));
+    }
+
     // Noise learning control
     void startLearning();
     void stopLearning();

@@ -4,6 +4,7 @@
 #include "KnobDesign.h"
 #include "LayoutSizes.h"
 #include "SpectrumGraph.h"
+#include "BypassButton.h"
 #include "BinaryData.h"
 
 // ── Slider subclass that delegates double-click to the editor ──
@@ -90,6 +91,8 @@ private:
     juce::Label latencyLabel   { {}, "LATENCY: 0.000ms" };
 
     juce::TextButton learnButton { "START" };
+    BypassButton     bypassButton;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
 
     SpectrumGraph spectrumGraph;
 

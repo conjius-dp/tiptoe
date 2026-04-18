@@ -96,6 +96,13 @@ TiptoeAudioProcessorEditor::TiptoeAudioProcessorEditor(TiptoeAudioProcessor& p)
     learnButton.setMouseCursor(juce::MouseCursor::PointingHandCursor);
     addAndMakeVisible(learnButton);
 
+    // Bypass button — circular power switch in the top-right corner. Click
+    // toggles the APVTS bool parameter, which processBlock early-returns
+    // on so the DSP is fully pass-through when bypassed.
+    addAndMakeVisible(bypassButton);
+    bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+        processorRef.getAPVTS(), "bypass", bypassButton);
+
     // ── Spectrum graph ──
     spectrumGraph.setFftSize(TiptoeAudioProcessor::getFFTSize());
     spectrumGraph.setSampleRate(processorRef.getDspSampleRate() > 0.0
@@ -156,9 +163,13 @@ TiptoeAudioProcessorEditor::~TiptoeAudioProcessorEditor()
 
 void TiptoeAudioProcessorEditor::setChromeVisible(bool visible)
 {
+    // Used by the headless screenshot tool that generates the README /
+    // release-page image: hide the conjius logo, the latency label, AND
+    // the bypass button so the screenshot captures the bare plugin UI.
     showChrome = visible;
     latencyLabel.setVisible(visible);
     latencyHitArea.setVisible(visible);
+    bypassButton.setVisible(visible);
     repaint();
 }
 
@@ -555,6 +566,29 @@ void TiptoeAudioProcessorEditor::resized()
     {
         const float scaleF = w / static_cast<float>(KnobDesign::defaultWidth);
         spectrumGraph.setCornerRadius(78.0f * scaleF);
+        // Keep in sync with the border stroke drawn in paintOverChildren().
+        spectrumGraph.setBorderStrokeWidth(4.0f * scaleF);
+    }
+
+    // Bypass button — sits OUTSIDE the orange border, tucked into the
+    // window's top-right corner with a small gap from both edges. Because
+    // the border is drawn via paintOverChildren() and the button lives
+    // in the corner area outside the border's rounded rect, the border
+    // stroke naturally passes underneath the button without overlapping.
+    {
+        const float scaleF  = w / static_cast<float>(KnobDesign::defaultWidth);
+        const float edgeGap = 8.0f  * scaleF;
+        const float btnSize = 34.0f * scaleF;
+        const float btnX = static_cast<float>(getWidth()) - edgeGap - btnSize;
+        const float btnY = edgeGap;
+        bypassButton.setBounds(static_cast<int>(btnX),
+                               static_cast<int>(btnY),
+                               static_cast<int>(btnSize),
+                               static_cast<int>(btnSize));
+        // Guarantee the button sits on top of every sibling — the spectrum
+        // graph, the orange border (drawn via paintOverChildren), the
+        // knobs. Belt-and-braces against any future child added below.
+        bypassButton.toFront(false);
     }
 
     // All knob-area positioning below works in the SUB-window beneath the
@@ -736,6 +770,12 @@ void TiptoeAudioProcessorEditor::resized()
     float knobStrokeW = knobDiameter * KnobDesign::knobStrokeFrac;
     pillLAF = new PillButtonLAF(conjusLAF.getBoldFont(btnFontSize), knobStrokeW);
     learnButton.setLookAndFeel(pillLAF);
+
+    // Pass the exact knob-stroke thickness to the bypass button so its
+    // bypassed-state ring reads as part of the same visual family as the
+    // knob outlines. This does NOT change the button's size or the
+    // centred power glyph — the ring is stroked inside the disc bounds.
+    bypassButton.setRingStrokeWidth(knobStrokeW);
 
     // ── Latency label ──
     float latencyFontSize = w * KnobDesign::latencyTextScale;
