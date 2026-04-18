@@ -61,22 +61,12 @@ public:
             glyphColour = KnobDesign::bgColour;
         }
 
-        // Filled disc.
+        // Filled disc. No extra ring on the bypassed state — the only
+        // thing that changes between engaged and bypassed is the fill /
+        // glyph colour swap, so the power icon is visually identical in
+        // size, stroke, and position in both states.
         g.setColour(fillColour);
         g.fillEllipse(cx - radius, cy - radius, diameter, diameter);
-
-        // Orange ring around the circle in bypassed state so the button
-        // still reads as a pressable affordance against the plugin bg.
-        if (bypassed)
-        {
-            const float ringW = diameter * 0.06f;
-            g.setColour(glyphColour);
-            g.drawEllipse(cx - radius + ringW * 0.5f,
-                          cy - radius + ringW * 0.5f,
-                          diameter - ringW,
-                          diameter - ringW,
-                          ringW);
-        }
 
         // Power glyph — open circle with a break at 12 o'clock, plus a
         // short vertical line dropping through the break into the centre.

@@ -564,20 +564,27 @@ void TiptoeAudioProcessorEditor::resized()
         spectrumGraph.setCornerRadius(78.0f * scaleF);
     }
 
-    // Bypass button — tucked into the top-right corner just inside the
-    // orange border. Size scales with window width; small padding keeps it
-    // clear of both the border arc and the spectrum graph's rounded clip.
+    // Bypass button — sits DIRECTLY BELOW the spectrum graph, flush to
+    // the right side. Horizontal padding from the orange border's inner
+    // edge matches the vertical padding from the spectrum's bottom edge,
+    // so the button floats in a square-spaced pocket in the top-right of
+    // the knob area. The button is NOT drawn over the spectrum in any
+    // state — it lives entirely below the graph.
     {
-        const float scaleF   = w / static_cast<float>(KnobDesign::defaultWidth);
-        const float btnPad   = 36.0f * scaleF;   // inset from border
-        const float btnSize  = 34.0f * scaleF;
-        const float btnX     = static_cast<float>(getWidth()) - btnPad - btnSize;
-        const float btnY     = btnPad;
+        const float scaleF    = w / static_cast<float>(KnobDesign::defaultWidth);
+        const float btnSize   = 34.0f * scaleF;
+        // Symmetric horizontal / vertical padding between the button and
+        // (a) the orange border's inner edge on the right, and
+        // (b) the spectrum graph's bottom edge above.
+        const float btnPadding = 16.0f * scaleF;
+        const float spectrumBottom = graphH; // spectrum graph ends at y=graphH
+        const float rightBorderX   = static_cast<float>(getWidth()) - pad;
+        const float btnX = rightBorderX - btnPadding - btnSize;
+        const float btnY = spectrumBottom + btnPadding;
         bypassButton.setBounds(static_cast<int>(btnX),
                                static_cast<int>(btnY),
                                static_cast<int>(btnSize),
                                static_cast<int>(btnSize));
-        bypassButton.toFront(false); // stay above the spectrum graph
     }
 
     // All knob-area positioning below works in the SUB-window beneath the
