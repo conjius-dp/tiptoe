@@ -163,9 +163,13 @@ TiptoeAudioProcessorEditor::~TiptoeAudioProcessorEditor()
 
 void TiptoeAudioProcessorEditor::setChromeVisible(bool visible)
 {
+    // Used by the headless screenshot tool that generates the README /
+    // release-page image: hide the conjius logo, the latency label, AND
+    // the bypass button so the screenshot captures the bare plugin UI.
     showChrome = visible;
     latencyLabel.setVisible(visible);
     latencyHitArea.setVisible(visible);
+    bypassButton.setVisible(visible);
     repaint();
 }
 
@@ -581,6 +585,10 @@ void TiptoeAudioProcessorEditor::resized()
                                static_cast<int>(btnY),
                                static_cast<int>(btnSize),
                                static_cast<int>(btnSize));
+        // Guarantee the button sits on top of every sibling — the spectrum
+        // graph, the orange border (drawn via paintOverChildren), the
+        // knobs. Belt-and-braces against any future child added below.
+        bypassButton.toFront(false);
     }
 
     // All knob-area positioning below works in the SUB-window beneath the

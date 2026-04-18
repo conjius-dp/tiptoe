@@ -33,10 +33,11 @@ namespace BypassButtonMetrics
     // kBypassedGlyphScale is applied uniformly to glyph radius AND stroke
     // in the bypassed state only — shrinking the light-on-dark glyph
     // just enough that it LOOKS the same size as the engaged glyph.
-    // 0.93 is roughly the classical irradiation correction; it keeps the
-    // glyph unmistakably "the same icon" while killing the perceived
-    // bloat.
-    inline constexpr float kBypassedGlyphScale = 0.93f;
+    // Tuned empirically: the initial 0.93 wasn't aggressive enough to
+    // cancel the illusion at our accent-orange on bgColour contrast, so
+    // it was bumped to 0.87. The glyph still reads as the same icon —
+    // just with the visual bloat of the light-on-dark state subtracted.
+    inline constexpr float kBypassedGlyphScale = 0.87f;
 
     // ── Derived helpers (no JUCE required — pure float math). ──
     inline constexpr float glyphRadiusForDiameter(float d) noexcept
