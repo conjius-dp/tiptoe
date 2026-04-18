@@ -16,12 +16,17 @@ juce::AudioProcessorValueTreeState::ParameterLayout TiptoeAudioProcessor::create
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        juce::ParameterID("threshold", 1), "Threshold",
+        juce::ParameterID("sensitivity", 1), "Sensitivity",
         juce::NormalisableRange<float>(0.5f, 5.0f, 0.01f), 1.5f));
 
+    // Reduction is stored as a POSITIVE attenuation amount in dB (0 = no cut,
+    // 60 = -60 dB cut). This is what makes the knob read left-to-right as
+    // "more reduction": leftmost / fully down = 0, middle = 30 (-30 dB),
+    // rightmost / fully up = 60 (-60 dB). processBlock negates the value
+    // before handing it to the gate so the DSP still sees dB-below-unity.
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID("reduction", 1), "Reduction",
-        juce::NormalisableRange<float>(-60.0f, 0.0f, 0.1f), -30.0f));
+        juce::NormalisableRange<float>(0.0f, 60.0f, 0.1f), 30.0f));
 
     return { params.begin(), params.end() };
 }
@@ -77,14 +82,19 @@ void TiptoeAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, buffer.getNumSamples());
 
-    // Update parameters
-    float threshold = apvts.getRawParameterValue("threshold")->load();
-    float reduction = apvts.getRawParameterValue("reduction")->load();
+    // Update parameters.
+    // The "reduction" parameter is stored as positive attenuation dB (0 – 60)
+    // so the UI reads left-to-right as "more reduction"; negate it here so
+    // the DSP continues to see a signed gain value (0 dB = unity, -60 dB =
+    // near-silence).
+    float sensitivity      = apvts.getRawParameterValue("sensitivity")->load();
+    float reductionAtten   = apvts.getRawParameterValue("reduction")->load();
+    float reductionGainDb  = -reductionAtten;
 
     for (auto& g : gates)
     {
-        g.setThreshold(threshold);
-        g.setReduction(reduction);
+        g.setSensitivity(sensitivity);
+        g.setReduction(reductionGainDb);
     }
 
     int numSamples = buffer.getNumSamples();

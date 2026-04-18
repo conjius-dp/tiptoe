@@ -141,11 +141,11 @@ void SpectrumGraph::paint(juce::Graphics& g)
         g.strokePath(p, rounded25);
     }
 
-    // Threshold — noise profile scaled by the current threshold knob.
+    // Sensitivity — noise profile scaled by the current sensitivity knob.
     if (! noise_.empty())
     {
         juce::Path p;
-        buildCurve(p, noise_, thresholdMult_, bounds);
+        buildCurve(p, noise_, sensitivityMult_, bounds);
         g.setColour(KnobDesign::accentColour);
         g.strokePath(p, rounded15);
     }

@@ -49,9 +49,9 @@ void SpectralGateTiptoe::prepare(double sampleRate, int /*maxBlockSize*/)
 
     // Parameter smoothers: ramp length measured in audio samples, advanced
     // one hop per processFrame() so the 30 ms figure is in wall-clock time.
-    thresholdSmoothed_.reset(sampleRate, kParamRampSeconds);
+    sensitivitySmoothed_.reset(sampleRate, kParamRampSeconds);
     reductionGainSmoothed_.reset(sampleRate, kParamRampSeconds);
-    thresholdSmoothed_.setCurrentAndTargetValue(thresholdMultiplier_);
+    sensitivitySmoothed_.setCurrentAndTargetValue(sensitivityMultiplier_);
     reductionGainSmoothed_.setCurrentAndTargetValue(reductionGain_);
 
     // Artifact-reduction state.
@@ -83,7 +83,7 @@ void SpectralGateTiptoe::reset()
     std::fill(learnFifo_.begin(), learnFifo_.end(), 0.0f);
     learnFifoIndex_ = 0;
 
-    thresholdSmoothed_.setCurrentAndTargetValue(thresholdMultiplier_);
+    sensitivitySmoothed_.setCurrentAndTargetValue(sensitivityMultiplier_);
     reductionGainSmoothed_.setCurrentAndTargetValue(reductionGain_);
 
     std::fill(gainState_.begin(), gainState_.end(), 1.0f);
@@ -219,11 +219,11 @@ const std::vector<float>& SpectralGateTiptoe::getNoiseProfile() const
     return noiseProfile_;
 }
 
-void SpectralGateTiptoe::setThreshold(float thresholdMultiplier)
+void SpectralGateTiptoe::setSensitivity(float sensitivityMultiplier)
 {
-    thresholdMultiplier_ = thresholdMultiplier;
-    thresholdSq_ = thresholdMultiplier * thresholdMultiplier;
-    thresholdSmoothed_.setTargetValue(thresholdMultiplier);
+    sensitivityMultiplier_ = sensitivityMultiplier;
+    sensitivitySq_ = sensitivityMultiplier * sensitivityMultiplier;
+    sensitivitySmoothed_.setTargetValue(sensitivityMultiplier);
 }
 
 void SpectralGateTiptoe::setReduction(float reductionDB)
@@ -232,9 +232,9 @@ void SpectralGateTiptoe::setReduction(float reductionDB)
     reductionGainSmoothed_.setTargetValue(reductionGain_);
 }
 
-float SpectralGateTiptoe::getEffectiveThresholdMultiplier() const
+float SpectralGateTiptoe::getEffectiveSensitivityMultiplier() const
 {
-    return thresholdSmoothed_.getCurrentValue();
+    return sensitivitySmoothed_.getCurrentValue();
 }
 
 float SpectralGateTiptoe::getEffectiveReductionGain() const
@@ -320,8 +320,8 @@ void SpectralGateTiptoe::processFrame()
     // Reading the smoothed values here (rather than the raw thresholdSq_ /
     // reductionGain_) is what makes automation glide instead of stepping
     // at the FFT hop rate.
-    const float effThresholdMult  = thresholdSmoothed_.skip(kHopSize);
-    const float effThresholdSq    = effThresholdMult * effThresholdMult;
+    const float effSensitivityMult  = sensitivitySmoothed_.skip(kHopSize);
+    const float effSensitivitySq    = effSensitivityMult * effSensitivityMult;
     const float effReductionGain  = reductionGainSmoothed_.skip(kHopSize);
 
     // Spectral gate — soft-knee per-bin gain with spectral smoothing across
@@ -339,7 +339,7 @@ void SpectralGateTiptoe::processFrame()
             const float im = fftWorkspace[i * 2 + 1];
             const float magSq = re * re + im * im;
 
-            const float thresholdSq = noiseProfileSq_[i] * effThresholdSq * overSubSq;
+            const float thresholdSq = noiseProfileSq_[i] * effSensitivitySq * overSubSq;
             gainSmoothScratch_[i] = softKneeGain(magSq, thresholdSq, effReductionGain);
         }
 

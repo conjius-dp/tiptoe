@@ -62,7 +62,7 @@ namespace KnobDesign
 // ── Knob type: determines tick labels and pill format ──
 enum class KnobType
 {
-    Threshold,   // 0.5× – 5.0×, tick labels: "0.5×", "1.5×", "5.0×"
+    Sensitivity,   // 0.5× – 5.0×, tick labels: "0.5×", "1.5×", "5.0×"
     Reduction    // -60 dB – 0 dB, tick labels: "-60", "-30", "0"
 };
 
@@ -218,10 +218,13 @@ public:
 
         // Tick positions: left (min), middle (default), right (max)
         float defaultNorm = 0.0f;
-        if (knobType == KnobType::Threshold)
+        if (knobType == KnobType::Sensitivity)
             defaultNorm = (1.5f - 0.5f) / (5.0f - 0.5f);  // 1.5 is default, maps to ~0.222
         else
-            defaultNorm = (-30.0f - (-60.0f)) / (0.0f - (-60.0f));  // -30 default, maps to 0.5
+            // Reduction is stored as POSITIVE attenuation dB (0 – 60) with 30
+            // as the default. Leftmost of the knob = 0 (no cut), rightmost =
+            // 60 (-60 dB cut) — so "turn it up" to reduce more.
+            defaultNorm = (30.0f - 0.0f) / (60.0f - 0.0f);  // 30 default -> 0.5
 
         float tickAngles[3] = {
             juce::degreesToRadians(rotationStartAngle),
@@ -257,7 +260,7 @@ public:
         float labelYOffset = fontSize * 0.05f;
 
         juce::String leftLabel, midLabel, rightLabel;
-        if (knobType == KnobType::Threshold)
+        if (knobType == KnobType::Sensitivity)
         {
             leftLabel = "0.5";
             midLabel = "1.5";
@@ -265,9 +268,12 @@ public:
         }
         else
         {
-            leftLabel = juce::String(juce::CharPointer_UTF8("\xe2\x88\x92")) + "60";
-            midLabel = juce::String(juce::CharPointer_UTF8("\xe2\x88\x92")) + "30";
-            rightLabel = "0";
+            // Inverted from the old layout: knob left = 0 dB (no reduction),
+            // knob right = -60 dB (maximum reduction). The 0 and -60 tick
+            // labels swap sides; the midpoint stays at -30.
+            leftLabel  = "0";
+            midLabel   = juce::String(juce::CharPointer_UTF8("\xe2\x88\x92")) + "30";
+            rightLabel = juce::String(juce::CharPointer_UTF8("\xe2\x88\x92")) + "60";
         }
 
         // Left label
@@ -292,8 +298,8 @@ public:
         float aMid = normToAngleRad(defaultNorm);
         float topLabelR = tickEndR + markerFontSize * 0.3f;
         float midLabelW = KnobDesign::stringWidth(getBoldFont(markerFontSize), midLabel);
-        float midXShift = (knobType == KnobType::Threshold) ? -midLabelW * 0.5f : 0.0f;
-        float midYShift = (knobType == KnobType::Threshold) ? markerFontSize * 0.3f : 0.0f;
+        float midXShift = (knobType == KnobType::Sensitivity) ? -midLabelW * 0.5f : 0.0f;
+        float midYShift = (knobType == KnobType::Sensitivity) ? markerFontSize * 0.3f : 0.0f;
         float lxM = cx + std::sin(aMid) * topLabelR + midXShift;
         float lyM = cy - std::cos(aMid) * topLabelR - markerFontSize * 0.5f + midYShift;
         g.drawText(midLabel,
@@ -310,18 +316,18 @@ public:
         {
             auto text = label.getText();
             auto* slider = dynamic_cast<juce::Slider*>(label.getParentComponent());
-            auto knobType = slider ? getKnobType(*slider) : KnobType::Threshold;
+            auto knobType = slider ? getKnobType(*slider) : KnobType::Sensitivity;
 
             // Determine suffix
-            juce::String suffix = (knobType == KnobType::Threshold) ? juce::String(juce::CharPointer_UTF8("\xc3\x97")) : " dB";
+            juce::String suffix = (knobType == KnobType::Sensitivity) ? juce::String(juce::CharPointer_UTF8("\xc3\x97")) : " dB";
 
             // Use proportional font sizes
             auto* editor = slider ? slider->getParentComponent() : nullptr;
             float windowH = editor ? static_cast<float>(editor->getHeight()) : 450.0f;
             float pillFontSize = windowH * 0.042f;
             auto pillFont = getBoldFont(pillFontSize);
-            float suffixFontSize = (knobType == KnobType::Threshold) ? pillFontSize * 1.3f : pillFontSize;
-            auto suffixFont = (knobType == KnobType::Threshold) ? getRegularFont(suffixFontSize) : getBoldFont(suffixFontSize);
+            float suffixFontSize = (knobType == KnobType::Sensitivity) ? pillFontSize * 1.3f : pillFontSize;
+            auto suffixFont = (knobType == KnobType::Sensitivity) ? getRegularFont(suffixFontSize) : getBoldFont(suffixFontSize);
 
             float suffixW = KnobDesign::stringWidth(suffixFont, suffix);
 
@@ -383,7 +389,7 @@ public:
             g.setColour(KnobDesign::bgColour);
             float centreY = pillBounds.getCentreY();
 
-            if (knobType == KnobType::Threshold)
+            if (knobType == KnobType::Sensitivity)
             {
                 // × on left
                 float suffixX = pillBounds.getX() + padRight;

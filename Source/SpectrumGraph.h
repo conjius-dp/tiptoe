@@ -6,7 +6,7 @@
 
 // Visualisation of the spectral gate state:
 //  * learned noise profile — darker orange, thicker stroke
-//  * threshold curve (noise * thresholdMultiplier) — mid orange, medium stroke
+//  * sensitivity curve (noise * sensitivityMultiplier) — mid orange, medium stroke
 //  * live input magnitude — bright orange, thin stroke
 //
 // X axis is logarithmic from 20 Hz to 20 kHz. Y axis is dB (magRef = FFT/4
@@ -20,7 +20,7 @@ public:
     void setSampleRate(double sr) { sampleRate_ = sr; }
     void setFftSize(int fftSize) { fftSize_ = fftSize; }
 
-    void setThresholdMultiplier(float mult) { thresholdMult_ = mult; }
+    void setSensitivityMultiplier(float mult) { sensitivityMult_ = mult; }
 
     // Called from the editor's timer. `noise` is the learned noise profile
     // (may be empty before learning). `input` is the latest live magnitude
@@ -33,7 +33,7 @@ public:
 private:
     double sampleRate_    = 44100.0;
     int    fftSize_       = 2048;
-    float  thresholdMult_ = 1.5f;
+    float  sensitivityMult_ = 1.5f;
 
     std::vector<float> noise_;          // copied from DSP
     std::vector<float> inputSmoothed_;  // exponentially smoothed

@@ -147,7 +147,7 @@ public:
         {
             SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
-            denoiser.setThreshold(1.0f);
+            denoiser.setSensitivity(1.0f);
             denoiser.setReduction(-40.0f);
 
             auto noise = generateWhiteNoise(32768, 0.3f);
@@ -172,7 +172,7 @@ public:
         {
             SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
-            denoiser.setThreshold(1.0f);
+            denoiser.setSensitivity(1.0f);
             denoiser.setReduction(-40.0f);
 
             auto noise = generateWhiteNoise(32768, 0.01f);
@@ -193,12 +193,12 @@ public:
             expectWithinAbsoluteError(db, 0.0f, 2.0f);
         }
 
-        beginTest("Threshold parameter controls gating aggressiveness");
+        beginTest("Sensitivity parameter controls gating aggressiveness");
         {
             auto runWithThreshold = [](float threshold) -> float {
                 SpectralGateTiptoe denoiser;
                 denoiser.prepare(44100.0, 512);
-                denoiser.setThreshold(threshold);
+                denoiser.setSensitivity(threshold);
                 denoiser.setReduction(-40.0f);
 
                 auto noise = generateWhiteNoise(32768, 0.1f);
@@ -224,7 +224,7 @@ public:
             auto runWithReduction = [](float reductionDb) -> float {
                 SpectralGateTiptoe denoiser;
                 denoiser.prepare(44100.0, 512);
-                denoiser.setThreshold(1.0f);
+                denoiser.setSensitivity(1.0f);
                 denoiser.setReduction(reductionDb);
 
                 auto noise = generateWhiteNoise(32768, 0.3f);
@@ -357,7 +357,7 @@ public:
         {
             SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
-            denoiser.setThreshold(1.0f);
+            denoiser.setSensitivity(1.0f);
             denoiser.setReduction(-40.0f);
 
             auto noise = generateWhiteNoise(32768, 0.3f);
@@ -382,7 +382,7 @@ public:
         {
             SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
-            denoiser.setThreshold(1.0f);
+            denoiser.setSensitivity(1.0f);
             denoiser.setReduction(-40.0f);
 
             auto noise = generateWhiteNoise(32768, 0.01f);
@@ -467,56 +467,56 @@ public:
         // granularity at the FFT hop rate. The smoother caps the rate at
         // which those parameters change so automation is audibly smooth.
 
-        beginTest("Initial effective threshold equals the set value (no initial glide)");
+        beginTest("Initial effective sensitivity equals the set value (no initial glide)");
         {
             SpectralGateTiptoe gate;
             gate.prepare(44100.0, 512);
-            gate.setThreshold(1.0f);
+            gate.setSensitivity(1.0f);
             // Let the smoother converge
             std::vector<float> zeros(4096, 0.0f);
             gate.processMono(zeros.data(), 4096);
-            expectWithinAbsoluteError(gate.getEffectiveThresholdMultiplier(), 1.0f, 0.01f);
+            expectWithinAbsoluteError(gate.getEffectiveSensitivityMultiplier(), 1.0f, 0.01f);
         }
 
-        beginTest("setThreshold does not instantly jump the effective value");
+        beginTest("setSensitivity does not instantly jump the effective value");
         {
             SpectralGateTiptoe gate;
             gate.prepare(44100.0, 512);
-            gate.setThreshold(1.0f);
+            gate.setSensitivity(1.0f);
 
             // Let the smoother converge to 1.0
             std::vector<float> zeros(4096, 0.0f);
             gate.processMono(zeros.data(), 4096);
-            expectWithinAbsoluteError(gate.getEffectiveThresholdMultiplier(), 1.0f, 0.01f);
+            expectWithinAbsoluteError(gate.getEffectiveSensitivityMultiplier(), 1.0f, 0.01f);
 
             // Set a new target — the effective value must NOT have moved
             // before any audio is processed.
-            gate.setThreshold(5.0f);
-            expectWithinAbsoluteError(gate.getEffectiveThresholdMultiplier(), 1.0f, 0.01f);
+            gate.setSensitivity(5.0f);
+            expectWithinAbsoluteError(gate.getEffectiveSensitivityMultiplier(), 1.0f, 0.01f);
 
             // After one FFT hop, the effective value must be partway between
             // the old value and the new target (not at either extreme).
             gate.processMono(zeros.data(), SpectralGateTiptoe::kHopSize);
-            const float afterOneHop = gate.getEffectiveThresholdMultiplier();
+            const float afterOneHop = gate.getEffectiveSensitivityMultiplier();
             expect(afterOneHop > 1.1f,
                    "effective threshold didn't move off the old value after one hop");
             expect(afterOneHop < 4.9f,
                    "effective threshold jumped straight to the new target (no smoothing)");
         }
 
-        beginTest("Effective threshold converges to target after enough processing");
+        beginTest("Effective sensitivity converges to target after enough processing");
         {
             SpectralGateTiptoe gate;
             gate.prepare(44100.0, 512);
-            gate.setThreshold(1.0f);
+            gate.setSensitivity(1.0f);
 
             std::vector<float> zeros(4096, 0.0f);
             gate.processMono(zeros.data(), 4096);
 
-            gate.setThreshold(5.0f);
+            gate.setSensitivity(5.0f);
             // ~93 ms at 44.1 kHz — generous headroom over the 30 ms smoother.
             gate.processMono(zeros.data(), 4096);
-            expectWithinAbsoluteError(gate.getEffectiveThresholdMultiplier(), 5.0f, 0.01f);
+            expectWithinAbsoluteError(gate.getEffectiveSensitivityMultiplier(), 5.0f, 0.01f);
         }
 
         beginTest("setReduction does not instantly jump the effective gain");
@@ -597,7 +597,7 @@ public:
         {
             SpectralGateTiptoe gate;
             gate.prepare(44100.0, 512);
-            gate.setThreshold(1.0f);
+            gate.setSensitivity(1.0f);
             gate.setReduction(-60.0f);
 
             // Learn a moderately loud noise profile so the quiet sine below
@@ -673,7 +673,7 @@ public:
         {
             SpectralGateTiptoe gate;
             gate.prepare(44100.0, 512);
-            gate.setThreshold(1.0f);
+            gate.setSensitivity(1.0f);
             gate.setReduction(-20.0f); // 0.1x gain: with over-subtraction
                                        // the effective attenuation is deeper
 
@@ -702,7 +702,7 @@ public:
         {
             SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
-            denoiser.setThreshold(1.5f);
+            denoiser.setSensitivity(1.5f);
             denoiser.setReduction(-30.0f);
 
             auto noise = generateWhiteNoise(32768, 0.3f);

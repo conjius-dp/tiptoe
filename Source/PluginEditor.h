@@ -82,9 +82,9 @@ private:
     TiptoeAudioProcessor& processorRef;
     ConjusKnobLookAndFeel conjusLAF;
 
-    AnimatedSlider thresholdSlider;
+    AnimatedSlider sensitivitySlider;
     AnimatedSlider reductionSlider;
-    juce::Label thresholdLabel { {}, "THRESHOLD" };
+    juce::Label sensitivityLabel { {}, "SENSITIVITY" };
     juce::Label reductionLabel { {}, "REDUCTION" };
     juce::Label latencyLabel   { {}, "LATENCY: 0.000ms" };
 
@@ -96,7 +96,7 @@ private:
     std::vector<float> scratchInputMags;
     std::vector<float> scratchNoiseMags;
 
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> sensitivityAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> reductionAttachment;
 
     juce::Image logoImage;
@@ -144,7 +144,7 @@ private:
         double targetValue = 0.0;
         double currentValue = 0.0;
     };
-    SliderAnimation thresholdAnim;
+    SliderAnimation sensitivityAnim;
     SliderAnimation reductionAnim;
 
     void startSnapAnimation(juce::Slider& slider, SliderAnimation& anim);
