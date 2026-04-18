@@ -9,16 +9,6 @@ on:
   push:
     tags:
       - 'v*.*.*'
-    paths-ignore:
-      - '**/*.md'
-      - 'Assets/badges/**'
-      - 'docs/**'
-      - 'LICENSE'
-      - '.gitignore'
-      - '.gitattributes'
-      - '.github/ISSUE_TEMPLATE/**'
-      - '.github/PULL_REQUEST_TEMPLATE*'
-
 
 permissions:
   contents: write

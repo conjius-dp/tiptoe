@@ -3,26 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - '**/*.md'
-      - 'Assets/badges/**'
-      - 'docs/**'
-      - 'LICENSE'
-      - '.gitignore'
-      - '.gitattributes'
-      - '.github/ISSUE_TEMPLATE/**'
-      - '.github/PULL_REQUEST_TEMPLATE*'
   pull_request:
     branches: [main]
-    paths-ignore:
-      - '**/*.md'
-      - 'Assets/badges/**'
-      - 'docs/**'
-      - 'LICENSE'
-      - '.gitignore'
-      - '.gitattributes'
-      - '.github/ISSUE_TEMPLATE/**'
-      - '.github/PULL_REQUEST_TEMPLATE*'
 
 permissions:
   contents: write
@@ -33,7 +15,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Detect whether this push / PR actually touches code. Build jobs gate on
+  # this so docs-only changes skip cleanly — GitHub treats skipped required
+  # status checks as success, so branch-protection doesn't block the merge.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - '**'
+              - '!**/*.md'
+              - '!Assets/badges/**'
+              - '!docs/**'
+              - '!LICENSE'
+              - '!.gitignore'
+              - '!.gitattributes'
+              - '!.github/ISSUE_TEMPLATE/**'
+              - '!.github/PULL_REQUEST_TEMPLATE*'
+
   build-and-test-macos:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: macos-15
 
     steps:
@@ -165,6 +172,8 @@ jobs:
           fi
 
   build-and-test-windows:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: windows-latest
     env:
       # Local disk cache for sccache (GHA backend is flaky — periodic outages return

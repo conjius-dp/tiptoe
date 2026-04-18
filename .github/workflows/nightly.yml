@@ -7,15 +7,6 @@ name: Nightly
 on:
   pull_request:
     branches: [main]
-    paths-ignore:
-      - '**/*.md'
-      - 'Assets/badges/**'
-      - 'docs/**'
-      - 'LICENSE'
-      - '.gitignore'
-      - '.gitattributes'
-      - '.github/ISSUE_TEMPLATE/**'
-      - '.github/PULL_REQUEST_TEMPLATE*'
 
 permissions:
   contents: read
@@ -25,7 +16,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Detect whether this PR actually touches code. Builds skip cleanly on
+  # docs-only changes; GitHub treats skipped required checks as success.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - '**'
+              - '!**/*.md'
+              - '!Assets/badges/**'
+              - '!docs/**'
+              - '!LICENSE'
+              - '!.gitignore'
+              - '!.gitattributes'
+              - '!.github/ISSUE_TEMPLATE/**'
+              - '!.github/PULL_REQUEST_TEMPLATE*'
+
   build-macos:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: macos-15
 
     steps:
@@ -60,6 +75,8 @@ jobs:
         run: cmake --build build --target Tiptoe_VST3 Tiptoe_AU
 
   build-windows:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: windows-latest
     env:
       SCCACHE_DIR: ${{ github.workspace }}\sccache
