@@ -163,12 +163,17 @@ void SpectrumGraph::paint(juce::Graphics& g)
     // on its grid line and anchored to the bottom of the graph so they sit
     // on top of the grid but don't interfere with the curves above them.
     {
+        // Font size scales with window width so the labels keep the same
+        // visual weight as the editor is resized. Baseline 20 px at the
+        // default editor width (~2× the previous fixed 10 px).
+        const float fontSize = 20.0f
+            * (bounds.getWidth() / static_cast<float>(KnobDesign::defaultWidth));
         g.setColour(KnobDesign::accentColour.withAlpha(0.55f));
-        g.setFont(juce::FontOptions(10.0f));
+        g.setFont(juce::FontOptions(fontSize));
         const float labels[] = { 50.0f, 200.0f, 500.0f, 1000.0f,
                                  5000.0f, 10000.0f, 15000.0f };
-        const int labelW = 36;
-        const int labelH = 12;
+        const int labelW = static_cast<int>(fontSize * 3.6f);
+        const int labelH = static_cast<int>(fontSize * 1.2f);
         for (float f : labels)
         {
             const float x = bounds.getX() + freqToX(f, bounds.getWidth());
