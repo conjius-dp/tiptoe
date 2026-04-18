@@ -84,20 +84,20 @@ jobs:
       - name: Zip VST3
         run: |
           cd build/Tiptoe_artefacts/Release/VST3
-          zip -r "$GITHUB_WORKSPACE/tiptoe-${VERSION}-macos-vst3.zip" tiptoe.vst3
+          zip -r "$GITHUB_WORKSPACE/Tiptoe-macOS-VST3.zip" tiptoe.vst3
 
       - name: Zip AU
         run: |
           cd build/Tiptoe_artefacts/Release/AU
-          zip -r "$GITHUB_WORKSPACE/tiptoe-${VERSION}-macos-au.zip" tiptoe.component
+          zip -r "$GITHUB_WORKSPACE/tiptoe-macOS-AU.zip" tiptoe.component
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macos-artifacts
           path: |
-            tiptoe-${{ env.VERSION }}-macos-vst3.zip
-            tiptoe-${{ env.VERSION }}-macos-au.zip
+            Tiptoe-macOS-VST3.zip
+            tiptoe-macOS-AU.zip
 
       - name: Upload screenshot artifact
         uses: actions/upload-artifact@v4
@@ -169,13 +169,13 @@ jobs:
 
       - name: Zip VST3
         shell: pwsh
-        run: Compress-Archive -Path "build\Tiptoe_artefacts\Release\VST3\tiptoe.vst3" -DestinationPath "tiptoe-${env:VERSION}-windows-vst3.zip"
+        run: Compress-Archive -Path "build\Tiptoe_artefacts\Release\VST3\tiptoe.vst3" -DestinationPath "Tiptoe-Windows-VST3.zip"
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-artifacts
-          path: tiptoe-${{ env.VERSION }}-windows-vst3.zip
+          path: Tiptoe-Windows-VST3.zip
 
       - name: Cancel workflow if this job failed
         if: failure()
@@ -242,6 +242,6 @@ jobs:
           prerelease: ${{ contains(env.VERSION, '-') }}
           generate_release_notes: true
           files: |
-            tiptoe-${{ env.VERSION }}-macos-vst3.zip
-            tiptoe-${{ env.VERSION }}-macos-au.zip
-            tiptoe-${{ env.VERSION }}-windows-vst3.zip
+            Tiptoe-macOS-VST3.zip
+            tiptoe-macOS-AU.zip
+            Tiptoe-Windows-VST3.zip
