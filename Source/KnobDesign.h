@@ -1,5 +1,6 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
+#include "LayoutSizes.h"
 
 namespace KnobDesign
 {
@@ -39,7 +40,7 @@ namespace KnobDesign
     inline constexpr int   maxHeight         = 900;
 
     // Fraction of the window height occupied by the spectrum graph at the top.
-    inline constexpr float graphAreaFrac     = 0.36f;
+    // graphAreaFrac defined in LayoutSizes.h (same namespace).
 
     // ── Angle helpers ──
     inline float normToAngleRad(float norm01)
