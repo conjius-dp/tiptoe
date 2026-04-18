@@ -2,6 +2,7 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "KnobDesign.h"
+#include "BypassButtonMetrics.h"
 
 // Circular bypass button drawn with a power-symbol glyph.
 //
@@ -22,6 +23,13 @@ public:
         setClickingTogglesState(true);
         setMouseCursor(juce::MouseCursor::PointingHandCursor);
     }
+
+    // Ring stroke thickness (in pixels) drawn around the disc when the
+    // plugin is bypassed. The editor sets this to match the knob stroke so
+    // the button reads as part of the same "outlined ring" visual family.
+    // The ring is drawn INSIDE the disc's bounds, so it never affects the
+    // position or size of the power-symbol glyph.
+    void setRingStrokeWidth(float w) { ringStrokeW_ = juce::jmax(0.0f, w); }
 
     void paintButton(juce::Graphics& g,
                      bool isMouseOver,
@@ -68,15 +76,33 @@ public:
         g.setColour(fillColour);
         g.fillEllipse(cx - radius, cy - radius, diameter, diameter);
 
+        // Orange ring drawn AROUND the disc when the plugin is bypassed.
+        // Stroked INSIDE the disc bounds so it never eats into the area
+        // used by the power glyph — the glyph's position and size are
+        // identical in both states. See BypassButtonMetrics for the
+        // invariant this guarantees.
+        if (bypassed && ringStrokeW_ > 0.0f)
+        {
+            const float sw = juce::jmin(ringStrokeW_, diameter * 0.5f);
+            g.setColour(KnobDesign::accentColour);
+            g.drawEllipse(cx - radius + sw * 0.5f,
+                          cy - radius + sw * 0.5f,
+                          diameter - sw,
+                          diameter - sw,
+                          sw);
+        }
+
         // Power glyph — open circle with a break at 12 o'clock, plus a
         // short vertical line dropping through the break into the centre.
-        // All sized as fractions of the button diameter.
-        const float glyphRadius = diameter * 0.26f;
-        const float glyphStroke = diameter * 0.095f;
-        const float breakHalfDeg = 28.0f; // half-width of the gap at top
+        // Sizing goes through BypassButtonMetrics so the glyph geometry
+        // is a pure function of the button's diameter — no toggle-state
+        // branch here, no ring involvement. This is the invariant the
+        // TestBypassButton suite locks down.
+        const float glyphRadius = BypassButtonMetrics::glyphRadiusForDiameter(diameter);
+        const float glyphStroke = BypassButtonMetrics::glyphStrokeForDiameter(diameter);
 
-        const float startAngle = juce::degreesToRadians(breakHalfDeg);
-        const float endAngle   = juce::degreesToRadians(360.0f - breakHalfDeg);
+        const float startAngle = juce::degreesToRadians(BypassButtonMetrics::kBreakHalfDeg);
+        const float endAngle   = juce::degreesToRadians(360.0f - BypassButtonMetrics::kBreakHalfDeg);
 
         juce::Path arc;
         arc.addCentredArc(cx, cy, glyphRadius, glyphRadius,
@@ -92,8 +118,8 @@ public:
         // Vertical line — starts slightly above the arc's top break and
         // ends a hair below the arc's centre, forming the classic power-
         // symbol "bar through the ring".
-        const float lineTopY    = cy - glyphRadius * 1.25f;
-        const float lineBottomY = cy - glyphRadius * 0.05f;
+        const float lineTopY    = cy - glyphRadius * BypassButtonMetrics::kBarTopMul;
+        const float lineBottomY = cy - glyphRadius * BypassButtonMetrics::kBarBottomMul;
         juce::Path bar;
         bar.startNewSubPath(cx, lineTopY);
         bar.lineTo         (cx, lineBottomY);
@@ -101,6 +127,9 @@ public:
                                                juce::PathStrokeType::curved,
                                                juce::PathStrokeType::rounded));
     }
+
+private:
+    float ringStrokeW_ = 0.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BypassButton)
 };

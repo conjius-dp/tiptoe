@@ -74,6 +74,7 @@ target_link_libraries(Tiptoe
 add_executable(TiptoeTests
     Tests/TestSpectralGateTiptoe.cpp
     Tests/TestLayoutSizes.cpp
+    Tests/TestBypassButton.cpp
 )
 
 target_include_directories(TiptoeTests PRIVATE Source)

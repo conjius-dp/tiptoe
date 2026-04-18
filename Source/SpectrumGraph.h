@@ -29,6 +29,14 @@ public:
     // follow. Leave at 0 to keep the legacy rectangular clip.
     void setCornerRadius(float r) { cornerRadius_ = juce::jmax(0.0f, r); }
 
+    // Thickness of the orange border stroke the editor paints on top of
+    // this component. The corner masks push inward by this amount so any
+    // content that strayed into the stroke zone is painted over with bg
+    // before the border itself repaints the stroke — no leaks through the
+    // rounded corners, even at screen positions where the curve is just a
+    // few pixels inside the bounding rect.
+    void setBorderStrokeWidth(float sw) { borderStrokeW_ = juce::jmax(0.0f, sw); }
+
     // Called from the editor's timer. `noise` is the learned noise profile
     // (may be empty before learning). `input` is the latest live magnitude
     // snapshot. Internal smoothing is applied to the input curve only.
@@ -42,7 +50,8 @@ private:
     int    fftSize_       = 2048;
     float  sensitivityMult_ = 1.5f;
 
-    float  cornerRadius_ = 0.0f; // 0 = no rounded clip
+    float  cornerRadius_  = 0.0f; // 0 = no rounded clip
+    float  borderStrokeW_ = 0.0f; // corner mask inset — see setBorderStrokeWidth
 
     std::vector<float> noise_;          // copied from DSP
     std::vector<float> inputSmoothed_;  // exponentially smoothed

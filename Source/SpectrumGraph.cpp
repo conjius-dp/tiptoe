@@ -254,25 +254,39 @@ void SpectrumGraph::paint(juce::Graphics& g)
         const float w = bounds.getWidth();
         const float h = bounds.getHeight();
         const float r = juce::jmin(cornerRadius_, juce::jmin(w, h) * 0.5f);
+        // Inset the curve by the FULL border stroke width (not half) so
+        // the mask extends from the graph's bounding rect all the way to
+        // the border's inner edge. Anything the curve drawing emitted
+        // inside that corridor (where the curve is only a few pixels
+        // below the border line) gets painted over in bgColour. The
+        // orange border, drawn later by paintOverChildren(), then
+        // repaints its stroke on top of this bg band — clean result.
+        const float inset = borderStrokeW_;
         const float L = bounds.getX();
         const float T = bounds.getY();
         const float R = bounds.getRight();
 
         // Top-left sliver: square corner (L, T)–(L+r, T+r) minus the
-        // quarter-disc anchored at (L+r, T+r). The curve below is the same
-        // one used by the clip path above — same endpoints, same control
-        // point — so the two paint against each other exactly.
+        // quarter-disc anchored at (L+r+inset, T+r+inset). The endpoints
+        // of the curve sit on the border's INNER edge, not its outer
+        // edge, so the mask fully covers the stroke zone.
         juce::Path topLeft;
-        topLeft.startNewSubPath(L,     T);
-        topLeft.lineTo        (L + r, T);
-        topLeft.quadraticTo   (L,     T,   L, T + r);
+        topLeft.startNewSubPath(L,            T);
+        topLeft.lineTo        (L + r,         T);
+        topLeft.lineTo        (L + r,         T + inset);
+        topLeft.quadraticTo   (L + inset,     T + inset,
+                               L + inset,     T + r);
+        topLeft.lineTo        (L,             T + r);
         topLeft.closeSubPath();
 
         // Top-right sliver (mirror).
         juce::Path topRight;
-        topRight.startNewSubPath(R,     T);
-        topRight.lineTo        (R,     T + r);
-        topRight.quadraticTo   (R,     T,   R - r, T);
+        topRight.startNewSubPath(R,             T);
+        topRight.lineTo        (R,             T + r);
+        topRight.lineTo        (R - inset,     T + r);
+        topRight.quadraticTo   (R - inset,     T + inset,
+                                R - r,         T + inset);
+        topRight.lineTo        (R - r,         T);
         topRight.closeSubPath();
 
         g.setColour(KnobDesign::bgColour);

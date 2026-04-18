@@ -562,6 +562,8 @@ void TiptoeAudioProcessorEditor::resized()
     {
         const float scaleF = w / static_cast<float>(KnobDesign::defaultWidth);
         spectrumGraph.setCornerRadius(78.0f * scaleF);
+        // Keep in sync with the border stroke drawn in paintOverChildren().
+        spectrumGraph.setBorderStrokeWidth(4.0f * scaleF);
     }
 
     // Bypass button — sits DIRECTLY BELOW the spectrum graph, flush to
@@ -766,6 +768,12 @@ void TiptoeAudioProcessorEditor::resized()
     float knobStrokeW = knobDiameter * KnobDesign::knobStrokeFrac;
     pillLAF = new PillButtonLAF(conjusLAF.getBoldFont(btnFontSize), knobStrokeW);
     learnButton.setLookAndFeel(pillLAF);
+
+    // Pass the exact knob-stroke thickness to the bypass button so its
+    // bypassed-state ring reads as part of the same visual family as the
+    // knob outlines. This does NOT change the button's size or the
+    // centred power glyph — the ring is stroked inside the disc bounds.
+    bypassButton.setRingStrokeWidth(knobStrokeW);
 
     // ── Latency label ──
     float latencyFontSize = w * KnobDesign::latencyTextScale;
