@@ -21,6 +21,23 @@ namespace BypassButtonMetrics
     inline constexpr float kBarTopMul    = 1.25f;  // above centre
     inline constexpr float kBarBottomMul = 0.05f;  // above centre
 
+    // Irradiation-illusion compensation.
+    //
+    // A light-coloured shape on a dark background always *looks* bigger
+    // than the same-size dark shape on a light background, even when the
+    // rendered pixels are identical. Our engaged state draws a black
+    // glyph on an orange fill (dark-on-light); the bypassed state draws
+    // an orange glyph on a black fill (light-on-dark). Without a visual
+    // correction, the bypassed glyph reads as noticeably larger.
+    //
+    // kBypassedGlyphScale is applied uniformly to glyph radius AND stroke
+    // in the bypassed state only — shrinking the light-on-dark glyph
+    // just enough that it LOOKS the same size as the engaged glyph.
+    // 0.93 is roughly the classical irradiation correction; it keeps the
+    // glyph unmistakably "the same icon" while killing the perceived
+    // bloat.
+    inline constexpr float kBypassedGlyphScale = 0.93f;
+
     // ── Derived helpers (no JUCE required — pure float math). ──
     inline constexpr float glyphRadiusForDiameter(float d) noexcept
     {
@@ -29,5 +46,21 @@ namespace BypassButtonMetrics
     inline constexpr float glyphStrokeForDiameter(float d) noexcept
     {
         return d * kGlyphStrokeFrac;
+    }
+
+    // Glyph metrics as rendered given the toggle state. Same helpers as
+    // above but apply the irradiation-illusion correction in the
+    // bypassed state so the perceived icon size matches the engaged
+    // icon size. `bypassed = false` returns the exact uncorrected
+    // values — parity with the pure helpers.
+    inline constexpr float renderedGlyphRadius(float d, bool bypassed) noexcept
+    {
+        return bypassed ? glyphRadiusForDiameter(d) * kBypassedGlyphScale
+                        : glyphRadiusForDiameter(d);
+    }
+    inline constexpr float renderedGlyphStroke(float d, bool bypassed) noexcept
+    {
+        return bypassed ? glyphStrokeForDiameter(d) * kBypassedGlyphScale
+                        : glyphStrokeForDiameter(d);
     }
 }

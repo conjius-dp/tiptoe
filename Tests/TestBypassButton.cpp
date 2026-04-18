@@ -73,21 +73,63 @@ public:
                                       0.05f, 1e-6f);
         }
 
-        beginTest("Glyph metrics are invariant under the 'bypassed' state");
+        beginTest("Pure glyph metrics are state-independent");
         {
-            // The paint routine takes a single `diameter` argument and
-            // routes every geometric quantity through these helpers —
-            // there is no path in which toggle state (engaged / bypassed)
-            // participates in the math. This test asserts the invariant
-            // directly: hypothetical "engaged" vs "bypassed" calls are
-            // equivalent when the diameter is held constant.
+            // The uncorrected helpers are pure functions of diameter —
+            // no state branch, no toggle. This is the geometric source
+            // of truth that the rendered metrics derive from.
             const float d = 34.0f;
-            const float engagedRadius  = BypassButtonMetrics::glyphRadiusForDiameter(d);
-            const float bypassedRadius = BypassButtonMetrics::glyphRadiusForDiameter(d);
-            const float engagedStroke  = BypassButtonMetrics::glyphStrokeForDiameter(d);
-            const float bypassedStroke = BypassButtonMetrics::glyphStrokeForDiameter(d);
-            expectEquals(engagedRadius, bypassedRadius);
-            expectEquals(engagedStroke, bypassedStroke);
+            const float rE = BypassButtonMetrics::glyphRadiusForDiameter(d);
+            const float rB = BypassButtonMetrics::glyphRadiusForDiameter(d);
+            const float sE = BypassButtonMetrics::glyphStrokeForDiameter(d);
+            const float sB = BypassButtonMetrics::glyphStrokeForDiameter(d);
+            expectEquals(rE, rB);
+            expectEquals(sE, sB);
+        }
+
+        beginTest("Bypassed glyph is scaled by the irradiation factor");
+        {
+            // The bypassed state paints a light glyph on a dark
+            // background, so the icon gets a small uniform shrink to
+            // cancel the irradiation illusion. Both radius and stroke
+            // must scale by exactly the same factor so the glyph's
+            // proportions are preserved.
+            const float d = 34.0f;
+            const float f = BypassButtonMetrics::kBypassedGlyphScale;
+
+            expectWithinAbsoluteError(
+                BypassButtonMetrics::renderedGlyphRadius(d, false),
+                BypassButtonMetrics::glyphRadiusForDiameter(d), 1e-6f);
+            expectWithinAbsoluteError(
+                BypassButtonMetrics::renderedGlyphStroke(d, false),
+                BypassButtonMetrics::glyphStrokeForDiameter(d), 1e-6f);
+
+            expectWithinAbsoluteError(
+                BypassButtonMetrics::renderedGlyphRadius(d, true),
+                BypassButtonMetrics::glyphRadiusForDiameter(d) * f, 1e-6f);
+            expectWithinAbsoluteError(
+                BypassButtonMetrics::renderedGlyphStroke(d, true),
+                BypassButtonMetrics::glyphStrokeForDiameter(d) * f, 1e-6f);
+
+            // Proportions must be preserved — the ratio stroke/radius is
+            // identical in engaged and bypassed states.
+            const float ratioE =
+                BypassButtonMetrics::renderedGlyphStroke(d, false)
+                / BypassButtonMetrics::renderedGlyphRadius(d, false);
+            const float ratioB =
+                BypassButtonMetrics::renderedGlyphStroke(d, true)
+                / BypassButtonMetrics::renderedGlyphRadius(d, true);
+            expectWithinAbsoluteError(ratioE, ratioB, 1e-6f);
+        }
+
+        beginTest("Irradiation factor is in a sane visible range");
+        {
+            // The correction must be a *slight* shrink — visibly the
+            // same icon, just tuned for perception. Out-of-bounds values
+            // would make the bypassed glyph either obviously smaller or
+            // cancel nothing.
+            expect(BypassButtonMetrics::kBypassedGlyphScale > 0.85f);
+            expect(BypassButtonMetrics::kBypassedGlyphScale < 1.00f);
         }
     }
 };

@@ -566,23 +566,17 @@ void TiptoeAudioProcessorEditor::resized()
         spectrumGraph.setBorderStrokeWidth(4.0f * scaleF);
     }
 
-    // Bypass button — sits DIRECTLY BELOW the spectrum graph, flush to
-    // the right side. Horizontal padding from the orange border's inner
-    // edge matches the vertical padding from the spectrum's bottom edge,
-    // so the button floats in a square-spaced pocket in the top-right of
-    // the knob area. The button is NOT drawn over the spectrum in any
-    // state — it lives entirely below the graph.
+    // Bypass button — sits OUTSIDE the orange border, tucked into the
+    // window's top-right corner with a small gap from both edges. Because
+    // the border is drawn via paintOverChildren() and the button lives
+    // in the corner area outside the border's rounded rect, the border
+    // stroke naturally passes underneath the button without overlapping.
     {
-        const float scaleF    = w / static_cast<float>(KnobDesign::defaultWidth);
-        const float btnSize   = 34.0f * scaleF;
-        // Symmetric horizontal / vertical padding between the button and
-        // (a) the orange border's inner edge on the right, and
-        // (b) the spectrum graph's bottom edge above.
-        const float btnPadding = 16.0f * scaleF;
-        const float spectrumBottom = graphH; // spectrum graph ends at y=graphH
-        const float rightBorderX   = static_cast<float>(getWidth()) - pad;
-        const float btnX = rightBorderX - btnPadding - btnSize;
-        const float btnY = spectrumBottom + btnPadding;
+        const float scaleF  = w / static_cast<float>(KnobDesign::defaultWidth);
+        const float edgeGap = 8.0f  * scaleF;
+        const float btnSize = 34.0f * scaleF;
+        const float btnX = static_cast<float>(getWidth()) - edgeGap - btnSize;
+        const float btnY = edgeGap;
         bypassButton.setBounds(static_cast<int>(btnX),
                                static_cast<int>(btnY),
                                static_cast<int>(btnSize),

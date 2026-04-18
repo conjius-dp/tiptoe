@@ -100,12 +100,13 @@ public:
 
         // Power glyph — open circle with a break at 12 o'clock, plus a
         // short vertical line dropping through the break into the centre.
-        // Sizing goes through BypassButtonMetrics so the glyph geometry
-        // is a pure function of the button's diameter — no toggle-state
-        // branch here, no ring involvement. This is the invariant the
-        // TestBypassButton suite locks down.
-        const float glyphRadius = BypassButtonMetrics::glyphRadiusForDiameter(diameter);
-        const float glyphStroke = BypassButtonMetrics::glyphStrokeForDiameter(diameter);
+        // Sizing goes through BypassButtonMetrics::renderedGlyph*; in the
+        // bypassed state the radius and stroke are uniformly scaled by
+        // kBypassedGlyphScale to compensate for the irradiation illusion
+        // (light glyph on a dark fill reads bigger than a same-sized
+        // dark glyph on a light fill). Engaged state is unscaled.
+        const float glyphRadius = BypassButtonMetrics::renderedGlyphRadius(diameter, bypassed);
+        const float glyphStroke = BypassButtonMetrics::renderedGlyphStroke(diameter, bypassed);
 
         const float startAngle = juce::degreesToRadians(BypassButtonMetrics::kBreakHalfDeg);
         const float endAngle   = juce::degreesToRadians(360.0f - BypassButtonMetrics::kBreakHalfDeg);
