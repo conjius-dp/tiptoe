@@ -4,14 +4,12 @@ on:
   push:
     branches: [main]
     paths-ignore:
-      - '**.md'
       - 'Assets/badges/**'
       - 'docs/**'
       - 'LICENSE'
   pull_request:
     branches: [main]
     paths-ignore:
-      - '**.md'
       - 'Assets/badges/**'
       - 'docs/**'
       - 'LICENSE'
