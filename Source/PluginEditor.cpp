@@ -10,11 +10,11 @@ TiptoeAudioProcessorEditor::TiptoeAudioProcessorEditor(TiptoeAudioProcessor& p)
     setLookAndFeel(&conjusLAF);
 
     // ── Threshold knob (0.5× – 5.0×) ──
-    thresholdSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
-    thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 120, 30);
-    ConjusKnobLookAndFeel::setKnobType(thresholdSlider, KnobType::Threshold);
-    thresholdSlider.setMouseCursor(juce::MouseCursor::UpDownResizeCursor);
-    addAndMakeVisible(thresholdSlider);
+    sensitivitySlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
+    sensitivitySlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 120, 30);
+    ConjusKnobLookAndFeel::setKnobType(sensitivitySlider, KnobType::Sensitivity);
+    sensitivitySlider.setMouseCursor(juce::MouseCursor::UpDownResizeCursor);
+    addAndMakeVisible(sensitivitySlider);
 
     // ── Reduction knob (-60 dB – 0 dB) ──
     reductionSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
@@ -24,45 +24,49 @@ TiptoeAudioProcessorEditor::TiptoeAudioProcessorEditor(TiptoeAudioProcessor& p)
     addAndMakeVisible(reductionSlider);
 
     // ── Labels ──
-    thresholdLabel.setJustificationType(juce::Justification::centredBottom);
-    addAndMakeVisible(thresholdLabel);
+    sensitivityLabel.setJustificationType(juce::Justification::centredBottom);
+    addAndMakeVisible(sensitivityLabel);
 
     reductionLabel.setJustificationType(juce::Justification::centredBottom);
     addAndMakeVisible(reductionLabel);
 
     // Ensure the knob sliders paint IN FRONT of their column labels. With the
     // knob centred at the window's vertical midpoint, the top of the ring
-    // extends upward into the bounds of the "THRESHOLD"/"REDUCTION" labels;
+    // extends upward into the bounds of the "SENSITIVITY"/"REDUCTION" labels;
     // without this, the label text would overpaint the bright hover arc.
-    thresholdLabel.toBack();
+    sensitivityLabel.toBack();
     reductionLabel.toBack();
 
     // ── Attachments ──
-    thresholdAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-        processorRef.getAPVTS(), "threshold", thresholdSlider);
+    sensitivityAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+        processorRef.getAPVTS(), "sensitivity", sensitivitySlider);
     reductionAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         processorRef.getAPVTS(), "reduction", reductionSlider);
 
     // Set text functions AFTER attachment
-    thresholdSlider.textFromValueFunction = [](double value) -> juce::String {
+    sensitivitySlider.textFromValueFunction = [](double value) -> juce::String {
         return juce::String(value, 1);
     };
-    thresholdSlider.valueFromTextFunction = [](const juce::String& text) -> double {
+    sensitivitySlider.valueFromTextFunction = [](const juce::String& text) -> double {
         return text.getDoubleValue();
     };
-    thresholdSlider.updateText();
+    sensitivitySlider.updateText();
 
+    // Parameter is stored as positive attenuation (0 – 60). Display as a
+    // negative dB value so the user sees "-30 dB" in the pill / text box.
     reductionSlider.textFromValueFunction = [](double value) -> juce::String {
-        return juce::String(value, 1) + " dB";
+        if (value <= 0.0)
+            return "0.0 dB";
+        return "-" + juce::String(value, 1) + " dB";
     };
     reductionSlider.valueFromTextFunction = [](const juce::String& text) -> double {
-        return text.getDoubleValue();
+        return std::abs(text.getDoubleValue());
     };
     reductionSlider.updateText();
 
     // ── Animated snap to default on double-click ──
-    thresholdSlider.onDoubleClick = [this]() {
-        startSnapAnimation(thresholdSlider, thresholdAnim);
+    sensitivitySlider.onDoubleClick = [this]() {
+        startSnapAnimation(sensitivitySlider, sensitivityAnim);
     };
     reductionSlider.onDoubleClick = [this]() {
         startSnapAnimation(reductionSlider, reductionAnim);
@@ -165,8 +169,8 @@ void TiptoeAudioProcessorEditor::refreshSpectrumGraph()
         spectrumGraph.setSampleRate(dspRate);
 
     const float thr = processorRef.getAPVTS()
-                          .getRawParameterValue("threshold")->load();
-    spectrumGraph.setThresholdMultiplier(thr);
+                          .getRawParameterValue("sensitivity")->load();
+    spectrumGraph.setSensitivityMultiplier(thr);
 
     processorRef.copyInputMagnitudes(scratchInputMags);
     processorRef.copyNoiseProfile(scratchNoiseMags);
@@ -203,16 +207,18 @@ void TiptoeAudioProcessorEditor::timerCallback()
     }
 
     // Pump the spectrum graph with the latest noise profile + live input
-    // snapshot, and the current threshold value so the threshold curve slides
-    // as the user drags the knob.
+    // snapshot at the full 60 Hz timer rate. Smoothness comes from the
+    // graph's time-domain exponential smoother (low alpha), not from
+    // sampling less often — so the curve keeps a responsive feel while
+    // easing between frames.
     {
         const double dspRate = processorRef.getDspSampleRate();
         if (dspRate > 0.0)
             spectrumGraph.setSampleRate(dspRate);
 
         const float thr = processorRef.getAPVTS()
-                              .getRawParameterValue("threshold")->load();
-        spectrumGraph.setThresholdMultiplier(thr);
+                              .getRawParameterValue("sensitivity")->load();
+        spectrumGraph.setSensitivityMultiplier(thr);
 
         processorRef.copyInputMagnitudes(scratchInputMags);
         processorRef.copyNoiseProfile(scratchNoiseMags);
@@ -238,12 +244,12 @@ void TiptoeAudioProcessorEditor::timerCallback()
             c.repaint();
         }
     };
-    animateHover(thresholdSlider, thresholdSlider.isMouseOverOrDragging(true));
+    animateHover(sensitivitySlider, sensitivitySlider.isMouseOverOrDragging(true));
     animateHover(reductionSlider, reductionSlider.isMouseOverOrDragging(true));
     animateHover(learnButton,     learnButton.isOver() || learnButton.isDown());
 
     // Update snap-to-default animations
-    updateSnapAnimation(thresholdSlider, thresholdAnim);
+    updateSnapAnimation(sensitivitySlider, sensitivityAnim);
     updateSnapAnimation(reductionSlider, reductionAnim);
 
     // Update learn button state (in case processor state changed externally)
@@ -393,7 +399,7 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
     // Draw "Learn" / "Learning..." label above the button — size matches knob tick labels
     float textBoxH_est = w * KnobDesign::dbTextScale * 2.6f;
     float sliderBoundsW_est = w * 0.40f * 0.90f;
-    auto tsBounds = thresholdSlider.getBounds();
+    auto tsBounds = sensitivitySlider.getBounds();
     float knobAreaH_est = tsBounds.isEmpty()
         ? (h * 0.96f - (h * 0.05f + 50.0f * (h / static_cast<float>(KnobDesign::defaultHeight))
                         + h * 0.14f + h * 0.09f)) - textBoxH_est
@@ -498,22 +504,24 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
         static_cast<int>(w * 0.40f),
         static_cast<int>(learnFontSize * 2.2f));
 
-    // Rounded orange border inside ~20px of bg padding. Drawn last so it
-    // sits on top of any content near the edges.
-    {
-        const float scaleF  = static_cast<float>(getWidth())
-                            / static_cast<float>(KnobDesign::defaultWidth);
-        const float pad     = 20.0f * scaleF;
-        const float borderW = 4.0f  * scaleF;
-        const float radius  = 78.0f * scaleF;
-        juce::Rectangle<float> borderRect{ pad, pad,
-                                           static_cast<float>(getWidth())  - 2.0f * pad,
-                                           static_cast<float>(getHeight()) - 2.0f * pad };
-        juce::Path border;
-        border.addRoundedRectangle(borderRect, radius);
-        g.setColour(KnobDesign::accentColour);
-        g.strokePath(border, juce::PathStrokeType(borderW));
-    }
+    // Border is drawn in paintOverChildren() so it sits on top of every
+    // child component, including the spectrum graph's curves.
+}
+
+void TiptoeAudioProcessorEditor::paintOverChildren(juce::Graphics& g)
+{
+    const float scaleF  = static_cast<float>(getWidth())
+                        / static_cast<float>(KnobDesign::defaultWidth);
+    const float pad     = 20.0f * scaleF;
+    const float borderW = 4.0f  * scaleF;
+    const float radius  = 78.0f * scaleF;
+    juce::Rectangle<float> borderRect{ pad, pad,
+                                       static_cast<float>(getWidth())  - 2.0f * pad,
+                                       static_cast<float>(getHeight()) - 2.0f * pad };
+    juce::Path border;
+    border.addRoundedRectangle(borderRect, radius);
+    g.setColour(KnobDesign::accentColour);
+    g.strokePath(border, juce::PathStrokeType(borderW));
 }
 
 void TiptoeAudioProcessorEditor::resized()
@@ -541,6 +549,13 @@ void TiptoeAudioProcessorEditor::resized()
                             static_cast<int>(pad),
                             static_cast<int>(w - 2.0f * pad),
                             static_cast<int>(graphH - pad));
+    // Match the outer orange border radius so the graph content clips
+    // against the same arc the border traces. Same 78 × scale formula used
+    // to draw the border in paint().
+    {
+        const float scaleF = w / static_cast<float>(KnobDesign::defaultWidth);
+        spectrumGraph.setCornerRadius(78.0f * scaleF);
+    }
 
     // All knob-area positioning below works in the SUB-window beneath the
     // graph. Keep `h` as the remaining height so the existing ratios still
@@ -562,12 +577,12 @@ void TiptoeAudioProcessorEditor::resized()
     // the Reduction knob's centred "-30" top-tick label.
     const float labelFontSize = KnobDesign::columnLabelFontSize(w);
     auto labelFont = conjusLAF.getBoldFont(labelFontSize);
-    thresholdLabel.setFont(labelFont);
+    sensitivityLabel.setFont(labelFont);
     reductionLabel.setFont(labelFont);
 
     const int labelH = static_cast<int>(KnobDesign::columnLabelHeight(w));
     const int labelY = static_cast<int>(graphH + h * KnobDesign::columnLabelTopYInKnobArea());
-    thresholdLabel.setBounds(static_cast<int>(knobColX0), labelY,
+    sensitivityLabel.setBounds(static_cast<int>(knobColX0), labelY,
                              static_cast<int>(knobColW), labelH);
     reductionLabel.setBounds(static_cast<int>(knobColX1), labelY,
                              static_cast<int>(knobColW), labelH);
@@ -595,9 +610,9 @@ void TiptoeAudioProcessorEditor::resized()
     int textBoxW = static_cast<int>(sliderBoundsW * 0.95f);
     int textBoxH = static_cast<int>(dbFontSize * 2.6f);
 
-    thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, textBoxW, textBoxH);
-    thresholdSlider.setMouseDragSensitivity(static_cast<int>(w * 0.5f));
-    thresholdSlider.setBounds(static_cast<int>(sliderOffset0), sliderTopEditor,
+    sensitivitySlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, textBoxW, textBoxH);
+    sensitivitySlider.setMouseDragSensitivity(static_cast<int>(w * 0.5f));
+    sensitivitySlider.setBounds(static_cast<int>(sliderOffset0), sliderTopEditor,
                               static_cast<int>(sliderBoundsW), sliderH);
 
     reductionSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, textBoxW, textBoxH);
@@ -606,7 +621,7 @@ void TiptoeAudioProcessorEditor::resized()
                               static_cast<int>(sliderBoundsW), sliderH);
 
     // Update text box fonts and allow pills to paint above label bounds
-    for (auto* slider : { &thresholdSlider, &reductionSlider })
+    for (auto* slider : { &sensitivitySlider, &reductionSlider })
     {
         slider->setPaintingIsUnclipped(true);
         if (auto* textBox = slider->getChildComponent(0))
@@ -748,7 +763,7 @@ void TiptoeAudioProcessorEditor::resized()
 void TiptoeAudioProcessorEditor::startSnapAnimation(juce::Slider& slider, SliderAnimation& anim)
 {
     auto* param = processorRef.getAPVTS().getParameter(
-        &slider == &thresholdSlider ? "threshold" : "reduction");
+        &slider == &sensitivitySlider ? "sensitivity" : "reduction");
     if (param == nullptr) return;
 
     anim.currentValue = slider.getValue();

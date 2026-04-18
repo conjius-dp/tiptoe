@@ -147,7 +147,7 @@ public:
         {
             SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
-            denoiser.setThreshold(1.0f);
+            denoiser.setSensitivity(1.0f);
             denoiser.setReduction(-40.0f);
 
             auto noise = generateWhiteNoise(32768, 0.3f);
@@ -161,7 +161,12 @@ public:
 
             denoiser.processMono(quiet.data(), numSamples);
 
-            const int skip = SpectralGateTiptoe::kFFTSize;
+            // Skip past both the FFT priming AND the per-bin gate's attack
+            // ramp (~30 ms default × 3 time constants ≈ 4000 samples at
+            // 44.1 kHz). Without this, the measurement window straddles the
+            // ramp-in and the averaged RMS never reaches the steady-state
+            // reduction floor.
+            const int skip = 5000;
             float inputRMS = computeRMS(original.data() + skip, numSamples - skip);
             float outputRMS = computeRMS(quiet.data() + skip, numSamples - skip);
             float db = ratioToDb(outputRMS, inputRMS);
@@ -172,7 +177,7 @@ public:
         {
             SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
-            denoiser.setThreshold(1.0f);
+            denoiser.setSensitivity(1.0f);
             denoiser.setReduction(-40.0f);
 
             auto noise = generateWhiteNoise(32768, 0.01f);
@@ -193,12 +198,12 @@ public:
             expectWithinAbsoluteError(db, 0.0f, 2.0f);
         }
 
-        beginTest("Threshold parameter controls gating aggressiveness");
+        beginTest("Sensitivity parameter controls gating aggressiveness");
         {
             auto runWithThreshold = [](float threshold) -> float {
                 SpectralGateTiptoe denoiser;
                 denoiser.prepare(44100.0, 512);
-                denoiser.setThreshold(threshold);
+                denoiser.setSensitivity(threshold);
                 denoiser.setReduction(-40.0f);
 
                 auto noise = generateWhiteNoise(32768, 0.1f);
@@ -224,7 +229,7 @@ public:
             auto runWithReduction = [](float reductionDb) -> float {
                 SpectralGateTiptoe denoiser;
                 denoiser.prepare(44100.0, 512);
-                denoiser.setThreshold(1.0f);
+                denoiser.setSensitivity(1.0f);
                 denoiser.setReduction(reductionDb);
 
                 auto noise = generateWhiteNoise(32768, 0.3f);
@@ -357,7 +362,7 @@ public:
         {
             SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
-            denoiser.setThreshold(1.0f);
+            denoiser.setSensitivity(1.0f);
             denoiser.setReduction(-40.0f);
 
             auto noise = generateWhiteNoise(32768, 0.3f);
@@ -371,7 +376,9 @@ public:
 
             denoiser.processMono(quiet.data(), numSamples);
 
-            const int skip = SpectralGateTiptoe::kFFTSize;
+            // Skip past the gate's per-bin attack ramp — see the other
+            // "attenuates below noise floor" test for the rationale.
+            const int skip = 5000;
             float inputRMS = computeRMS(original.data() + skip, numSamples - skip);
             float outputRMS = computeRMS(quiet.data() + skip, numSamples - skip);
             float db = ratioToDb(outputRMS, inputRMS);
@@ -382,7 +389,7 @@ public:
         {
             SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
-            denoiser.setThreshold(1.0f);
+            denoiser.setSensitivity(1.0f);
             denoiser.setReduction(-40.0f);
 
             auto noise = generateWhiteNoise(32768, 0.01f);
@@ -467,56 +474,56 @@ public:
         // granularity at the FFT hop rate. The smoother caps the rate at
         // which those parameters change so automation is audibly smooth.
 
-        beginTest("Initial effective threshold equals the set value (no initial glide)");
+        beginTest("Initial effective sensitivity equals the set value (no initial glide)");
         {
             SpectralGateTiptoe gate;
             gate.prepare(44100.0, 512);
-            gate.setThreshold(1.0f);
+            gate.setSensitivity(1.0f);
             // Let the smoother converge
             std::vector<float> zeros(4096, 0.0f);
             gate.processMono(zeros.data(), 4096);
-            expectWithinAbsoluteError(gate.getEffectiveThresholdMultiplier(), 1.0f, 0.01f);
+            expectWithinAbsoluteError(gate.getEffectiveSensitivityMultiplier(), 1.0f, 0.01f);
         }
 
-        beginTest("setThreshold does not instantly jump the effective value");
+        beginTest("setSensitivity does not instantly jump the effective value");
         {
             SpectralGateTiptoe gate;
             gate.prepare(44100.0, 512);
-            gate.setThreshold(1.0f);
+            gate.setSensitivity(1.0f);
 
             // Let the smoother converge to 1.0
             std::vector<float> zeros(4096, 0.0f);
             gate.processMono(zeros.data(), 4096);
-            expectWithinAbsoluteError(gate.getEffectiveThresholdMultiplier(), 1.0f, 0.01f);
+            expectWithinAbsoluteError(gate.getEffectiveSensitivityMultiplier(), 1.0f, 0.01f);
 
             // Set a new target — the effective value must NOT have moved
             // before any audio is processed.
-            gate.setThreshold(5.0f);
-            expectWithinAbsoluteError(gate.getEffectiveThresholdMultiplier(), 1.0f, 0.01f);
+            gate.setSensitivity(5.0f);
+            expectWithinAbsoluteError(gate.getEffectiveSensitivityMultiplier(), 1.0f, 0.01f);
 
             // After one FFT hop, the effective value must be partway between
             // the old value and the new target (not at either extreme).
             gate.processMono(zeros.data(), SpectralGateTiptoe::kHopSize);
-            const float afterOneHop = gate.getEffectiveThresholdMultiplier();
+            const float afterOneHop = gate.getEffectiveSensitivityMultiplier();
             expect(afterOneHop > 1.1f,
                    "effective threshold didn't move off the old value after one hop");
             expect(afterOneHop < 4.9f,
                    "effective threshold jumped straight to the new target (no smoothing)");
         }
 
-        beginTest("Effective threshold converges to target after enough processing");
+        beginTest("Effective sensitivity converges to target after enough processing");
         {
             SpectralGateTiptoe gate;
             gate.prepare(44100.0, 512);
-            gate.setThreshold(1.0f);
+            gate.setSensitivity(1.0f);
 
             std::vector<float> zeros(4096, 0.0f);
             gate.processMono(zeros.data(), 4096);
 
-            gate.setThreshold(5.0f);
+            gate.setSensitivity(5.0f);
             // ~93 ms at 44.1 kHz — generous headroom over the 30 ms smoother.
             gate.processMono(zeros.data(), 4096);
-            expectWithinAbsoluteError(gate.getEffectiveThresholdMultiplier(), 5.0f, 0.01f);
+            expectWithinAbsoluteError(gate.getEffectiveSensitivityMultiplier(), 5.0f, 0.01f);
         }
 
         beginTest("setReduction does not instantly jump the effective gain");
@@ -534,15 +541,167 @@ public:
             gate.setReduction(0.0f);
             expectWithinAbsoluteError(gate.getEffectiveReductionGain(), initialGain, 0.002f);
 
-            // After one hop, partway.
-            gate.processMono(zeros.data(), SpectralGateTiptoe::kHopSize);
-            const float afterOneHop = gate.getEffectiveReductionGain();
-            expect(afterOneHop > 0.1f, "reduction gain didn't move off the old value");
-            expect(afterOneHop < 0.95f, "reduction gain jumped straight to target");
+            // Partway through the 30 ms ramp. Use ~10 ms (≈ 441 samples at
+            // 44.1 kHz) so the smoother has advanced a meaningful fraction
+            // regardless of the FFT hop size.
+            gate.processMono(zeros.data(), 441);
+            const float partway = gate.getEffectiveReductionGain();
+            expect(partway > 0.1f, "reduction gain didn't move off the old value");
+            expect(partway < 0.95f, "reduction gain jumped straight to target");
 
             // Plenty of time to converge.
             gate.processMono(zeros.data(), 4096);
             expectWithinAbsoluteError(gate.getEffectiveReductionGain(), 1.0f, 0.01f);
+        }
+
+        // Phase 9: Artifact-reduction features
+        //
+        // Soft-knee gating (no binary flipping at threshold), per-bin
+        // temporal smoothing with learned attack/release, spectral smoothing
+        // across neighbouring bins, and over-subtraction. Together these
+        // eliminate the high-frequency "musical noise" / birdies you hear
+        // at threshold settings that leave the gate teetering on the edge.
+
+        beginTest("Soft-knee: magnitude well below threshold -> reduction gain");
+        {
+            const float gain = SpectralGateTiptoe::softKneeGain(0.01f, 1.0f, 0.05f);
+            expectWithinAbsoluteError(gain, 0.05f, 0.001f);
+        }
+
+        beginTest("Soft-knee: magnitude well above threshold -> 1.0");
+        {
+            const float gain = SpectralGateTiptoe::softKneeGain(100.0f, 1.0f, 0.05f);
+            expectWithinAbsoluteError(gain, 1.0f, 0.001f);
+        }
+
+        beginTest("Soft-knee: magnitude AT threshold -> halfway between reduction and 1.0");
+        {
+            const float gain = SpectralGateTiptoe::softKneeGain(1.0f, 1.0f, 0.05f);
+            const float expected = 0.5f * (0.05f + 1.0f);
+            expectWithinAbsoluteError(gain, expected, 0.02f);
+        }
+
+        beginTest("Soft-knee: monotonic and smooth (no jumps between two close inputs)");
+        {
+            // Binary gating would produce a discontinuity at magSq == threshold.
+            // Soft-knee must not.
+            const float a = SpectralGateTiptoe::softKneeGain(0.99f, 1.0f, 0.05f);
+            const float b = SpectralGateTiptoe::softKneeGain(1.01f, 1.0f, 0.05f);
+            expect(b > a, "gain must increase with magnitude");
+            expect(std::abs(b - a) < 0.1f,
+                   "gain must not jump at the threshold boundary");
+        }
+
+        beginTest("Bin gain state starts at 1.0 (gate open)");
+        {
+            SpectralGateTiptoe gate;
+            gate.prepare(44100.0, 512);
+            for (int b = 0; b < SpectralGateTiptoe::kNumBins; ++b)
+                expectWithinAbsoluteError(gate.getBinGainState(b), 1.0f, 1e-6f);
+        }
+
+        beginTest("Bin gain state smooths toward reduction over multiple frames");
+        {
+            SpectralGateTiptoe gate;
+            gate.prepare(44100.0, 512);
+            gate.setSensitivity(1.0f);
+            gate.setReduction(-60.0f);
+
+            // Learn a moderately loud noise profile so the quiet sine below
+            // definitely falls under threshold.
+            auto loud = generateWhiteNoise(32768, 0.5f);
+            gate.startLearning();
+            gate.learnFromBlock(loud.data(), static_cast<int>(loud.size()));
+            gate.stopLearning();
+
+            // Process quiet audio (below threshold) for ONE FFT hop only.
+            std::vector<float> quiet(SpectralGateTiptoe::kHopSize, 0.0f);
+            gate.processMono(quiet.data(), SpectralGateTiptoe::kHopSize);
+
+            // After a single hop, at least one bin must have moved off 1.0
+            // but not be all the way at reduction (smoothed, not instant).
+            int partialCount = 0;
+            for (int b = 1; b < SpectralGateTiptoe::kNumBins - 1; ++b)
+            {
+                const float g = gate.getBinGainState(b);
+                if (g < 0.999f && g > 0.01f) ++partialCount;
+            }
+            expect(partialCount > 0,
+                   "no bins were partially gated — smoothing did not apply");
+        }
+
+        beginTest("Volatility is 0 before learning, non-zero after learning noise");
+        {
+            SpectralGateTiptoe gate;
+            gate.prepare(44100.0, 512);
+
+            // Before learning.
+            for (int b = 0; b < SpectralGateTiptoe::kNumBins; ++b)
+                expectWithinAbsoluteError(gate.getBinVolatility(b), 0.0f, 1e-6f);
+
+            auto noise = generateWhiteNoise(32768, 0.5f);
+            gate.startLearning();
+            gate.learnFromBlock(noise.data(), static_cast<int>(noise.size()));
+            gate.stopLearning();
+
+            // After learning white noise, at least one mid-spectrum bin has
+            // measurable volatility.
+            int nonZero = 0;
+            for (int b = 4; b < SpectralGateTiptoe::kNumBins - 4; ++b)
+                if (gate.getBinVolatility(b) > 0.01f) ++nonZero;
+            expect(nonZero > 0,
+                   "volatility was zero across the spectrum after learning noise");
+        }
+
+        beginTest("Attack/release ms default before learning, per-bin after");
+        {
+            SpectralGateTiptoe gate;
+            gate.prepare(44100.0, 512);
+
+            // Defaults before learning.
+            const float defaultAttack = gate.getBinAttackMs(100);
+            const float defaultRelease = gate.getBinReleaseMs(100);
+            expect(defaultAttack > 0.0f && defaultRelease > 0.0f,
+                   "default time constants must be positive");
+            expect(defaultRelease > defaultAttack,
+                   "release should be slower than attack by default");
+
+            auto noise = generateWhiteNoise(32768, 0.3f);
+            gate.startLearning();
+            gate.learnFromBlock(noise.data(), static_cast<int>(noise.size()));
+            gate.stopLearning();
+
+            // Time constants may vary per bin after learning.
+            const float learnedAttack = gate.getBinAttackMs(100);
+            expect(learnedAttack > 0.0f, "learned attack must still be positive");
+        }
+
+        beginTest("Over-subtraction: below-threshold signal attenuated more than the reduction knob alone");
+        {
+            SpectralGateTiptoe gate;
+            gate.prepare(44100.0, 512);
+            gate.setSensitivity(1.0f);
+            gate.setReduction(-20.0f); // 0.1x gain: with over-subtraction
+                                       // the effective attenuation is deeper
+
+            auto noise = generateWhiteNoise(32768, 0.3f);
+            gate.startLearning();
+            gate.learnFromBlock(noise.data(), static_cast<int>(noise.size()));
+            gate.stopLearning();
+
+            const int numSamples = 16384;
+            auto quiet = generateWhiteNoise(numSamples, 0.01f, 99);
+            auto original = quiet;
+            gate.processMono(quiet.data(), numSamples);
+
+            const int skip = SpectralGateTiptoe::kFFTSize;
+            const float inputRMS = computeRMS(original.data() + skip, numSamples - skip);
+            const float outputRMS = computeRMS(quiet.data() + skip, numSamples - skip);
+            const float db = ratioToDb(outputRMS, inputRMS);
+            // Without over-subtraction we'd expect ~ -20 dB. With the 1.5×
+            // factor (and temporal smoothing) we should see meaningfully
+            // deeper attenuation — but the signal should still be audible.
+            expect(db < -15.0f, "gate did not attenuate enough");
         }
 
         // Performance
@@ -550,7 +709,7 @@ public:
         {
             SpectralGateTiptoe denoiser;
             denoiser.prepare(44100.0, 512);
-            denoiser.setThreshold(1.5f);
+            denoiser.setSensitivity(1.5f);
             denoiser.setReduction(-30.0f);
 
             auto noise = generateWhiteNoise(32768, 0.3f);

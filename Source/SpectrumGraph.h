@@ -6,7 +6,7 @@
 
 // Visualisation of the spectral gate state:
 //  * learned noise profile — darker orange, thicker stroke
-//  * threshold curve (noise * thresholdMultiplier) — mid orange, medium stroke
+//  * sensitivity curve (noise * sensitivityMultiplier) — mid orange, medium stroke
 //  * live input magnitude — bright orange, thin stroke
 //
 // X axis is logarithmic from 20 Hz to 20 kHz. Y axis is dB (magRef = FFT/4
@@ -20,7 +20,14 @@ public:
     void setSampleRate(double sr) { sampleRate_ = sr; }
     void setFftSize(int fftSize) { fftSize_ = fftSize; }
 
-    void setThresholdMultiplier(float mult) { thresholdMult_ = mult; }
+    void setSensitivityMultiplier(float mult) { sensitivityMult_ = mult; }
+
+    // Top-corner radius — set by the editor's resized() to match the plugin's
+    // outer orange border so the grid / curves / labels get clipped against
+    // the same rounded rectangle the border draws along. Bottom corners stay
+    // square: the graph meets the knob area there, there's no border to
+    // follow. Leave at 0 to keep the legacy rectangular clip.
+    void setCornerRadius(float r) { cornerRadius_ = juce::jmax(0.0f, r); }
 
     // Called from the editor's timer. `noise` is the learned noise profile
     // (may be empty before learning). `input` is the latest live magnitude
@@ -33,7 +40,9 @@ public:
 private:
     double sampleRate_    = 44100.0;
     int    fftSize_       = 2048;
-    float  thresholdMult_ = 1.5f;
+    float  sensitivityMult_ = 1.5f;
+
+    float  cornerRadius_ = 0.0f; // 0 = no rounded clip
 
     std::vector<float> noise_;          // copied from DSP
     std::vector<float> inputSmoothed_;  // exponentially smoothed
