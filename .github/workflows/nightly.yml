@@ -1,11 +1,19 @@
 name: Nightly
 
+# Release-mode build smoke test on every PR: compiles the VST3 and AU on
+# macOS and the VST3 on Windows and fails the check if any build fails.
+# No artifacts are zipped or uploaded; tagged releases off main are the
+# only place final binaries are produced (see release.yml).
 on:
   pull_request:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-macos:
@@ -39,45 +47,24 @@ jobs:
       - name: Configure (Release)
         run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
 
-      - name: Build Standalone
-        run: cmake --build build --target Tiptoe_Standalone
-
-      - name: Build VST3
-        run: cmake --build build --target Tiptoe_VST3
-
-      - name: Build AU
-        run: cmake --build build --target Tiptoe_AU
-
-      - name: Zip Standalone
-        run: |
-          cd build/Tiptoe_artefacts/Release/Standalone
-          zip -r "$GITHUB_WORKSPACE/Tiptoe-macOS-Standalone.zip" tiptoe.app
-
-      - name: Zip VST3
-        run: |
-          cd build/Tiptoe_artefacts/Release/VST3
-          zip -r "$GITHUB_WORKSPACE/Tiptoe-macOS-VST3.zip" tiptoe.vst3
-
-      - name: Zip AU
-        run: |
-          cd build/Tiptoe_artefacts/Release/AU
-          zip -r "$GITHUB_WORKSPACE/tiptoe-macOS-AU.zip" tiptoe.component
-
-      - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-artifacts
-          path: |
-            Tiptoe-macOS-Standalone.zip
-            Tiptoe-macOS-VST3.zip
-            tiptoe-macOS-AU.zip
+      - name: Build VST3 + AU
+        run: cmake --build build --target Tiptoe_VST3 Tiptoe_AU
 
   build-windows:
     runs-on: windows-latest
+    env:
+      SCCACHE_DIR: ${{ github.workspace }}\sccache
+      SCCACHE_CACHE_SIZE: 2G
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
+
+      - name: Setup MSVC dev environment
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Cache JUCE
         id: cache-juce
@@ -90,57 +77,15 @@ jobs:
         if: steps.cache-juce.outputs.cache-hit != 'true'
         run: git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
 
+      - name: Cache sccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-nightly-windows-${{ hashFiles('Source/**', 'CMakeLists.txt') }}
+          restore-keys: sccache-nightly-windows-
+
       - name: Configure (Release)
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_C_COMPILER_LAUNCHER=sccache
 
       - name: Build VST3
-        run: cmake --build build --config Release --target Tiptoe_VST3
-
-      - name: Zip VST3
-        run: Compress-Archive -Path "build\Tiptoe_artefacts\Release\VST3\tiptoe.vst3" -DestinationPath "Tiptoe-Windows-VST3.zip"
-        shell: pwsh
-
-      - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-artifacts
-          path: Tiptoe-Windows-VST3.zip
-
-  create-nightly:
-    needs: [build-macos, build-windows]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download macOS artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-artifacts
-
-      - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-artifacts
-
-      - name: Delete existing nightly release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release delete nightly --yes --cleanup-tag 2>/dev/null || true
-
-      - name: Create nightly pre-release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create nightly \
-            --title "Nightly Build" \
-            --notes "Automated nightly build from PR #${{ github.event.pull_request.number }} (${{ github.head_ref }}).
-
-          **This is a pre-release — not recommended for production use.**" \
-            --prerelease \
-            Tiptoe-macOS-Standalone.zip \
-            Tiptoe-macOS-VST3.zip \
-            tiptoe-macOS-AU.zip \
-            Tiptoe-Windows-VST3.zip
+        run: cmake --build build --target Tiptoe_VST3
