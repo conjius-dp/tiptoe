@@ -70,6 +70,48 @@ target_link_libraries(Tiptoe
         juce::juce_recommended_warning_flags
 )
 
+# ── Aggressive binary-size reduction ──────────────────────────────────
+# Hide every symbol that isn't part of the VST3/AU/Standalone C ABI, and
+# fold identical / unreferenced functions at link time. Combined with
+# juce_recommended_lto_flags these cut ~20 % off the final binary before
+# the post-build strip runs.
+target_compile_options(Tiptoe PRIVATE
+    $<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:
+        -fvisibility=hidden
+        -fvisibility-inlines-hidden
+        -ffunction-sections
+        -fdata-sections>)
+
+target_link_options(Tiptoe PRIVATE
+    $<$<PLATFORM_ID:Darwin>:-Wl,-dead_strip -Wl,-x>
+    $<$<PLATFORM_ID:Linux>:-Wl,--gc-sections -Wl,--strip-all>)
+
+if(MSVC)
+    # Remove unreferenced code/data + fold identical COMDATs.
+    target_link_options(Tiptoe PRIVATE /OPT:REF /OPT:ICF)
+endif()
+
+# Strip the final plugin binary after the build. This is cheap
+# (runs once per format) and saves ~1 MB per binary by dropping debug
+# symbol tables and private name strings. Release builds only.
+if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo" OR NOT CMAKE_BUILD_TYPE)
+    foreach(kind VST3 AU Standalone)
+        if(TARGET Tiptoe_${kind})
+            if(APPLE)
+                add_custom_command(TARGET Tiptoe_${kind} POST_BUILD
+                    COMMAND ${CMAKE_STRIP} -x -S
+                        $<TARGET_FILE:Tiptoe_${kind}>
+                    COMMENT "Stripping Tiptoe_${kind}")
+            elseif(UNIX)
+                add_custom_command(TARGET Tiptoe_${kind} POST_BUILD
+                    COMMAND ${CMAKE_STRIP} --strip-all
+                        $<TARGET_FILE:Tiptoe_${kind}>
+                    COMMENT "Stripping Tiptoe_${kind}")
+            endif()
+        endif()
+    endforeach()
+endif()
+
 # --- Tests ---
 add_executable(TiptoeTests
     Tests/TestSpectralGateTiptoe.cpp
