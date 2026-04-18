@@ -459,6 +459,92 @@ public:
             expect(timeLarge > timeSmall);
         }
 
+        // Phase 8: Parameter smoothing
+        //
+        // DAW automation and knob drags feed the processor a sequence of
+        // discrete values. Without smoothing, each processBlock jumps the
+        // gate's threshold / reduction instantly, which produces frame-level
+        // granularity at the FFT hop rate. The smoother caps the rate at
+        // which those parameters change so automation is audibly smooth.
+
+        beginTest("Initial effective threshold equals the set value (no initial glide)");
+        {
+            SpectralGateTiptoe gate;
+            gate.prepare(44100.0, 512);
+            gate.setThreshold(1.0f);
+            // Let the smoother converge
+            std::vector<float> zeros(4096, 0.0f);
+            gate.processMono(zeros.data(), 4096);
+            expectWithinAbsoluteError(gate.getEffectiveThresholdMultiplier(), 1.0f, 0.01f);
+        }
+
+        beginTest("setThreshold does not instantly jump the effective value");
+        {
+            SpectralGateTiptoe gate;
+            gate.prepare(44100.0, 512);
+            gate.setThreshold(1.0f);
+
+            // Let the smoother converge to 1.0
+            std::vector<float> zeros(4096, 0.0f);
+            gate.processMono(zeros.data(), 4096);
+            expectWithinAbsoluteError(gate.getEffectiveThresholdMultiplier(), 1.0f, 0.01f);
+
+            // Set a new target — the effective value must NOT have moved
+            // before any audio is processed.
+            gate.setThreshold(5.0f);
+            expectWithinAbsoluteError(gate.getEffectiveThresholdMultiplier(), 1.0f, 0.01f);
+
+            // After one FFT hop, the effective value must be partway between
+            // the old value and the new target (not at either extreme).
+            gate.processMono(zeros.data(), SpectralGateTiptoe::kHopSize);
+            const float afterOneHop = gate.getEffectiveThresholdMultiplier();
+            expect(afterOneHop > 1.1f,
+                   "effective threshold didn't move off the old value after one hop");
+            expect(afterOneHop < 4.9f,
+                   "effective threshold jumped straight to the new target (no smoothing)");
+        }
+
+        beginTest("Effective threshold converges to target after enough processing");
+        {
+            SpectralGateTiptoe gate;
+            gate.prepare(44100.0, 512);
+            gate.setThreshold(1.0f);
+
+            std::vector<float> zeros(4096, 0.0f);
+            gate.processMono(zeros.data(), 4096);
+
+            gate.setThreshold(5.0f);
+            // ~93 ms at 44.1 kHz — generous headroom over the 30 ms smoother.
+            gate.processMono(zeros.data(), 4096);
+            expectWithinAbsoluteError(gate.getEffectiveThresholdMultiplier(), 5.0f, 0.01f);
+        }
+
+        beginTest("setReduction does not instantly jump the effective gain");
+        {
+            SpectralGateTiptoe gate;
+            gate.prepare(44100.0, 512);
+            gate.setReduction(-60.0f); // gain = 0.001
+
+            std::vector<float> zeros(4096, 0.0f);
+            gate.processMono(zeros.data(), 4096);
+            const float initialGain = std::pow(10.0f, -60.0f / 20.0f);
+            expectWithinAbsoluteError(gate.getEffectiveReductionGain(), initialGain, 0.002f);
+
+            // Jump to 0 dB (full pass) — effective should not yet move.
+            gate.setReduction(0.0f);
+            expectWithinAbsoluteError(gate.getEffectiveReductionGain(), initialGain, 0.002f);
+
+            // After one hop, partway.
+            gate.processMono(zeros.data(), SpectralGateTiptoe::kHopSize);
+            const float afterOneHop = gate.getEffectiveReductionGain();
+            expect(afterOneHop > 0.1f, "reduction gain didn't move off the old value");
+            expect(afterOneHop < 0.95f, "reduction gain jumped straight to target");
+
+            // Plenty of time to converge.
+            gate.processMono(zeros.data(), 4096);
+            expectWithinAbsoluteError(gate.getEffectiveReductionGain(), 1.0f, 0.01f);
+        }
+
         // Performance
         beginTest("Must process 1s of audio in under 50ms");
         {

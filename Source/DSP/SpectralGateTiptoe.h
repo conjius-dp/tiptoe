@@ -33,9 +33,18 @@ public:
     // Latency measurement
     float getLastProcessingTimeMs() const;
 
-    // Parameters
+    // Parameters. Both setters set a target for an internal smoother so
+    // DAW automation / knob drags don't produce frame-level granularity at
+    // the FFT hop rate. The smoother advances one hop's worth of samples
+    // per processFrame() call, with a 30 ms ramp time.
     void setThreshold(float thresholdMultiplier);
     void setReduction(float reductionDB);
+
+    // Effective (post-smoothing) parameter values — read the smoother's
+    // current value without advancing it. Primary use is tests; the UI also
+    // reads these so its threshold-line tracks what the DSP actually applies.
+    float getEffectiveThresholdMultiplier() const;
+    float getEffectiveReductionGain() const;
 
     // Visualisation: copy the most recent input frame magnitude spectrum.
     // Lock-free double-buffered snapshot written from processFrame() on the
@@ -97,6 +106,13 @@ private:
     float thresholdMultiplier_ = 1.5f;
     float thresholdSq_ = 1.5f * 1.5f; // thresholdMultiplier^2, precomputed
     float reductionGain_ = 0.01f;
+
+    // Smoothed targets, advanced one hop per processFrame() so parameter
+    // changes glide over ~30 ms instead of stepping at the hop rate.
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> thresholdSmoothed_;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> reductionGainSmoothed_;
+
+    static constexpr double kParamRampSeconds = 0.03;
 
     void processFrame();
     void learnFrame(const float* frameData);
