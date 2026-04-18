@@ -45,6 +45,13 @@ void SpectralGateTiptoe::prepare(double sampleRate, int /*maxBlockSize*/)
     for (auto& buf : noiseSnapshots_)
         buf.assign(kNumBins, 0.0f);
     noiseWriteIndex_.store(0, std::memory_order_relaxed);
+
+    // Parameter smoothers: ramp length measured in audio samples, advanced
+    // one hop per processFrame() so the 30 ms figure is in wall-clock time.
+    thresholdSmoothed_.reset(sampleRate, kParamRampSeconds);
+    reductionGainSmoothed_.reset(sampleRate, kParamRampSeconds);
+    thresholdSmoothed_.setCurrentAndTargetValue(thresholdMultiplier_);
+    reductionGainSmoothed_.setCurrentAndTargetValue(reductionGain_);
 }
 
 void SpectralGateTiptoe::reset()
@@ -63,6 +70,9 @@ void SpectralGateTiptoe::reset()
 
     std::fill(learnFifo_.begin(), learnFifo_.end(), 0.0f);
     learnFifoIndex_ = 0;
+
+    thresholdSmoothed_.setCurrentAndTargetValue(thresholdMultiplier_);
+    reductionGainSmoothed_.setCurrentAndTargetValue(reductionGain_);
 }
 
 void SpectralGateTiptoe::startLearning()
@@ -170,11 +180,23 @@ void SpectralGateTiptoe::setThreshold(float thresholdMultiplier)
 {
     thresholdMultiplier_ = thresholdMultiplier;
     thresholdSq_ = thresholdMultiplier * thresholdMultiplier;
+    thresholdSmoothed_.setTargetValue(thresholdMultiplier);
 }
 
 void SpectralGateTiptoe::setReduction(float reductionDB)
 {
     reductionGain_ = std::pow(10.0f, reductionDB / 20.0f);
+    reductionGainSmoothed_.setTargetValue(reductionGain_);
+}
+
+float SpectralGateTiptoe::getEffectiveThresholdMultiplier() const
+{
+    return thresholdSmoothed_.getCurrentValue();
+}
+
+float SpectralGateTiptoe::getEffectiveReductionGain() const
+{
+    return reductionGainSmoothed_.getCurrentValue();
 }
 
 float SpectralGateTiptoe::getLastProcessingTimeMs() const
@@ -251,6 +273,14 @@ void SpectralGateTiptoe::processFrame()
         inputMagWriteIndex_.store(writeIdx, std::memory_order_release);
     }
 
+    // Advance parameter smoothers by one hop's worth of audio samples.
+    // Reading the smoothed values here (rather than the raw thresholdSq_ /
+    // reductionGain_) is what makes automation glide instead of stepping
+    // at the FFT hop rate.
+    const float effThresholdMult  = thresholdSmoothed_.skip(kHopSize);
+    const float effThresholdSq    = effThresholdMult * effThresholdMult;
+    const float effReductionGain  = reductionGainSmoothed_.skip(kHopSize);
+
     // Spectral gate — compare squared magnitudes (no sqrt)
     if (hasNoiseProfile_)
     {
@@ -260,12 +290,12 @@ void SpectralGateTiptoe::processFrame()
             float im = fftWorkspace[i * 2 + 1];
             float magSq = re * re + im * im;
 
-            float thresholdSq = noiseProfileSq_[i] * thresholdSq_;
+            float thresholdSq = noiseProfileSq_[i] * effThresholdSq;
 
             if (magSq < thresholdSq)
             {
-                fftWorkspace[i * 2] *= reductionGain_;
-                fftWorkspace[i * 2 + 1] *= reductionGain_;
+                fftWorkspace[i * 2] *= effReductionGain;
+                fftWorkspace[i * 2 + 1] *= effReductionGain;
             }
         }
     }
