@@ -14,7 +14,7 @@
 
 <p align="center">
   <a href="https://github.com/conjius-dp/tiptoe/actions/workflows/ci.yml"><img src="https://github.com/conjius-dp/tiptoe/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://codecov.io/gh/conjius-dp/tiptoe"><img src="https://codecov.io/gh/conjius-dp/tiptoe/branch/main/graph/badge.svg" alt="Coverage"></a>
+  <a href="https://github.com/conjius-dp/tiptoe/actions/workflows/ci.yml"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fconjius-dp.github.io%2Ftiptoe%2Fcoverage.json" alt="Coverage"></a>
   <a href="https://github.com/conjius-dp/tiptoe/releases/latest"><img src="https://img.shields.io/github/v/release/conjius-dp/tiptoe?label=stable&color=brightgreen" alt="Stable"></a>
   <a href="https://github.com/conjius-dp/tiptoe/releases"><img src="https://img.shields.io/github/v/release/conjius-dp/tiptoe?include_prereleases&label=nightly" alt="Nightly"></a>
 </p>

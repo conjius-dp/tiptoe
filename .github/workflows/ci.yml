@@ -103,17 +103,58 @@ jobs:
                --output-file coverage.info --ignore-errors unused,inconsistent,format
           lcov --list coverage.info --ignore-errors inconsistent,format
 
-      - name: Upload coverage to Codecov
-        # Codecov hosts the report and serves a live badge the README links
-        # to. No SVG / HTML is committed back to the repo.
-        uses: codecov/codecov-action@v4
-        with:
-          files: coverage.info
-          flags: macos
-          fail_ci_if_error: false
-          verbose: true
+      - name: Publish coverage badge data to gh-pages
+        # Extracts the line coverage % from lcov and writes a small JSON file
+        # (shields.io "endpoint" schema) to the gh-pages branch. The README
+        # renders it via https://img.shields.io/endpoint?url=...
+        # Nothing is committed to main; the gh-pages branch already hosts the
+        # screenshot, so this is consistent with how screenshots are published.
+        if: github.ref == 'refs/heads/main'
         env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LINE_PCT=$(lcov --summary coverage.info --ignore-errors inconsistent,format 2>&1 | grep 'lines\.\.\.' | sed 's/.*: *\([0-9.]*\)%.*/\1/')
+          echo "Line coverage: ${LINE_PCT}%"
+
+          if [ "$(echo "$LINE_PCT >= 80" | bc)" -eq 1 ]; then
+            COLOR="brightgreen"
+          elif [ "$(echo "$LINE_PCT >= 60" | bc)" -eq 1 ]; then
+            COLOR="yellow"
+          else
+            COLOR="red"
+          fi
+
+          REPO_URL="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          TMPDIR=$(mktemp -d)
+          if ! git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git clone "$REPO_URL" "$TMPDIR"
+            cd "$TMPDIR"
+            git checkout --orphan gh-pages
+            git rm -rf . 2>/dev/null || true
+          else
+            git clone --branch gh-pages --depth 1 "$REPO_URL" "$TMPDIR"
+            cd "$TMPDIR"
+          fi
+
+          cat > coverage.json <<JSON
+          {
+            "schemaVersion": 1,
+            "label": "coverage",
+            "message": "${LINE_PCT}%",
+            "color": "${COLOR}"
+          }
+          JSON
+
+          touch .nojekyll
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add coverage.json .nojekyll
+          if git diff --cached --quiet; then
+            echo "Coverage unchanged, skipping commit"
+          else
+            git commit -m "Update coverage badge to ${LINE_PCT}%"
+            git push origin gh-pages
+          fi
 
   build-and-test-windows:
     runs-on: windows-latest
