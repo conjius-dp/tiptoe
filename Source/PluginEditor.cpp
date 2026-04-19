@@ -103,16 +103,21 @@ TiptoeAudioProcessorEditor::TiptoeAudioProcessorEditor(TiptoeAudioProcessor& p)
     bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
         processorRef.getAPVTS(), "bypass", bypassButton);
 
-    // HQ / Realtime mode toggle — orange pill button. Label tracks the
-    // current toggle state (off = "RT", on = "HQ") via a state listener
-    // plumbed through the TextButton onStateChange.
+    // Mode button — styled identically to the Learn pill (same font,
+    // same LAF, same hover + state-progress properties). Click toggles
+    // the "hq" APVTS parameter; the pill crossfades "Realtime" → "HQ"
+    // via the PillButtonLAF.
     modeButton.setClickingTogglesState(true);
     modeButton.setMouseCursor(juce::MouseCursor::PointingHandCursor);
     modeButton.setConnectedEdges(0);
+    modeButton.getProperties().set("stateTarget",
+        processorRef.isHQMode() ? 1.0 : 0.0);
+    modeButton.getProperties().set("stateProgress",
+        processorRef.isHQMode() ? 1.0 : 0.0);
     modeButton.onStateChange = [this]() {
-        modeButton.setButtonText(modeButton.getToggleState() ? "HQ" : "RT");
+        modeButton.getProperties().set("stateTarget",
+            modeButton.getToggleState() ? 1.0 : 0.0);
     };
-    modeButton.setButtonText(processorRef.isHQMode() ? "HQ" : "RT");
     addAndMakeVisible(modeButton);
     modeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
         processorRef.getAPVTS(), "hq", modeButton);
@@ -277,6 +282,7 @@ void TiptoeAudioProcessorEditor::timerCallback()
     animateHover(sensitivitySlider, sensitivitySlider.isMouseOverOrDragging(true));
     animateHover(reductionSlider, reductionSlider.isMouseOverOrDragging(true));
     animateHover(learnButton,     learnButton.isOver() || learnButton.isDown());
+    animateHover(modeButton,      modeButton .isOver() || modeButton .isDown());
 
     // Update snap-to-default animations
     updateSnapAnimation(sensitivitySlider, sensitivityAnim);
@@ -295,17 +301,21 @@ void TiptoeAudioProcessorEditor::timerCallback()
     }
 
     // Animate Learn button visual state transition (Start <-> Stop)
-    {
-        auto& props = learnButton.getProperties();
-        float stateDest = static_cast<float>(props.getWithDefault("stateTarget", 0.0));
-        float current = static_cast<float>(props.getWithDefault("stateProgress", 0.0));
+    // AND the Mode button transition (Realtime <-> HQ). Same one-pole
+    // lerp toward the current stateTarget on each button's properties.
+    auto advanceStateProgress = [](juce::Button& b) {
+        auto& props = b.getProperties();
+        const float stateDest = static_cast<float>(props.getWithDefault("stateTarget",   0.0));
+        float       current   = static_cast<float>(props.getWithDefault("stateProgress", 0.0));
         if (std::abs(stateDest - current) > 0.002f)
         {
             current += (stateDest - current) * 0.20f;
             props.set("stateProgress", current);
-            learnButton.repaint();
+            b.repaint();
         }
-    }
+    };
+    advanceStateProgress(learnButton);
+    advanceStateProgress(modeButton);
 
     // Animate "Learn" <-> "Learning..." text crossfade and the three-dot loop
     {
@@ -397,20 +407,18 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
     // Draw title logo at top-centre (small)
     if (titleLogoImage.isValid())
     {
-        float titleH = h * 0.146f; // 1.5x the previous size
+        float titleH = h * 0.190f; // ~1.3× the previous title height
         float aspect = static_cast<float>(titleLogoImage.getWidth())
                      / static_cast<float>(titleLogoImage.getHeight());
         float titleW = titleH * aspect;
         float titleX = (w - titleW) * 0.5f;
-        // Logo raised to make room for the HQ/RT mode button directly
-        // below it. Was h * 0.24, now h * 0.18.
-        float titleY = graphH + h * 0.18f;
+        float titleY = graphH + h * 0.24f; // title+subtitle raised higher
         g.drawImage(titleLogoImage,
                     juce::Rectangle<float>(titleX, titleY, titleW, titleH),
                     juce::RectanglePlacement::centred);
 
-        // Subtitle: small "Spectral denoiser" tagline diagonally below/right of the logo
-        float subFontSize = h * 0.028f;
+        // Subtitle: "Realtime denoiser" tagline diagonally below/right of the logo
+        float subFontSize = h * 0.036f; // ~1.3× to match the logo bump
         auto subFont = conjusLAF.getBoldFont(subFontSize);
         g.setColour(KnobDesign::accentHoverColour);
         g.setFont(subFont);
@@ -420,7 +428,7 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
         float subX = titleX + titleW * 0.48f;
         float subY = titleY + titleH * 0.70f;
         const float subLineH = subFontSize * 1.1f;
-        g.drawText("SPECTRAL",
+        g.drawText("REALTIME",
                    juce::Rectangle<float>(subX, subY, subW, subFontSize * 1.4f),
                    juce::Justification::topLeft, false);
         g.drawText("DENOISER",
@@ -446,7 +454,7 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
     // Centre column between the two knobs — text sits just above the button
     float centreX = w * 0.5f;
     float btnH = h * 0.07f;
-    float btnY = h * 0.68f - btnH * 0.5f + graphH;
+    float btnY = h * 0.72f - btnH * 0.5f + graphH; // pushed lower to make room for the MODE pair above
     float labelY = btnY - learnFontSize * 1.25f; // closer to the START/STOP button
 
     // Crossfade alphas between "Learn" and "Learning" (without the dots)
@@ -535,6 +543,23 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
         static_cast<int>(labelY - learnFontSize * 0.2f),
         static_cast<int>(w * 0.40f),
         static_cast<int>(learnFontSize * 2.2f));
+
+    // "MODE" label drawn directly above the MODE pill, mirroring the
+    // "LEARN" label placement relative to the learn pill. Static text
+    // (no crossfade), same font, same colour, same vertical spacing.
+    {
+        // Mode button is positioned pairStride samples above the learn
+        // button; the same formula applies to the text labels. pairStride
+        // is recomputed to match resized().
+        const float pairStride = btnH + h * 0.055f;
+        const float modeLabelY = labelY - pairStride;
+        g.setFont(labelFontLearn);
+        g.setColour(KnobDesign::accentColour);
+        g.drawText("MODE",
+                   juce::Rectangle<float>(centreX - w * 0.15f, modeLabelY,
+                                          w * 0.3f, learnFontSize * 1.2f),
+                   juce::Justification::centred, false);
+    }
 
     // Border is drawn in paintOverChildren() so it sits on top of every
     // child component, including the spectrum graph's curves.
@@ -698,96 +723,47 @@ void TiptoeAudioProcessorEditor::resized()
     float btnW = centreColW * 0.75f;
     float btnH = h * 0.07f;
     float btnX = w * 0.5f - btnW * 0.5f;
-    float btnY = h * 0.68f - btnH * 0.5f + graphH;
+    float btnY = h * 0.72f - btnH * 0.5f + graphH; // pushed lower to make room for the MODE pair above
 
     learnButton.setBounds(static_cast<int>(btnX), static_cast<int>(btnY),
                           static_cast<int>(btnW), static_cast<int>(btnH));
 
-    // Mode button (HQ / RT) — sits under the title logo at the top
-    // centre of the knob area. The logo is drawn at titleY = graphH +
-    // h * 0.18, titleH = h * 0.146, so the mode button lands just below
-    // (titleY + titleH + a small gap).
-    {
-        const float logoTop       = graphH + h * 0.18f;
-        const float logoH         = h * 0.146f;
-        const float modeGap       = h * 0.015f;
-        const float modeBtnW      = centreColW * 0.55f;
-        const float modeBtnH      = h * 0.042f;
-        const float modeBtnX      = w * 0.5f - modeBtnW * 0.5f;
-        const float modeBtnY      = logoTop + logoH + modeGap;
-        modeButton.setBounds(static_cast<int>(modeBtnX),
-                             static_cast<int>(modeBtnY),
-                             static_cast<int>(modeBtnW),
-                             static_cast<int>(modeBtnH));
+    // ── Mode button pair (MODE text + pill) — same size / font / pill
+    //    LAF as the learn pair. Sits ABOVE the learn pair in the centre
+    //    column (mode button + label → learn button + label, top to
+    //    bottom). The whole stack is nudged lower on the page so there
+    //    is comfortable breathing room above the mode label.
+    //    The MODE pill's button-text is set from the APVTS "hq" state
+    //    in the constructor (callback) and in the timer callback so it
+    //    tracks external automation. ──
+    float modeBtnW = btnW;
+    float modeBtnH = btnH;
+    float modeBtnX = btnX;
+    // Mode button sits one "pair height" above the learn button (so
+    // its "MODE" label has the same spacing above it as "LEARN" does).
+    float pairStride = btnH + h * 0.055f;
+    float modeBtnY   = btnY - pairStride;
 
-        // Orange pill look on both states: filled when OFF (RT mode),
-        // outlined when ON (HQ mode). Mirror of the BypassButton palette.
-        struct ModeButtonLAF : juce::LookAndFeel_V4
-        {
-            juce::Font font;
-            explicit ModeButtonLAF(juce::Font f) : font(f) {}
-
-            void drawButtonBackground(juce::Graphics& g, juce::Button& button,
-                                      const juce::Colour&,
-                                      bool isMouseOver, bool isButtonDown) override
-            {
-                auto b = button.getLocalBounds().toFloat();
-                if (isButtonDown)
-                    b = b.reduced(b.getWidth() * 0.04f, b.getHeight() * 0.08f);
-
-                const bool on = button.getToggleState();
-                auto accent   = isMouseOver ? KnobDesign::accentHoverColour
-                                            : KnobDesign::accentColour;
-                const float radius = b.getHeight() * 0.5f;
-
-                if (on)
-                {
-                    // Dark fill + orange stroke for the HQ ("ON") state.
-                    g.setColour(KnobDesign::bgColour);
-                    g.fillRoundedRectangle(b, radius);
-                    const float strokeW = b.getHeight() * 0.08f;
-                    g.setColour(accent);
-                    g.drawRoundedRectangle(b.reduced(strokeW * 0.5f),
-                                           radius, strokeW);
-                }
-                else
-                {
-                    // Solid orange fill for the RT ("OFF") state.
-                    g.setColour(accent);
-                    g.fillRoundedRectangle(b, radius);
-                }
-            }
-
-            void drawButtonText(juce::Graphics& g, juce::TextButton& button,
-                                bool /*isMouseOver*/, bool isButtonDown) override
-            {
-                auto b = button.getLocalBounds().toFloat();
-                if (isButtonDown)
-                    b = b.reduced(b.getWidth() * 0.04f, b.getHeight() * 0.08f);
-
-                const bool on = button.getToggleState();
-                g.setFont(font);
-                g.setColour(on ? KnobDesign::accentColour : KnobDesign::bgColour);
-                g.drawText(button.getButtonText(), b, juce::Justification::centred, false);
-            }
-        };
-
-        static ModeButtonLAF* modeLAF = nullptr;
-        delete modeLAF;
-        modeLAF = new ModeButtonLAF(conjusLAF.getBoldFont(modeBtnH * 0.55f));
-        modeButton.setLookAndFeel(modeLAF);
-    }
+    modeButton.setBounds(static_cast<int>(modeBtnX), static_cast<int>(modeBtnY),
+                         static_cast<int>(modeBtnW), static_cast<int>(modeBtnH));
+    modeButton.setConnectedEdges(0);
 
     // Pill with fully circular side edges + larger text
     float btnFontSize = KnobDesign::learnButtonFontSize(w);
     learnButton.setConnectedEdges(0);
 
-    // Custom LookAndFeel for pill shape button
+    // Custom LookAndFeel for pill shape button. Shared by both pairs
+    // (learn + mode) — the only thing that differs between them is the
+    // pair of text labels (Start/Stop vs Realtime/HQ).
     struct PillButtonLAF : juce::LookAndFeel_V4
     {
         juce::Font font;
         float knobStrokeW;
-        PillButtonLAF(juce::Font f, float ksw) : font(f), knobStrokeW(ksw) {}
+        juce::String offText;
+        juce::String onText;
+        PillButtonLAF(juce::Font f, float ksw,
+                      juce::String off, juce::String on)
+            : font(f), knobStrokeW(ksw), offText(off), onText(on) {}
 
         static juce::Rectangle<float> pressBounds(juce::Button& button, bool isButtonDown)
         {
@@ -848,24 +824,28 @@ void TiptoeAudioProcessorEditor::resized()
             if (alphaStart > 0.001f)
             {
                 g.setColour(textColour.withMultipliedAlpha(alphaStart));
-                g.drawText("START", bounds, juce::Justification::centred, false);
+                g.drawText(offText, bounds, juce::Justification::centred, false);
             }
             if (alphaStop > 0.001f)
             {
                 g.setColour(textColour.withMultipliedAlpha(alphaStop));
-                g.drawText("STOP", bounds, juce::Justification::centred, false);
+                g.drawText(onText, bounds, juce::Justification::centred, false);
             }
         }
     };
-    static PillButtonLAF* pillLAF = nullptr;
+    static PillButtonLAF* pillLAF     = nullptr;
+    static PillButtonLAF* modePillLAF = nullptr;
     delete pillLAF;
+    delete modePillLAF;
     // Compute knob stroke width in pixels to match actual knob border thickness.
     // Use the same diameter formula as drawRotarySlider: jmin(sliderW, knobAreaH) * 0.78.
     float knobAreaH = static_cast<float>(sliderH) - static_cast<float>(textBoxH);
     float knobDiameter = juce::jmin(sliderBoundsW, knobAreaH) * 0.78f;
     float knobStrokeW = knobDiameter * KnobDesign::knobStrokeFrac;
-    pillLAF = new PillButtonLAF(conjusLAF.getBoldFont(btnFontSize), knobStrokeW);
+    pillLAF     = new PillButtonLAF(conjusLAF.getBoldFont(btnFontSize), knobStrokeW, "START",    "STOP");
+    modePillLAF = new PillButtonLAF(conjusLAF.getBoldFont(btnFontSize), knobStrokeW, "REALTIME", "HQ");
     learnButton.setLookAndFeel(pillLAF);
+    modeButton .setLookAndFeel(modePillLAF);
 
     // Pass the exact knob-stroke thickness to the bypass button so its
     // bypassed-state ring reads as part of the same visual family as the

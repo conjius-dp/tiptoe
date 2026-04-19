@@ -65,13 +65,15 @@ public:
     const std::vector<float>& getLowBandNoiseProfile () const { return lowBand_ .getNoiseProfile(); }
     const std::vector<float>& getHighBandNoiseProfile() const { return highBand_.getNoiseProfile(); }
 
-    // Spectrum-graph hooks. The editor shows a single stitched curve;
-    // we hand it the HIGH band's magnitudes because they cover the wider
-    // visible frequency range at meaningful resolution (FFT 128 at the
-    // full sample rate). The low band's decimated spectrum is 9 coarse
-    // bins covering 0–2.75 kHz — not useful as a UI surface on its own.
-    void copyInputMagnitudes(std::vector<float>& out) const { highBand_.copyInputMagnitudes(out); }
-    void copyNoiseProfile   (std::vector<float>& out) const { highBand_.copyNoiseProfile   (out); }
+    // Spectrum-graph hooks. The editor gets a SINGLE seamless curve
+    // with bins that correspond to the high band's FFT grid (FFT 128 at
+    // full rate → 65 bins at 344 Hz spacing covering 0–22 kHz). The
+    // low band's FFT 16 at 1/8 rate lands on the SAME 344 Hz bin grid
+    // over its 0–2.75 kHz range by design. We merge the two via
+    // quadrature sum so the UI sees total energy per bin — no visible
+    // seam at the crossover, no awareness there are bands underneath.
+    void copyInputMagnitudes(std::vector<float>& out) const;
+    void copyNoiseProfile   (std::vector<float>& out) const;
 
     int getVisualizationFFTSize() const noexcept { return highBand_.getFFTSize(); }
     int getVisualizationNumBins() const noexcept { return highBand_.getNumBins(); }

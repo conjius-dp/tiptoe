@@ -141,6 +141,44 @@ void MultiBandGate::setReduction(float reductionDB)
     highBand_.setReduction(reductionDB);
 }
 
+namespace
+{
+    // Quadrature-sum bin-by-bin (√(low² + high²)). The low band only
+    // covers the first `low.size()` bins of the full spectrum; the high
+    // band fills the whole range. Both bands' FFTs are designed so the
+    // bin-width line up exactly (344 Hz at 44.1 kHz / FFT 128 / D=8),
+    // so direct bin alignment is correct — no interpolation needed.
+    inline void mergeBands(const std::vector<float>& low,
+                           const std::vector<float>& high,
+                           std::vector<float>& out)
+    {
+        const size_t n = high.size();
+        out.resize(n);
+        for (size_t i = 0; i < n; ++i)
+        {
+            const float h = high[i];
+            const float l = i < low.size() ? low[i] : 0.0f;
+            out[i] = std::sqrt(h * h + l * l);
+        }
+    }
+}
+
+void MultiBandGate::copyInputMagnitudes(std::vector<float>& out) const
+{
+    static thread_local std::vector<float> lowScratch, highScratch;
+    lowBand_ .copyInputMagnitudes(lowScratch);
+    highBand_.copyInputMagnitudes(highScratch);
+    mergeBands(lowScratch, highScratch, out);
+}
+
+void MultiBandGate::copyNoiseProfile(std::vector<float>& out) const
+{
+    static thread_local std::vector<float> lowScratch, highScratch;
+    lowBand_ .copyNoiseProfile(lowScratch);
+    highBand_.copyNoiseProfile(highScratch);
+    mergeBands(lowScratch, highScratch, out);
+}
+
 void MultiBandGate::processMono(float* samples, int numSamples)
 {
     // Guard against callers exceeding prepare()'s maxBlockSize.
