@@ -117,6 +117,8 @@ add_executable(TiptoeTests
     Tests/TestSpectralGateTiptoe.cpp
     Tests/TestLayoutSizes.cpp
     Tests/TestBypassButton.cpp
+    Tests/TestCrossover.cpp
+    Tests/TestResampler.cpp
 )
 
 target_include_directories(TiptoeTests PRIVATE Source)
