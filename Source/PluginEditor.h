@@ -94,6 +94,12 @@ private:
     BypassButton     bypassButton;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
 
+    // HQ / Realtime mode toggle — orange pill labeled "HQ" / "RT".
+    // Clicking flips the "hq" APVTS parameter, which the processor
+    // observes to route through the matching DSP and re-report latency.
+    juce::TextButton modeButton { "RT" };
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> modeAttachment;
+
     SpectrumGraph spectrumGraph;
 
     // Reused buffers for spectrum snapshots so we don't allocate per frame.

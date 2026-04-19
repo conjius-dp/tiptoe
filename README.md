@@ -24,16 +24,28 @@
   <a href="https://github.com/conjius-dp/tiptoe/graphs/commit-activity"><img src="https://repobeats.axiom.co/api/embed/ccbb782b0fcf93b609feffe2e10efebcdc9c738a.svg" width="700" alt="Repobeats analytics image"></a>
 </p>
 
-Spectral-gating denoiser. Learn a noise profile, then attenuate matching frequencies in real time. 512-sample FFT, 75 % overlap Hann, soft-knee per-bin gate with learned attack/release, ~11.6 ms latency at 44.1 kHz.
+Spectral-gating denoiser. Learn a noise profile, then attenuate matching frequencies in real time. 75 % overlap Hann, soft-knee per-bin gate with learned attack/release.
 
 VST3 (macOS, Windows), AU + Standalone (macOS). Stereo in/out.
+
+## Modes
+
+Toggle with the **MODE** pill in the UI (also exposed to the host as the `hq` bool param).
+
+| Mode | Latency @ 44.1 kHz | How it works |
+|---|---|---|
+| **Realtime** (default) | 162 samples / 3.67 ms | 2 kHz Linkwitz-Riley crossover → 8× decimated low band (FFT 16) + full-rate high band (FFT 128), delay-aligned and summed |
+| **HQ** | 512 samples / 11.6 ms | Single-band, FFT 2048 |
+
+Flipping the toggle re-reports `setLatencySamples()` live, so the host re-aligns PDC without a reload. The spectrum display always shows the HQ gate's 257-bin FFT (run in parallel at ~0.5 % CPU in realtime mode) so both modes look identical in the UI.
 
 ## Usage
 
 1. **Learn Noise** during a noise-only section.
 2. Click again to stop.
 3. Dial **Sensitivity** and **Reduction**.
-4. Power button (top-right) hard-bypasses the plugin.
+4. Pick **MODE** (realtime vs HQ).
+5. Power button (top-right) hard-bypasses the plugin.
 
 ## Parameters
 
@@ -41,6 +53,7 @@ VST3 (macOS, Windows), AU + Standalone (macOS). Stereo in/out.
 |---|---|---|
 | Sensitivity | 0.1× – 3.0× | 1.0× |
 | Reduction   | 0 dB – −60 dB | −30 dB |
+| HQ          | on / off | off (realtime) |
 | Bypass      | on / off | off |
 
 ## Build

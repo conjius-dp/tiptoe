@@ -107,10 +107,6 @@ jobs:
           fi
           pluginval.app/Contents/MacOS/pluginval --validate build/Tiptoe_artefacts/Release/VST3/tiptoe.vst3 --strictness-level 5
 
-      - name: Cancel workflow if this job failed
-        if: failure()
-        uses: andymckay/cancel-action@0.5
-
       - name: Generate coverage info
         run: |
           lcov --capture --directory build --output-file coverage.info \
@@ -218,11 +214,17 @@ jobs:
         run: cmake --build build --target Tiptoe_VST3 TiptoeTests
 
       - name: Run tests
+        # The test binary must run under cmd (not pwsh) to get proper
+        # stdout/stderr merge. pwsh buffers stderr oddly and swallows the
+        # first few lines on an abnormal exit.
+        shell: cmd
         run: |
-          $exe = Get-ChildItem -Path build -Recurse -Filter TiptoeTests.exe | Select-Object -First 1
-          Write-Host "Found test executable: $($exe.FullName)"
-          & $exe.FullName
-        shell: pwsh
+          for /f "delims=" %%f in ('where /r build TiptoeTests.exe') do set "TEST_EXE=%%f"
+          echo Test binary: %TEST_EXE%
+          if not defined TEST_EXE ( echo TiptoeTests.exe not found & exit /b 1 )
+          "%TEST_EXE%" 2>&1
+          echo ExitCode=%ERRORLEVEL%
+          exit /b %ERRORLEVEL%
 
       - name: sccache stats
         run: sccache --show-stats
@@ -241,7 +243,3 @@ jobs:
           }
           pluginval\pluginval.exe --validate build\Tiptoe_artefacts\Release\VST3\tiptoe.vst3 --strictness-level 5
         shell: pwsh
-
-      - name: Cancel workflow if this job failed
-        if: failure()
-        uses: andymckay/cancel-action@0.5

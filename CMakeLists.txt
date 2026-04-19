@@ -7,6 +7,8 @@ add_subdirectory(JUCE)
 # --- DSP Library (shared between plugin and tests) ---
 add_library(TiptoeDSP STATIC
     Source/DSP/SpectralGateTiptoe.cpp
+    Source/DSP/BandGate.cpp
+    Source/DSP/MultiBandGate.cpp
 )
 
 target_include_directories(TiptoeDSP PUBLIC Source)
@@ -98,10 +100,16 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebI
     foreach(kind VST3 AU Standalone)
         if(TARGET Tiptoe_${kind})
             if(APPLE)
+                # Strip, then re-apply the ad-hoc code signature. Without
+                # the re-sign, macOS 14+ refuses to dlopen the bundle
+                # (SIGKILL, "Code Signature Invalid") because strip mutates
+                # the binary after JUCE's post-link ad-hoc sign.
                 add_custom_command(TARGET Tiptoe_${kind} POST_BUILD
                     COMMAND ${CMAKE_STRIP} -x -S
                         $<TARGET_FILE:Tiptoe_${kind}>
-                    COMMENT "Stripping Tiptoe_${kind}")
+                    COMMAND codesign --force --sign - --timestamp=none
+                        $<TARGET_BUNDLE_DIR:Tiptoe_${kind}>
+                    COMMENT "Stripping + re-signing Tiptoe_${kind}")
             elseif(UNIX)
                 add_custom_command(TARGET Tiptoe_${kind} POST_BUILD
                     COMMAND ${CMAKE_STRIP} --strip-all
@@ -117,6 +125,10 @@ add_executable(TiptoeTests
     Tests/TestSpectralGateTiptoe.cpp
     Tests/TestLayoutSizes.cpp
     Tests/TestBypassButton.cpp
+    Tests/TestCrossover.cpp
+    Tests/TestResampler.cpp
+    Tests/TestBandGate.cpp
+    Tests/TestMultiBandGate.cpp
 )
 
 target_include_directories(TiptoeTests PRIVATE Source)
