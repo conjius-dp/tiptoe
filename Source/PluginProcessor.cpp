@@ -141,27 +141,29 @@ void TiptoeAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         return;
     }
 
-    // Route processing based on the active mode. In realtime mode we
-    // ALSO feed channel-0 input to the HQ gate on a scratch buffer and
-    // discard the output — the spectrum graph always reads HQ's
-    // snapshot so realtime and HQ visualizations stay at identical
-    // resolution (FFT 512, 257 bins) and scale. The extra FFT costs
-    // ~half a percent CPU at typical block sizes and keeps the UI
-    // coherent as the user toggles modes.
+    // Snapshot channel-0 input BEFORE processing — used in realtime
+    // mode to feed the HQ gate's FFT for visualization. Must be captured
+    // before the active gate writes processed output back to the buffer.
+    static thread_local std::vector<float> vizScratch;
+    if (! hq)
+    {
+        const float* in0 = buffer.getReadPointer(0);
+        vizScratch.assign(in0, in0 + numSamples);
+    }
+
+    // Route processing based on the active mode.
     for (int ch = 0; ch < std::min(totalNumInputChannels, 2); ++ch)
     {
         if (hq) hqGates[ch].processMono(buffer.getWritePointer(ch), numSamples);
         else    gates  [ch].processMono(buffer.getWritePointer(ch), numSamples);
     }
 
+    // In realtime mode, feed the HQ gate the SAVED raw input (channel 0)
+    // and discard its output. The spectrum graph always reads HQ's
+    // published FFT snapshot, so realtime and HQ visualizations stay at
+    // identical resolution (FFT 512, 257 bins) and scale.
     if (! hq)
-    {
-        // Channel 0 only — viz is mono-sourced.
-        static thread_local std::vector<float> vizScratch;
-        const float* in0 = buffer.getReadPointer(0);
-        vizScratch.assign(in0, in0 + numSamples);
         hqGates[0].processMono(vizScratch.data(), numSamples);
-    }
 }
 
 void TiptoeAudioProcessor::startLearning()
