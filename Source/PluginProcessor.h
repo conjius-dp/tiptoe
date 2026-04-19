@@ -87,34 +87,20 @@ public:
         return static_cast<float>(static_cast<double>(samples) / sr * 1000.0);
     }
 
-    // Spectrum-graph accessors — route to whichever gate is active so
-    // the UI spectrum matches the sound actually being processed.
-    void copyInputMagnitudes(std::vector<float>& out) const
-    {
-        if (isHQMode()) hqGates[0].copyInputMagnitudes(out);
-        else            gates   [0].copyInputMagnitudes(out);
-    }
-    void copyNoiseProfile(std::vector<float>& out) const
-    {
-        if (isHQMode()) hqGates[0].copyNoiseProfile(out);
-        else            gates   [0].copyNoiseProfile(out);
-    }
-    const std::vector<float>& getNoiseProfile() const
-    {
-        return isHQMode() ? hqGates[0].getNoiseProfile()
-                          : gates  [0].getHighBandNoiseProfile();
-    }
+    // Spectrum-graph accessors — always sourced from the HQ gate,
+    // regardless of active mode. The HQ gate runs in parallel on the
+    // audio thread in realtime mode (input is fed to a scratch buffer;
+    // its DSP output is discarded, only the published FFT snapshot is
+    // read by the UI). This gives the user a single consistent
+    // visualization — same FFT size, same bin count, same dB scale —
+    // whether the plugin is processing through the multi-band path or
+    // the single-band one.
+    void copyInputMagnitudes(std::vector<float>& out) const { hqGates[0].copyInputMagnitudes(out); }
+    void copyNoiseProfile   (std::vector<float>& out) const { hqGates[0].copyNoiseProfile   (out); }
+    const std::vector<float>& getNoiseProfile() const        { return hqGates[0].getNoiseProfile(); }
     double getDspSampleRate() const { return gates[0].getSampleRate(); }
-    int getFFTSize() const
-    {
-        return isHQMode() ? SpectralGateTiptoe::kFFTSize
-                          : gates[0].getVisualizationFFTSize();
-    }
-    int getNumBins() const
-    {
-        return isHQMode() ? SpectralGateTiptoe::kNumBins
-                          : gates[0].getVisualizationNumBins();
-    }
+    int getFFTSize() const { return SpectralGateTiptoe::kFFTSize; }
+    int getNumBins() const { return SpectralGateTiptoe::kNumBins; }
 
     // Editor size persistence
     std::atomic<int> editorWidth  { KnobDesign::defaultWidth };

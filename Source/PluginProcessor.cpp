@@ -141,11 +141,26 @@ void TiptoeAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         return;
     }
 
-    // Route processing based on the active mode.
+    // Route processing based on the active mode. In realtime mode we
+    // ALSO feed channel-0 input to the HQ gate on a scratch buffer and
+    // discard the output — the spectrum graph always reads HQ's
+    // snapshot so realtime and HQ visualizations stay at identical
+    // resolution (FFT 512, 257 bins) and scale. The extra FFT costs
+    // ~half a percent CPU at typical block sizes and keeps the UI
+    // coherent as the user toggles modes.
     for (int ch = 0; ch < std::min(totalNumInputChannels, 2); ++ch)
     {
         if (hq) hqGates[ch].processMono(buffer.getWritePointer(ch), numSamples);
         else    gates  [ch].processMono(buffer.getWritePointer(ch), numSamples);
+    }
+
+    if (! hq)
+    {
+        // Channel 0 only — viz is mono-sourced.
+        static thread_local std::vector<float> vizScratch;
+        const float* in0 = buffer.getReadPointer(0);
+        vizScratch.assign(in0, in0 + numSamples);
+        hqGates[0].processMono(vizScratch.data(), numSamples);
     }
 }
 
