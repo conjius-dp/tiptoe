@@ -108,10 +108,10 @@ public:
 
 private:
     // Multi-band config. 2 kHz crossover, 8× low-band decimation, low
-    // FFT 32 at decimated rate, high FFT 128 at full rate. Reported
-    // plugin latency ≈ 6.7 ms at 44.1 kHz.
+    // FFT 16 at decimated rate, high FFT 128 at full rate. Reported
+    // plugin latency ≈ 3.67 ms at 44.1 kHz.
     static constexpr MultiBandGate::Config kMultiBandConfig {
-        2000.0f, 8, 5, 7
+        2000.0f, 8, 4, 7
     };
 
     juce::AudioProcessorValueTreeState apvts;

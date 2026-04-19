@@ -61,7 +61,7 @@ namespace
     constexpr MultiBandGate::Config kDefaultCfg {
         2000.0f,  // crossoverHz
         8,        // decimationFactor
-        5,        // lowFFTOrder  -> FFT 32 (order 4 /FFT 16 misbehaves on MSVC)
+        4,        // lowFFTOrder  -> FFT 16
         7,        // highFFTOrder -> FFT 128
     };
 }

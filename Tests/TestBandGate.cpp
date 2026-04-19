@@ -60,32 +60,30 @@ public:
         // --- Construction & sizing --------------------------------------
         beginTest("Constructor sets FFT size from order");
         {
-            BandGate g5 (5); expectEquals(g5.getFFTSize(),  32);
+            BandGate g4 (4); expectEquals(g4.getFFTSize(),  16);
             BandGate g7 (7); expectEquals(g7.getFFTSize(), 128);
             BandGate g9 (9); expectEquals(g9.getFFTSize(), 512);
 
-            expectEquals(g5.getHopSize(), g5.getFFTSize() / 4);
+            expectEquals(g4.getHopSize(), g4.getFFTSize() / 4);
             expectEquals(g7.getHopSize(), g7.getFFTSize() / 4);
             expectEquals(g9.getHopSize(), g9.getFFTSize() / 4);
 
-            expectEquals(g5.getNumBins(), g5.getFFTSize() / 2 + 1);
+            expectEquals(g4.getNumBins(), g4.getFFTSize() / 2 + 1);
             expectEquals(g7.getNumBins(), g7.getFFTSize() / 2 + 1);
         }
 
         beginTest("Constructor clamps degenerate orders");
         {
-            // Floor at 5 (FFT 32), ceiling at 11 (FFT 2048). Anything
-            // outside gets clamped.
             BandGate tooSmall(0);
             BandGate tooBig  (15);
-            expect(tooSmall.getFFTSize() >= 32);
+            expect(tooSmall.getFFTSize() >= 16);
             expect(tooBig   .getFFTSize() <= 2048);
         }
 
         // --- Silence → silence -----------------------------------------
         beginTest("Silence in → silence out (no noise profile)");
         {
-            for (int order : { 5, 7, 9 })
+            for (int order : { 4, 7, 9 })
             {
                 BandGate g(order);
                 g.prepare(44100.0, 512);
@@ -98,7 +96,7 @@ public:
         // --- Pass-through when no noise profile has been learned -------
         beginTest("No noise profile → signal passes through (amplitude ≈ input)");
         {
-            for (int order : { 5, 7, 9 })
+            for (int order : { 4, 7, 9 })
             {
                 BandGate g(order);
                 g.prepare(44100.0, 512);
