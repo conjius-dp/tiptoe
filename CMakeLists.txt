@@ -7,6 +7,7 @@ add_subdirectory(JUCE)
 # --- DSP Library (shared between plugin and tests) ---
 add_library(TiptoeDSP STATIC
     Source/DSP/SpectralGateTiptoe.cpp
+    Source/DSP/BandGate.cpp
 )
 
 target_include_directories(TiptoeDSP PUBLIC Source)
@@ -119,6 +120,7 @@ add_executable(TiptoeTests
     Tests/TestBypassButton.cpp
     Tests/TestCrossover.cpp
     Tests/TestResampler.cpp
+    Tests/TestBandGate.cpp
 )
 
 target_include_directories(TiptoeTests PRIVATE Source)
