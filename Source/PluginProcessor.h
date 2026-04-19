@@ -107,12 +107,11 @@ public:
     std::atomic<int> editorHeight { KnobDesign::defaultHeight };
 
 private:
-    // Static config for the multi-band gate. 2 kHz crossover, 8× low-band
-    // decimation, low FFT 16 at decimated rate (172 Hz bins covering
-    // 0–2 kHz), high FFT 128 at full rate (344 Hz bins covering 0–22 kHz).
-    // Reported plugin latency ≈ 3.7 ms at 44.1 kHz.
+    // Multi-band config. 2 kHz crossover, 8× low-band decimation, low
+    // FFT 32 at decimated rate, high FFT 128 at full rate. Reported
+    // plugin latency ≈ 6.7 ms at 44.1 kHz.
     static constexpr MultiBandGate::Config kMultiBandConfig {
-        2000.0f, 8, 4, 7
+        2000.0f, 8, 5, 7
     };
 
     juce::AudioProcessorValueTreeState apvts;

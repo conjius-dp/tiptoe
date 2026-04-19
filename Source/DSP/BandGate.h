@@ -138,10 +138,12 @@ private:
     void  processFrame();
     void  learnFrame(const float* frameData);
 
-    // Helpers for construction.
+    // Helpers for construction. Floor at order 5 (FFT 32) because some
+    // JUCE backends (notably the Windows fallback FFT) misbehave at
+    // size 16 even though the API nominally accepts it.
     static int clampOrder(int order) noexcept
     {
-        return juce::jlimit(4, 11, order);
+        return juce::jlimit(5, 11, order);
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BandGate)
