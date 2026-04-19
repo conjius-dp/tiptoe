@@ -412,7 +412,10 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
                      / static_cast<float>(titleLogoImage.getHeight());
         float titleW = titleH * aspect;
         float titleX = (w - titleW) * 0.5f;
-        float titleY = graphH + h * 0.24f; // title+subtitle raised higher
+        // Raise logo by 50 px at the default window height — scaled so
+        // the same visual shift applies across resizes.
+        const float kLogoShiftUp = 50.0f * (hTotal / static_cast<float>(KnobDesign::defaultHeight));
+        float titleY = graphH + h * 0.24f - kLogoShiftUp;
         g.drawImage(titleLogoImage,
                     juce::Rectangle<float>(titleX, titleY, titleW, titleH),
                     juce::RectanglePlacement::centred);
@@ -552,7 +555,11 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
         // button; the same formula applies to the text labels. pairStride
         // is recomputed to match resized().
         const float pairStride = btnH + h * 0.055f;
-        const float modeLabelY = labelY - pairStride;
+        // Raise mode pair by 50 px at the default height — same scaling
+        // applied to the pill bounds in resized() so label + pill stay
+        // vertically aligned.
+        const float kModeShiftUp = 50.0f * (hTotal / static_cast<float>(KnobDesign::defaultHeight));
+        const float modeLabelY = labelY - pairStride - kModeShiftUp;
         g.setFont(labelFontLearn);
         g.setColour(KnobDesign::accentColour);
         g.drawText("MODE",
@@ -742,7 +749,8 @@ void TiptoeAudioProcessorEditor::resized()
     // Mode button sits one "pair height" above the learn button (so
     // its "MODE" label has the same spacing above it as "LEARN" does).
     float pairStride = btnH + h * 0.055f;
-    float modeBtnY   = btnY - pairStride;
+    const float kModeShiftUp = 50.0f * (hTotal / static_cast<float>(KnobDesign::defaultHeight));
+    float modeBtnY   = btnY - pairStride - kModeShiftUp;
 
     modeButton.setBounds(static_cast<int>(modeBtnX), static_cast<int>(modeBtnY),
                          static_cast<int>(modeBtnW), static_cast<int>(modeBtnH));
