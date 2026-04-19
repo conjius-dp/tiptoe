@@ -15,9 +15,13 @@
 // scaling up by D.
 namespace ResamplerKernel
 {
-    // Base taps-per-phase. 8 polyphase phases × 16 taps = 128 total —
-    // gives a sharp, -60 dB stopband at passband edge fs/(2D) × 0.9.
-    inline constexpr int kTapsPerPhase = 16;
+    // Base taps-per-phase. At D = 8 this is 8 phases × kTapsPerPhase
+    // taps. We want the latency budget to come in under ~3.5 ms for the
+    // multi-band gate, so we keep this modest: 8 taps per phase = 64
+    // total at D = 8, linear-phase group delay ~32 samples at the full
+    // rate (~0.7 ms at 44.1 kHz). Stopband is ~45 dB with Kaiser β = 8
+    // which is within the Resampler test's ≥ 40 dB floor.
+    inline constexpr int kTapsPerPhase = 8;
 
     // Build the full 128-tap low-pass FIR for decimation factor D.
     // Cutoff is placed at 0.9 × Nyquist_of_decimated (fs / (2D)), so a
