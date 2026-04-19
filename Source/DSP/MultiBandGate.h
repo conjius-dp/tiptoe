@@ -81,6 +81,8 @@ public:
     double getSampleRate() const noexcept { return sampleRate_; }
 
 private:
+    void processChunk(float* samples, int numSamples);
+
     const Config cfg_;
 
     // --- Pipeline -----------------------------------------------------

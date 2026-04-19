@@ -192,10 +192,24 @@ void MultiBandGate::copyNoiseProfile(std::vector<float>& out) const
 
 void MultiBandGate::processMono(float* samples, int numSamples)
 {
-    // Guard against callers exceeding prepare()'s maxBlockSize.
-    jassert(numSamples <= maxBlock_);
     if (numSamples <= 0) return;
 
+    // Internal chunking: scratch buffers are sized to maxBlock_, so callers
+    // passing larger blocks (e.g. offline rendering, tests) would overrun
+    // them. Chunk down to maxBlock_ to keep all DSP reads/writes inside
+    // their prepared sizes — without this, MSVC /GS raises fail-fast on
+    // the stack/heap corruption, while macOS/clang happens to tolerate it.
+    int offset = 0;
+    while (offset < numSamples)
+    {
+        const int n = juce::jmin(maxBlock_, numSamples - offset);
+        processChunk(samples + offset, n);
+        offset += n;
+    }
+}
+
+void MultiBandGate::processChunk(float* samples, int numSamples)
+{
     // 1. Crossover split (full rate in, two full-rate outputs).
     xo_.process(samples, lowFull_.data(), highFull_.data(), numSamples);
 
