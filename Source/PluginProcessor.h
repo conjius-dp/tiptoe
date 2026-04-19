@@ -3,6 +3,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
 #include "DSP/MultiBandGate.h"
+#include "DSP/SpectralGateTiptoe.h"
 #include "KnobDesign.h"
 
 class TiptoeAudioProcessor : public juce::AudioProcessor
@@ -56,28 +57,64 @@ public:
     // Wall-clock time the last processBlock took (CPU load indicator).
     float getLastProcessingTimeMs() const;
 
-    // Algorithmic latency in milliseconds — the total buffering delay of
-    // the multi-band pipeline (crossover + decimate + FFT + interpolate,
-    // delay-aligned with the high band). This is the number the DAW
-    // compensates for and what the user hears vs. bypass.
+    // True when the plugin is running in HQ (single-band, 11.6 ms) mode.
+    // False ⇒ multi-band realtime (3.67 ms).
+    bool isHQMode() const
+    {
+        auto* v = apvts.getRawParameterValue("hq");
+        return v != nullptr && v->load() >= 0.5f;
+    }
+
+    // Latency in INPUT-rate samples for the currently-active mode. The
+    // editor timer watches this and calls setLatencySamples() when the
+    // toggle flips.
+    int getCurrentLatencyInSamples() const
+    {
+        return isHQMode() ? static_cast<int>(SpectralGateTiptoe::kFFTSize)
+                          : hqGates[0].getSampleRate() > 0.0
+                              ? gates[0].getLatencyInSamples()
+                              : 162; // fallback before prepare()
+    }
+
+    // Algorithmic latency in milliseconds — total buffering delay of the
+    // currently-selected mode.
     float getAlgorithmicLatencyMs() const
     {
         const double sr = gates[0].getSampleRate();
         if (sr <= 0.0) return 0.0f;
-        return static_cast<float>(
-            static_cast<double>(gates[0].getLatencyInSamples()) / sr * 1000.0);
+        const int samples = isHQMode() ? static_cast<int>(SpectralGateTiptoe::kFFTSize)
+                                       : gates[0].getLatencyInSamples();
+        return static_cast<float>(static_cast<double>(samples) / sr * 1000.0);
     }
 
-    // Spectrum-graph accessors (read from the first channel — mono-safe view
-    // for visualisation). Lock-free: audio thread writes a double-buffered
-    // snapshot, UI reads the most recent one. Multi-band mode shows the
-    // HIGH band's FFT (wider visible range at meaningful resolution).
-    void copyInputMagnitudes(std::vector<float>& out) const { gates[0].copyInputMagnitudes(out); }
-    void copyNoiseProfile(std::vector<float>& out) const { gates[0].copyNoiseProfile(out); }
-    const std::vector<float>& getNoiseProfile() const { return gates[0].getHighBandNoiseProfile(); }
+    // Spectrum-graph accessors — route to whichever gate is active so
+    // the UI spectrum matches the sound actually being processed.
+    void copyInputMagnitudes(std::vector<float>& out) const
+    {
+        if (isHQMode()) hqGates[0].copyInputMagnitudes(out);
+        else            gates   [0].copyInputMagnitudes(out);
+    }
+    void copyNoiseProfile(std::vector<float>& out) const
+    {
+        if (isHQMode()) hqGates[0].copyNoiseProfile(out);
+        else            gates   [0].copyNoiseProfile(out);
+    }
+    const std::vector<float>& getNoiseProfile() const
+    {
+        return isHQMode() ? hqGates[0].getNoiseProfile()
+                          : gates  [0].getHighBandNoiseProfile();
+    }
     double getDspSampleRate() const { return gates[0].getSampleRate(); }
-    int getFFTSize() const { return gates[0].getVisualizationFFTSize(); }
-    int getNumBins() const { return gates[0].getVisualizationNumBins(); }
+    int getFFTSize() const
+    {
+        return isHQMode() ? SpectralGateTiptoe::kFFTSize
+                          : gates[0].getVisualizationFFTSize();
+    }
+    int getNumBins() const
+    {
+        return isHQMode() ? SpectralGateTiptoe::kNumBins
+                          : gates[0].getVisualizationNumBins();
+    }
 
     // Editor size persistence
     std::atomic<int> editorWidth  { KnobDesign::defaultWidth };
@@ -94,8 +131,10 @@ private:
 
     juce::AudioProcessorValueTreeState apvts;
     MultiBandGate gates[2] { MultiBandGate{kMultiBandConfig},
-                             MultiBandGate{kMultiBandConfig} }; // one per stereo channel
+                             MultiBandGate{kMultiBandConfig} }; // realtime per-channel
+    SpectralGateTiptoe hqGates[2];                              // HQ mode per-channel
     bool learning_ = false;
+    bool prevHQMode_ = false; // for detecting mode-change → setLatencySamples
 
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 

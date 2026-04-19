@@ -103,6 +103,20 @@ TiptoeAudioProcessorEditor::TiptoeAudioProcessorEditor(TiptoeAudioProcessor& p)
     bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
         processorRef.getAPVTS(), "bypass", bypassButton);
 
+    // HQ / Realtime mode toggle — orange pill button. Label tracks the
+    // current toggle state (off = "RT", on = "HQ") via a state listener
+    // plumbed through the TextButton onStateChange.
+    modeButton.setClickingTogglesState(true);
+    modeButton.setMouseCursor(juce::MouseCursor::PointingHandCursor);
+    modeButton.setConnectedEdges(0);
+    modeButton.onStateChange = [this]() {
+        modeButton.setButtonText(modeButton.getToggleState() ? "HQ" : "RT");
+    };
+    modeButton.setButtonText(processorRef.isHQMode() ? "HQ" : "RT");
+    addAndMakeVisible(modeButton);
+    modeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+        processorRef.getAPVTS(), "hq", modeButton);
+
     // ── Spectrum graph ──
     spectrumGraph.setFftSize(processorRef.getFFTSize());
     spectrumGraph.setSampleRate(processorRef.getDspSampleRate() > 0.0
@@ -157,6 +171,10 @@ TiptoeAudioProcessorEditor::TiptoeAudioProcessorEditor(TiptoeAudioProcessor& p)
 TiptoeAudioProcessorEditor::~TiptoeAudioProcessorEditor()
 {
     if (resizer) resizer->setLookAndFeel(nullptr);
+    // Clear the per-instance LAFs we attached via raw pointers so
+    // ~TextButton doesn't call back into freed memory.
+    learnButton.setLookAndFeel(nullptr);
+    modeButton .setLookAndFeel(nullptr);
     setLookAndFeel(nullptr);
     stopTimer();
 }
@@ -170,6 +188,7 @@ void TiptoeAudioProcessorEditor::setChromeVisible(bool visible)
     latencyLabel.setVisible(visible);
     latencyHitArea.setVisible(visible);
     bypassButton.setVisible(visible);
+    modeButton.setVisible(visible);
     repaint();
 }
 
@@ -383,7 +402,9 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
                      / static_cast<float>(titleLogoImage.getHeight());
         float titleW = titleH * aspect;
         float titleX = (w - titleW) * 0.5f;
-        float titleY = graphH + h * 0.24f; // title+subtitle raised higher
+        // Logo raised to make room for the HQ/RT mode button directly
+        // below it. Was h * 0.24, now h * 0.18.
+        float titleY = graphH + h * 0.18f;
         g.drawImage(titleLogoImage,
                     juce::Rectangle<float>(titleX, titleY, titleW, titleH),
                     juce::RectanglePlacement::centred);
@@ -681,6 +702,81 @@ void TiptoeAudioProcessorEditor::resized()
 
     learnButton.setBounds(static_cast<int>(btnX), static_cast<int>(btnY),
                           static_cast<int>(btnW), static_cast<int>(btnH));
+
+    // Mode button (HQ / RT) — sits under the title logo at the top
+    // centre of the knob area. The logo is drawn at titleY = graphH +
+    // h * 0.18, titleH = h * 0.146, so the mode button lands just below
+    // (titleY + titleH + a small gap).
+    {
+        const float logoTop       = graphH + h * 0.18f;
+        const float logoH         = h * 0.146f;
+        const float modeGap       = h * 0.015f;
+        const float modeBtnW      = centreColW * 0.55f;
+        const float modeBtnH      = h * 0.042f;
+        const float modeBtnX      = w * 0.5f - modeBtnW * 0.5f;
+        const float modeBtnY      = logoTop + logoH + modeGap;
+        modeButton.setBounds(static_cast<int>(modeBtnX),
+                             static_cast<int>(modeBtnY),
+                             static_cast<int>(modeBtnW),
+                             static_cast<int>(modeBtnH));
+
+        // Orange pill look on both states: filled when OFF (RT mode),
+        // outlined when ON (HQ mode). Mirror of the BypassButton palette.
+        struct ModeButtonLAF : juce::LookAndFeel_V4
+        {
+            juce::Font font;
+            explicit ModeButtonLAF(juce::Font f) : font(f) {}
+
+            void drawButtonBackground(juce::Graphics& g, juce::Button& button,
+                                      const juce::Colour&,
+                                      bool isMouseOver, bool isButtonDown) override
+            {
+                auto b = button.getLocalBounds().toFloat();
+                if (isButtonDown)
+                    b = b.reduced(b.getWidth() * 0.04f, b.getHeight() * 0.08f);
+
+                const bool on = button.getToggleState();
+                auto accent   = isMouseOver ? KnobDesign::accentHoverColour
+                                            : KnobDesign::accentColour;
+                const float radius = b.getHeight() * 0.5f;
+
+                if (on)
+                {
+                    // Dark fill + orange stroke for the HQ ("ON") state.
+                    g.setColour(KnobDesign::bgColour);
+                    g.fillRoundedRectangle(b, radius);
+                    const float strokeW = b.getHeight() * 0.08f;
+                    g.setColour(accent);
+                    g.drawRoundedRectangle(b.reduced(strokeW * 0.5f),
+                                           radius, strokeW);
+                }
+                else
+                {
+                    // Solid orange fill for the RT ("OFF") state.
+                    g.setColour(accent);
+                    g.fillRoundedRectangle(b, radius);
+                }
+            }
+
+            void drawButtonText(juce::Graphics& g, juce::TextButton& button,
+                                bool /*isMouseOver*/, bool isButtonDown) override
+            {
+                auto b = button.getLocalBounds().toFloat();
+                if (isButtonDown)
+                    b = b.reduced(b.getWidth() * 0.04f, b.getHeight() * 0.08f);
+
+                const bool on = button.getToggleState();
+                g.setFont(font);
+                g.setColour(on ? KnobDesign::accentColour : KnobDesign::bgColour);
+                g.drawText(button.getButtonText(), b, juce::Justification::centred, false);
+            }
+        };
+
+        static ModeButtonLAF* modeLAF = nullptr;
+        delete modeLAF;
+        modeLAF = new ModeButtonLAF(conjusLAF.getBoldFont(modeBtnH * 0.55f));
+        modeButton.setLookAndFeel(modeLAF);
+    }
 
     // Pill with fully circular side edges + larger text
     float btnFontSize = KnobDesign::learnButtonFontSize(w);

@@ -34,6 +34,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout TiptoeAudioProcessor::create
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         juce::ParameterID("bypass", 1), "Bypass", false));
 
+    // HQ mode — false ⇒ multi-band realtime gate (3.67 ms), true ⇒
+    // single-band high-resolution gate (11.6 ms). Exposed as a bool
+    // parameter so hosts can automate / recall it like any other knob.
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID("hq", 1), "HQ Mode", false));
+
     return { params.begin(), params.end() };
 }
 
@@ -50,20 +56,23 @@ void TiptoeAudioProcessor::changeProgramName(int, const juce::String&) {}
 
 void TiptoeAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    for (auto& g : gates)
-        g.prepare(sampleRate, samplesPerBlock);
+    for (auto& g : gates)   g.prepare(sampleRate, samplesPerBlock);
+    for (auto& g : hqGates) g.prepare(sampleRate, samplesPerBlock);
 
-    // Report algorithmic latency so the DAW can delay-compensate other
-    // tracks. Multi-band pipeline: crossover + decimator + low FFT(16) at
-    // 1/8 rate + interpolator, with the high band delay-aligned — works
-    // out to ~162 samples ≈ 3.67 ms at 44.1 kHz.
-    setLatencySamples(gates[0].getLatencyInSamples());
+    // Report the CURRENT mode's latency. Mode toggles call
+    // setLatencySamples() again; DAWs then re-compensate. Hosts handle
+    // this differently — some smoothly adjust, some require a quick
+    // replug — but the alternative (always reporting HQ's latency) would
+    // force realtime mode to eat 8 ms of pointless delay.
+    prevHQMode_ = isHQMode();
+    setLatencySamples(prevHQMode_ ? SpectralGateTiptoe::kFFTSize
+                                  : gates[0].getLatencyInSamples());
 }
 
 void TiptoeAudioProcessor::releaseResources()
 {
-    for (auto& g : gates)
-        g.reset();
+    for (auto& g : gates)   g.reset();
+    for (auto& g : hqGates) g.reset();
 }
 
 bool TiptoeAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -95,48 +104,62 @@ void TiptoeAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     if (apvts.getRawParameterValue("bypass")->load() >= 0.5f)
         return;
 
-    // Update parameters.
-    // The "reduction" parameter is stored as positive attenuation dB (0 – 60)
-    // so the UI reads left-to-right as "more reduction"; negate it here so
-    // the DSP continues to see a signed gain value (0 dB = unity, -60 dB =
-    // near-silence).
-    float sensitivity      = apvts.getRawParameterValue("sensitivity")->load();
-    float reductionAtten   = apvts.getRawParameterValue("reduction")->load();
-    float reductionGainDb  = -reductionAtten;
-
-    for (auto& g : gates)
+    // Mode switch detection. Re-report latency when the user flips HQ.
+    // JUCE asserts on cross-thread setLatencySamples on some hosts, but
+    // processBlock runs on the audio thread where the host polls, so
+    // it's safe here.
+    const bool hq = isHQMode();
+    if (hq != prevHQMode_)
     {
-        g.setSensitivity(sensitivity);
-        g.setReduction(reductionGainDb);
+        setLatencySamples(hq ? SpectralGateTiptoe::kFFTSize
+                             : gates[0].getLatencyInSamples());
+        prevHQMode_ = hq;
     }
 
-    int numSamples = buffer.getNumSamples();
+    // Parameter routing: "reduction" is a positive attenuation dB (0–60),
+    // negated here so the DSP sees a signed gain (0 dB = unity, -60 dB
+    // = near-silence).
+    const float sensitivity      = apvts.getRawParameterValue("sensitivity")->load();
+    const float reductionAtten   = apvts.getRawParameterValue("reduction")->load();
+    const float reductionGainDb  = -reductionAtten;
 
-    // Feed audio for noise learning if active, and pass the input straight through
-    // (no gating applied while learning) so the user hears the unaffected signal.
+    for (auto& g : gates)   { g.setSensitivity(sensitivity); g.setReduction(reductionGainDb); }
+    for (auto& g : hqGates) { g.setSensitivity(sensitivity); g.setReduction(reductionGainDb); }
+
+    const int numSamples = buffer.getNumSamples();
+
+    // Learning feeds BOTH gates so the user can toggle modes after
+    // learning without losing the profile on the other side.
     if (learning_)
     {
         for (int ch = 0; ch < std::min(totalNumInputChannels, 2); ++ch)
-            gates[ch].learnFromBlock(buffer.getReadPointer(ch), numSamples);
+        {
+            const float* read = buffer.getReadPointer(ch);
+            gates  [ch].learnFromBlock(read, numSamples);
+            hqGates[ch].learnFromBlock(read, numSamples);
+        }
         return;
     }
 
-    // Process each channel
+    // Route processing based on the active mode.
     for (int ch = 0; ch < std::min(totalNumInputChannels, 2); ++ch)
-        gates[ch].processMono(buffer.getWritePointer(ch), numSamples);
+    {
+        if (hq) hqGates[ch].processMono(buffer.getWritePointer(ch), numSamples);
+        else    gates  [ch].processMono(buffer.getWritePointer(ch), numSamples);
+    }
 }
 
 void TiptoeAudioProcessor::startLearning()
 {
     learning_ = true;
-    for (auto& g : gates)
-        g.startLearning();
+    for (auto& g : gates)   g.startLearning();
+    for (auto& g : hqGates) g.startLearning();
 }
 
 void TiptoeAudioProcessor::stopLearning()
 {
-    for (auto& g : gates)
-        g.stopLearning();
+    for (auto& g : gates)   g.stopLearning();
+    for (auto& g : hqGates) g.stopLearning();
     learning_ = false;
 }
 
