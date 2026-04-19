@@ -189,11 +189,12 @@ void TiptoeAudioProcessorEditor::setChromeVisible(bool visible)
     // Used by the headless screenshot tool that generates the README /
     // release-page image: hide the conjius logo, the latency label, AND
     // the bypass button so the screenshot captures the bare plugin UI.
+    // The MODE button stays visible — it's part of the core controls, not
+    // chrome, and the "MODE" text label is drawn unconditionally in paint().
     showChrome = visible;
     latencyLabel.setVisible(visible);
     latencyHitArea.setVisible(visible);
     bypassButton.setVisible(visible);
-    modeButton.setVisible(visible);
     repaint();
 }
 
