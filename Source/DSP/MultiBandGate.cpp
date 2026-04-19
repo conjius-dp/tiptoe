@@ -143,13 +143,20 @@ void MultiBandGate::setReduction(float reductionDB)
 
 namespace
 {
-    // Quadrature-sum bin-by-bin (√(low² + high²)). The low band only
-    // covers the first `low.size()` bins of the full spectrum; the high
-    // band fills the whole range. Both bands' FFTs are designed so the
-    // bin-width line up exactly (344 Hz at 44.1 kHz / FFT 128 / D=8),
-    // so direct bin alignment is correct — no interpolation needed.
+    // Quadrature-sum bin-by-bin (√((lowScale·low)² + high²)). The low
+    // band covers the first `low.size()` bins; the high band fills the
+    // full range. Both FFTs land on the same 344 Hz bin grid by design.
+    //
+    // The low band is FFT'd at the DECIMATED rate (fs/D) with FFT size
+    // N_low such that fs_low/N_low = fs_high/N_high — same bin width.
+    // But raw FFT peak magnitudes scale as N_bins × signal_amplitude,
+    // so a given sine gives N_low/4 in the low FFT vs N_high/4 in the
+    // high FFT. Scaling low by (N_high / N_low) puts both on the same
+    // amplitude grid so the merged spectrum matches the HQ-mode scale
+    // (SpectralGateTiptoe uses the full-rate FFT and magRef = N/4).
     inline void mergeBands(const std::vector<float>& low,
                            const std::vector<float>& high,
+                           float lowScale,
                            std::vector<float>& out)
     {
         const size_t n = high.size();
@@ -157,7 +164,7 @@ namespace
         for (size_t i = 0; i < n; ++i)
         {
             const float h = high[i];
-            const float l = i < low.size() ? low[i] : 0.0f;
+            const float l = i < low.size() ? (low[i] * lowScale) : 0.0f;
             out[i] = std::sqrt(h * h + l * l);
         }
     }
@@ -168,7 +175,9 @@ void MultiBandGate::copyInputMagnitudes(std::vector<float>& out) const
     static thread_local std::vector<float> lowScratch, highScratch;
     lowBand_ .copyInputMagnitudes(lowScratch);
     highBand_.copyInputMagnitudes(highScratch);
-    mergeBands(lowScratch, highScratch, out);
+    const float lowScale = static_cast<float>(highBand_.getFFTSize())
+                         / static_cast<float>(lowBand_.getFFTSize());
+    mergeBands(lowScratch, highScratch, lowScale, out);
 }
 
 void MultiBandGate::copyNoiseProfile(std::vector<float>& out) const
@@ -176,7 +185,9 @@ void MultiBandGate::copyNoiseProfile(std::vector<float>& out) const
     static thread_local std::vector<float> lowScratch, highScratch;
     lowBand_ .copyNoiseProfile(lowScratch);
     highBand_.copyNoiseProfile(highScratch);
-    mergeBands(lowScratch, highScratch, out);
+    const float lowScale = static_cast<float>(highBand_.getFFTSize())
+                         / static_cast<float>(lowBand_.getFFTSize());
+    mergeBands(lowScratch, highScratch, lowScale, out);
 }
 
 void MultiBandGate::processMono(float* samples, int numSamples)
