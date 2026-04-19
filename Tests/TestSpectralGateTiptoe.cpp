@@ -2,6 +2,8 @@
 #include <cmath>
 #include <random>
 #include <chrono>
+#include <iostream>
+#include <cstdio>
 #include "DSP/SpectralGateTiptoe.h"
 
 static constexpr double kPi = 3.14159265358979323846;
@@ -734,10 +736,39 @@ public:
 
 static SpectralGateTiptoeTests spectralGateTiptoeTests;
 
+// Custom runner that flushes after every test class so we actually see
+// which test class a Windows crash happens in (MSVC buffers stdio when
+// redirected and silently drops output on fail-fast / abort()).
+class FlushingUnitTestRunner : public juce::UnitTestRunner
+{
+public:
+    void logMessage(const juce::String& message) override
+    {
+        std::cerr << message.toRawUTF8() << '\n';
+        std::cerr.flush();
+    }
+};
+
 int main()
 {
-    juce::UnitTestRunner runner;
-    runner.runAllTests();
+    std::setvbuf(stdout, nullptr, _IONBF, 0);
+    std::setvbuf(stderr, nullptr, _IONBF, 0);
+    std::cerr << "[TiptoeTests] starting" << std::endl;
+
+    FlushingUnitTestRunner runner;
+    runner.setPassesAreLogged(false);
+
+    // Run each registered test class individually so crash output is
+    // attributable. getAllTests() returns in registration order.
+    auto& all = juce::UnitTest::getAllTests();
+    for (auto* t : all)
+    {
+        std::cerr << "[TiptoeTests] running: "
+                  << t->getName().toRawUTF8() << std::endl;
+        juce::Array<juce::UnitTest*> one;
+        one.add(t);
+        runner.runTests(one);
+    }
 
     int failures = 0;
     for (int i = 0; i < runner.getNumResults(); ++i)
@@ -747,5 +778,6 @@ int main()
             failures += result->failures;
     }
 
+    std::cerr << "[TiptoeTests] done — failures=" << failures << std::endl;
     return failures > 0 ? 1 : 0;
 }

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "conji.us",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8000", "-d", "/Users/danny/dev/conji.us"],
+      "port": 8000
+    }
+  ]
+}
