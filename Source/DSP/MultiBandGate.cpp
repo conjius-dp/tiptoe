@@ -107,15 +107,26 @@ void MultiBandGate::stopLearning()
 
 void MultiBandGate::learnFromBlock(const float* samples, int numSamples)
 {
-    // Route input through the crossover so each band only learns its
-    // own frequency range — keeps the per-band noise profile clean.
-    xo_.process(samples, lowFull_.data(), highFull_.data(), numSamples);
+    // Chunk into prepare()-sized blocks. Learn buffers in the wild are
+    // often many seconds long (tens of thousands of samples); the DSP
+    // scratch is only sized for maxBlock_.
+    int offset = 0;
+    while (offset < numSamples)
+    {
+        const int chunk = juce::jmin(maxBlock_, numSamples - offset);
 
-    // Feed the high band directly; feed the low band post-decimation so
-    // its FFT sees the decimated rate it'll process at.
-    const int decCount = dec_.process(lowFull_.data(), lowDec_.data(), numSamples);
-    lowBand_ .learnFromBlock(lowDec_.data(),  decCount);
-    highBand_.learnFromBlock(highFull_.data(), numSamples);
+        // Route input through the crossover so each band only learns its
+        // own frequency range — keeps the per-band noise profile clean.
+        xo_.process(samples + offset, lowFull_.data(), highFull_.data(), chunk);
+
+        // Feed the high band at full rate; feed the low band post-
+        // decimation so its FFT sees the rate it'll process at.
+        const int decCount = dec_.process(lowFull_.data(), lowDec_.data(), chunk);
+        lowBand_ .learnFromBlock(lowDec_.data(),  decCount);
+        highBand_.learnFromBlock(highFull_.data(), chunk);
+
+        offset += chunk;
+    }
 }
 
 void MultiBandGate::setSensitivity(float sensitivityMultiplier)

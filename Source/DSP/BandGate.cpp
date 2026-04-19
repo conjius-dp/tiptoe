@@ -61,6 +61,12 @@ void BandGate::prepare(double sampleRate, int /*maxBlockSize*/)
     volatility_           .assign(static_cast<size_t>(numBins_), 0.0f);
     gainSmoothScratch_    .assign(static_cast<size_t>(numBins_), 1.0f);
     spectralSmoothScratch_.assign(static_cast<size_t>(numBins_), 1.0f);
+
+    // Ping-pong double buffers for the UI-side snapshots.
+    for (auto& buf : inputMagSnapshots_) buf.assign(static_cast<size_t>(numBins_), 0.0f);
+    for (auto& buf : noiseSnapshots_)    buf.assign(static_cast<size_t>(numBins_), 0.0f);
+    inputMagWriteIndex_.store(0, std::memory_order_relaxed);
+    noiseWriteIndex_   .store(0, std::memory_order_relaxed);
 }
 
 void BandGate::reset()
@@ -143,6 +149,12 @@ void BandGate::stopLearning()
         std::fill(noiseProfileSq_.begin(), noiseProfileSq_.end(), 0.0f);
         std::fill(volatility_    .begin(), volatility_    .end(), 0.0f);
     }
+
+    // Publish the final averaged profile so the UI curve stops morphing
+    // and settles on what the gate is actually using.
+    const int writeIdx = (noiseWriteIndex_.load(std::memory_order_relaxed) + 1) & 1;
+    noiseSnapshots_[static_cast<size_t>(writeIdx)] = noiseProfile_;
+    noiseWriteIndex_.store(writeIdx, std::memory_order_release);
 }
 
 void BandGate::learnFromBlock(const float* samples, int numSamples)
@@ -175,16 +187,53 @@ void BandGate::learnFrame(const float* frameData)
 
     fft_.performRealOnlyForwardTransform(fftWorkspace_.data());
 
+    // Also publish the current frame's input magnitudes (so the UI
+    // keeps seeing a live spectrum during learning — processFrame()
+    // isn't called while the processor short-circuits learning).
+    const int inputWriteIdx = (inputMagWriteIndex_.load(std::memory_order_relaxed) + 1) & 1;
+    auto& inputDst = inputMagSnapshots_[static_cast<size_t>(inputWriteIdx)];
+
     for (int i = 0; i < numBins_; ++i)
     {
         const float re    = fftWorkspace_[static_cast<size_t>(i * 2)];
         const float im    = fftWorkspace_[static_cast<size_t>(i * 2 + 1)];
         const float magSq = re * re + im * im;
         const float mag   = std::sqrt(magSq);
+        inputDst[static_cast<size_t>(i)] = mag;
         noiseAccumulator_     [static_cast<size_t>(i)] += static_cast<double>(mag);
         noiseMagSqAccumulator_[static_cast<size_t>(i)] += static_cast<double>(magSq);
     }
+    inputMagWriteIndex_.store(inputWriteIdx, std::memory_order_release);
     ++noiseFrameCount_;
+
+    // Publish the running-average noise profile so the curve morphs
+    // visibly while learning.
+    if (noiseFrameCount_ > 0)
+    {
+        const int writeIdx = (noiseWriteIndex_.load(std::memory_order_relaxed) + 1) & 1;
+        auto& dst = noiseSnapshots_[static_cast<size_t>(writeIdx)];
+        const double inv = 1.0 / static_cast<double>(noiseFrameCount_);
+        for (int i = 0; i < numBins_; ++i)
+            dst[static_cast<size_t>(i)] =
+                static_cast<float>(noiseAccumulator_[static_cast<size_t>(i)] * inv);
+        noiseWriteIndex_.store(writeIdx, std::memory_order_release);
+    }
+}
+
+void BandGate::copyInputMagnitudes(std::vector<float>& out) const
+{
+    const int readIdx = inputMagWriteIndex_.load(std::memory_order_acquire);
+    const auto& src = inputMagSnapshots_[static_cast<size_t>(readIdx)];
+    out.resize(src.size());
+    std::copy(src.begin(), src.end(), out.begin());
+}
+
+void BandGate::copyNoiseProfile(std::vector<float>& out) const
+{
+    const int readIdx = noiseWriteIndex_.load(std::memory_order_acquire);
+    const auto& src = noiseSnapshots_[static_cast<size_t>(readIdx)];
+    out.resize(src.size());
+    std::copy(src.begin(), src.end(), out.begin());
 }
 
 void BandGate::setSensitivity(float sensitivityMultiplier)
@@ -233,6 +282,21 @@ void BandGate::processFrame()
     std::fill(fftWorkspace_.begin() + fftSize_, fftWorkspace_.end(), 0.0f);
 
     fft_.performRealOnlyForwardTransform(fftWorkspace_.data());
+
+    // Publish per-bin input magnitudes for the spectrum graph. Same
+    // double-buffer pattern as the old SpectralGateTiptoe: write to the
+    // inactive slot, then flip the atomic index so UI readers pick it up.
+    {
+        const int writeIdx = (inputMagWriteIndex_.load(std::memory_order_relaxed) + 1) & 1;
+        auto& dst = inputMagSnapshots_[static_cast<size_t>(writeIdx)];
+        for (int i = 0; i < numBins_; ++i)
+        {
+            const float re = fftWorkspace_[static_cast<size_t>(i * 2)];
+            const float im = fftWorkspace_[static_cast<size_t>(i * 2 + 1)];
+            dst[static_cast<size_t>(i)] = std::sqrt(re * re + im * im);
+        }
+        inputMagWriteIndex_.store(writeIdx, std::memory_order_release);
+    }
 
     // Advance parameter smoothers by one hop's worth of samples.
     const float effSensitivity    = sensitivitySmoothed_.skip(hopSize_);

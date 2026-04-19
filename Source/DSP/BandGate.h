@@ -1,6 +1,8 @@
 #pragma once
 
 #include <juce_dsp/juce_dsp.h>
+#include <array>
+#include <atomic>
 #include <vector>
 
 // Single-band spectral gate with runtime-configurable FFT order.
@@ -51,6 +53,15 @@ public:
     int getHopSize()  const noexcept { return hopSize_;  }
     int getNumBins()  const noexcept { return numBins_;  }
     double getSampleRate() const noexcept { return sampleRate_; }
+
+    // Visualization: copy the most recent input-frame per-bin magnitudes.
+    // Lock-free double-buffered snapshot written by processFrame on the
+    // audio thread, read by the UI thread. `out` is resized to numBins_.
+    void copyInputMagnitudes(std::vector<float>& out) const;
+    // Same shape, but for the current learned noise profile (during
+    // learning this is the running average, so the UI can animate the
+    // profile forming in real time).
+    void copyNoiseProfile(std::vector<float>& out) const;
 
     // Pure soft-knee gain, exposed for testing.
     static float softKneeGain(float magSq, float thresholdMagSq, float reductionGain);
@@ -108,6 +119,12 @@ private:
     std::vector<float>  volatility_;
     std::vector<float>  gainSmoothScratch_;
     std::vector<float>  spectralSmoothScratch_;
+
+    // --- Visualization snapshots (lock-free double buffer) -----------
+    std::array<std::vector<float>, 2>  inputMagSnapshots_;
+    mutable std::atomic<int>           inputMagWriteIndex_ { 0 };
+    std::array<std::vector<float>, 2>  noiseSnapshots_;
+    mutable std::atomic<int>           noiseWriteIndex_    { 0 };
 
     static constexpr float kOverSubtractionFactor = 1.5f;
     static constexpr float kSoftKneeHalfWidthSq   = 4.0f;

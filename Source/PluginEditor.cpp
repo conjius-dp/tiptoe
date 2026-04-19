@@ -104,7 +104,7 @@ TiptoeAudioProcessorEditor::TiptoeAudioProcessorEditor(TiptoeAudioProcessor& p)
         processorRef.getAPVTS(), "bypass", bypassButton);
 
     // ── Spectrum graph ──
-    spectrumGraph.setFftSize(TiptoeAudioProcessor::getFFTSize());
+    spectrumGraph.setFftSize(processorRef.getFFTSize());
     spectrumGraph.setSampleRate(processorRef.getDspSampleRate() > 0.0
                                     ? processorRef.getDspSampleRate()
                                     : 44100.0);

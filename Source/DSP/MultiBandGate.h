@@ -65,6 +65,17 @@ public:
     const std::vector<float>& getLowBandNoiseProfile () const { return lowBand_ .getNoiseProfile(); }
     const std::vector<float>& getHighBandNoiseProfile() const { return highBand_.getNoiseProfile(); }
 
+    // Spectrum-graph hooks. The editor shows a single stitched curve;
+    // we hand it the HIGH band's magnitudes because they cover the wider
+    // visible frequency range at meaningful resolution (FFT 128 at the
+    // full sample rate). The low band's decimated spectrum is 9 coarse
+    // bins covering 0–2.75 kHz — not useful as a UI surface on its own.
+    void copyInputMagnitudes(std::vector<float>& out) const { highBand_.copyInputMagnitudes(out); }
+    void copyNoiseProfile   (std::vector<float>& out) const { highBand_.copyNoiseProfile   (out); }
+
+    int getVisualizationFFTSize() const noexcept { return highBand_.getFFTSize(); }
+    int getVisualizationNumBins() const noexcept { return highBand_.getNumBins(); }
+
     double getSampleRate() const noexcept { return sampleRate_; }
 
 private:

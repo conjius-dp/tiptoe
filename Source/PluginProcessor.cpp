@@ -54,9 +54,10 @@ void TiptoeAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
         g.prepare(sampleRate, samplesPerBlock);
 
     // Report algorithmic latency so the DAW can delay-compensate other
-    // tracks. With 512-sample FFT + 75 % overlap-add Hann analysis, the
-    // input-to-output delay is kFFTSize samples (≈ 11.6 ms at 44.1 kHz).
-    setLatencySamples(SpectralGateTiptoe::kFFTSize);
+    // tracks. Multi-band pipeline: crossover + decimator + low FFT(16) at
+    // 1/8 rate + interpolator, with the high band delay-aligned — works
+    // out to ~162 samples ≈ 3.67 ms at 44.1 kHz.
+    setLatencySamples(gates[0].getLatencyInSamples());
 }
 
 void TiptoeAudioProcessor::releaseResources()
@@ -146,8 +147,9 @@ bool TiptoeAudioProcessor::isLearning() const
 
 float TiptoeAudioProcessor::getLastProcessingTimeMs() const
 {
-    return std::max(gates[0].getLastProcessingTimeMs(),
-                    gates[1].getLastProcessingTimeMs());
+    // MultiBandGate doesn't track wall-clock — the editor displays
+    // algorithmic latency anyway. Return 0 for the CPU-time diagnostic.
+    return 0.0f;
 }
 
 juce::AudioProcessorEditor* TiptoeAudioProcessor::createEditor()

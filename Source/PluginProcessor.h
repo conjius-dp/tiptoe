@@ -2,7 +2,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
-#include "DSP/SpectralGateTiptoe.h"
+#include "DSP/MultiBandGate.h"
 #include "KnobDesign.h"
 
 class TiptoeAudioProcessor : public juce::AudioProcessor
@@ -56,34 +56,45 @@ public:
     // Wall-clock time the last processBlock took (CPU load indicator).
     float getLastProcessingTimeMs() const;
 
-    // Algorithmic latency in milliseconds — the buffering delay the FFT
-    // overlap-add introduces. This is the number the DAW compensates for
-    // and what the user hears vs. bypass.
+    // Algorithmic latency in milliseconds — the total buffering delay of
+    // the multi-band pipeline (crossover + decimate + FFT + interpolate,
+    // delay-aligned with the high band). This is the number the DAW
+    // compensates for and what the user hears vs. bypass.
     float getAlgorithmicLatencyMs() const
     {
         const double sr = gates[0].getSampleRate();
         if (sr <= 0.0) return 0.0f;
         return static_cast<float>(
-            static_cast<double>(SpectralGateTiptoe::kFFTSize) / sr * 1000.0);
+            static_cast<double>(gates[0].getLatencyInSamples()) / sr * 1000.0);
     }
 
     // Spectrum-graph accessors (read from the first channel — mono-safe view
     // for visualisation). Lock-free: audio thread writes a double-buffered
-    // snapshot, UI reads the most recent one.
+    // snapshot, UI reads the most recent one. Multi-band mode shows the
+    // HIGH band's FFT (wider visible range at meaningful resolution).
     void copyInputMagnitudes(std::vector<float>& out) const { gates[0].copyInputMagnitudes(out); }
     void copyNoiseProfile(std::vector<float>& out) const { gates[0].copyNoiseProfile(out); }
-    const std::vector<float>& getNoiseProfile() const { return gates[0].getNoiseProfile(); }
+    const std::vector<float>& getNoiseProfile() const { return gates[0].getHighBandNoiseProfile(); }
     double getDspSampleRate() const { return gates[0].getSampleRate(); }
-    static constexpr int getFFTSize() { return SpectralGateTiptoe::kFFTSize; }
-    static constexpr int getNumBins() { return SpectralGateTiptoe::kNumBins; }
+    int getFFTSize() const { return gates[0].getVisualizationFFTSize(); }
+    int getNumBins() const { return gates[0].getVisualizationNumBins(); }
 
     // Editor size persistence
     std::atomic<int> editorWidth  { KnobDesign::defaultWidth };
     std::atomic<int> editorHeight { KnobDesign::defaultHeight };
 
 private:
+    // Static config for the multi-band gate. 2 kHz crossover, 8× low-band
+    // decimation, low FFT 16 at decimated rate (172 Hz bins covering
+    // 0–2 kHz), high FFT 128 at full rate (344 Hz bins covering 0–22 kHz).
+    // Reported plugin latency ≈ 3.7 ms at 44.1 kHz.
+    static constexpr MultiBandGate::Config kMultiBandConfig {
+        2000.0f, 8, 4, 7
+    };
+
     juce::AudioProcessorValueTreeState apvts;
-    SpectralGateTiptoe gates[2]; // one per stereo channel
+    MultiBandGate gates[2] { MultiBandGate{kMultiBandConfig},
+                             MultiBandGate{kMultiBandConfig} }; // one per stereo channel
     bool learning_ = false;
 
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
