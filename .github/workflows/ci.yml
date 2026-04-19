@@ -219,8 +219,9 @@ jobs:
         # first few lines on an abnormal exit.
         shell: cmd
         run: |
-          for /r build %%f in (TiptoeTests.exe) do set "TEST_EXE=%%f"
+          for /f "delims=" %%f in ('where /r build TiptoeTests.exe') do set "TEST_EXE=%%f"
           echo Test binary: %TEST_EXE%
+          if not defined TEST_EXE ( echo TiptoeTests.exe not found & exit /b 1 )
           "%TEST_EXE%" 2>&1
           echo ExitCode=%ERRORLEVEL%
           exit /b %ERRORLEVEL%
