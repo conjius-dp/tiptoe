@@ -71,6 +71,11 @@ void BandGate::prepare(double sampleRate, int /*maxBlockSize*/)
 
 void BandGate::reset()
 {
+    // Host can call releaseResources() (→ reset()) on a plugin that was
+    // never prepared — e.g. pluginval's cold-open test just constructs
+    // and destroys. Skip if vectors weren't sized by prepare().
+    if (attackMs_.empty()) return;
+
     std::fill(inputFifo_ .begin(), inputFifo_ .end(), 0.0f);
     std::fill(outputFifo_.begin(), outputFifo_.end(), 0.0f);
     inputFifoIndex_ = 0;
