@@ -1,0 +1,102 @@
+name: Discord Release Announce
+
+# Fires after a GitHub release is published (the existing Release workflow
+# creates the release at the end of its pipeline — that flips it to
+# `published`, which triggers this workflow).
+#
+# Flow:
+#   1. Post the full release notes (terse GitHub release body + link) into
+#      the #releases channel via webhook, with ?wait=true so Discord
+#      returns the posted message's id + channel_id.
+#   2. Post a short "Version X.Y.Z released!" line into #announcements
+#      with a jump-link to the #releases message. Discord auto-embeds
+#      message links into a preview block — that's the platform's
+#      convention for sharing / forwarding a message to another channel.
+#
+# Secrets / vars required on the repo:
+#   - secrets.DISCORD_RELEASES_WEBHOOK       (webhook URL for #releases)
+#   - secrets.DISCORD_ANNOUNCEMENTS_WEBHOOK  (webhook URL for #announcements)
+#   - vars.DISCORD_GUILD_ID                  (server ID — for jump-link URL)
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discord-announce-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  announce:
+    runs-on: ubuntu-latest
+    # Skip drafts / prereleases. Adjust if you also want nightly builds to
+    # announce — currently nightlies are cut as prereleases.
+    if: ${{ !github.event.release.draft && !github.event.release.prerelease }}
+    steps:
+      - name: Post release notes to #releases
+        id: post_release
+        env:
+          WEBHOOK:     ${{ secrets.DISCORD_RELEASES_WEBHOOK }}
+          NAME:        ${{ github.event.release.name }}
+          TAG:         ${{ github.event.release.tag_name }}
+          URL:         ${{ github.event.release.html_url }}
+          BODY:        ${{ github.event.release.body }}
+        run: |
+          set -euo pipefail
+          # Title falls back to tag if the release has no name.
+          TITLE="${NAME:-$TAG}"
+
+          # Discord content limit is 2000 chars. Trim the body with room to
+          # spare for the title + URL + formatting.
+          BODY_TRIMMED="$(printf '%s' "$BODY" | head -c 1600)"
+
+          # Build JSON via jq so newlines / quotes in BODY are escaped.
+          PAYLOAD=$(jq -n \
+            --arg title "$TITLE" \
+            --arg body  "$BODY_TRIMMED" \
+            --arg url   "$URL" \
+            '{content: "**\($title)**\n\n\($body)\n\n\($url)"}')
+
+          RESPONSE=$(curl -sS -X POST \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "${WEBHOOK}?wait=true")
+
+          echo "Discord response: $RESPONSE"
+
+          MSG_ID=$(printf '%s' "$RESPONSE"   | jq -r '.id')
+          CH_ID=$(printf  '%s' "$RESPONSE"   | jq -r '.channel_id')
+
+          if [ -z "$MSG_ID" ] || [ "$MSG_ID" = "null" ]; then
+            echo "Failed to get message id from webhook response" >&2
+            exit 1
+          fi
+
+          echo "message_id=$MSG_ID" >> "$GITHUB_OUTPUT"
+          echo "channel_id=$CH_ID"  >> "$GITHUB_OUTPUT"
+
+      - name: Share link to #announcements
+        env:
+          WEBHOOK:    ${{ secrets.DISCORD_ANNOUNCEMENTS_WEBHOOK }}
+          GUILD_ID:   ${{ vars.DISCORD_GUILD_ID }}
+          CH_ID:      ${{ steps.post_release.outputs.channel_id }}
+          MSG_ID:     ${{ steps.post_release.outputs.message_id }}
+          TAG:        ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          # Tag is like "v0.2.0" — strip the leading v for the announcement.
+          VERSION="${TAG#v}"
+          LINK="https://discord.com/channels/${GUILD_ID}/${CH_ID}/${MSG_ID}"
+
+          PAYLOAD=$(jq -n \
+            --arg version "$VERSION" \
+            --arg link    "$LINK" \
+            '{content: "**Version \($version) released!**\n\($link)"}')
+
+          curl -sS -X POST \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "$WEBHOOK"
