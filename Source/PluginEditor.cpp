@@ -401,9 +401,14 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
     float w = static_cast<float>(getWidth());
     const float hTotal = static_cast<float>(getHeight());
     // Match resized(): knob-area ratios are relative to the sub-window
-    // beneath the spectrum graph. Add graphH when translating to editor Y.
+    // beneath the spectrum graph. Add graphH + topPad when translating to
+    // editor Y — topPad is the fixed gap between the graph's bottom edge
+    // and the knob column labels.
     const float graphH = hTotal * KnobDesign::graphAreaFrac;
-    float h = hTotal - graphH;
+    const float topPad = KnobDesign::kKnobAreaTopPadPx
+                         * (hTotal / static_cast<float>(KnobDesign::defaultHeight));
+    float h = hTotal - graphH - topPad;
+    const float knobAreaY0 = graphH + topPad;
 
     // Draw title logo at top-centre (small)
     if (titleLogoImage.isValid())
@@ -416,7 +421,7 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
         // Raise logo by 50 px at the default window height — scaled so
         // the same visual shift applies across resizes.
         const float kLogoShiftUp = 50.0f * (hTotal / static_cast<float>(KnobDesign::defaultHeight));
-        float titleY = graphH + h * 0.24f - kLogoShiftUp;
+        float titleY = knobAreaY0 + h * 0.24f - kLogoShiftUp;
         g.drawImage(titleLogoImage,
                     juce::Rectangle<float>(titleX, titleY, titleW, titleH),
                     juce::RectanglePlacement::centred);
@@ -458,7 +463,9 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
     // Centre column between the two knobs — text sits just above the button
     float centreX = w * 0.5f;
     float btnH = h * 0.07f;
-    float btnY = h * 0.72f - btnH * 0.5f + graphH; // pushed lower to make room for the MODE pair above
+    // Learn button raised slightly (0.72 → 0.68) so it sits closer to the
+    // MODE pair above.
+    float btnY = h * 0.68f - btnH * 0.5f + knobAreaY0;
     float labelY = btnY - learnFontSize * 1.25f; // closer to the START/STOP button
 
     // Crossfade alphas between "Learn" and "Learning" (without the dots)
@@ -556,10 +563,10 @@ void TiptoeAudioProcessorEditor::paint(juce::Graphics& g)
         // button; the same formula applies to the text labels. pairStride
         // is recomputed to match resized().
         const float pairStride = btnH + h * 0.055f;
-        // Raise mode pair by 50 px at the default height — same scaling
-        // applied to the pill bounds in resized() so label + pill stay
-        // vertically aligned.
-        const float kModeShiftUp = 50.0f * (hTotal / static_cast<float>(KnobDesign::defaultHeight));
+        // Reduced from 50 → 15 px: mode pair now sits closer to the LEARN
+        // pair (user asked to move mode down + learn up). The two are still
+        // clearly separated by a full pairStride.
+        const float kModeShiftUp = 15.0f * (hTotal / static_cast<float>(KnobDesign::defaultHeight));
         const float modeLabelY = labelY - pairStride - kModeShiftUp;
         g.setFont(labelFontLearn);
         g.setColour(KnobDesign::accentColour);
@@ -577,9 +584,13 @@ void TiptoeAudioProcessorEditor::paintOverChildren(juce::Graphics& g)
 {
     const float scaleF  = static_cast<float>(getWidth())
                         / static_cast<float>(KnobDesign::defaultWidth);
-    const float pad     = 20.0f * scaleF;
+    const float pad     = 30.0f * scaleF;
     const float borderW = 4.0f  * scaleF;
-    const float radius  = 78.0f * scaleF;
+    // Match the knob ring's drawn radius (see drawRotarySlider — diameter
+    // caps at sliderW*0.60, so at default width 650 knobRadius = sliderW/2
+    // = knobColW*0.90/2 * 0.60 ≈ 70 px). Keep border corner radius identical
+    // so the outer rounded rectangle shares the knobs' curvature.
+    const float radius  = 70.0f * scaleF;
     juce::Rectangle<float> borderRect{ pad, pad,
                                        static_cast<float>(getWidth())  - 2.0f * pad,
                                        static_cast<float>(getHeight()) - 2.0f * pad };
@@ -608,7 +619,7 @@ void TiptoeAudioProcessorEditor::resized()
 
     // Spectrum graph fills the top slice of the window, inset slightly so
     // it sits inside the orange border.
-    const float pad = 20.0f * (w / static_cast<float>(KnobDesign::defaultWidth));
+    const float pad = 30.0f * (w / static_cast<float>(KnobDesign::defaultWidth));
     const float graphH = hTotal * KnobDesign::graphAreaFrac;
     spectrumGraph.setBounds(static_cast<int>(pad),
                             static_cast<int>(pad),
@@ -619,7 +630,7 @@ void TiptoeAudioProcessorEditor::resized()
     // to draw the border in paint().
     {
         const float scaleF = w / static_cast<float>(KnobDesign::defaultWidth);
-        spectrumGraph.setCornerRadius(78.0f * scaleF);
+        spectrumGraph.setCornerRadius(70.0f * scaleF);
         // Keep in sync with the border stroke drawn in paintOverChildren().
         spectrumGraph.setBorderStrokeWidth(4.0f * scaleF);
     }
@@ -631,7 +642,10 @@ void TiptoeAudioProcessorEditor::resized()
     // stroke naturally passes underneath the button without overlapping.
     {
         const float scaleF  = w / static_cast<float>(KnobDesign::defaultWidth);
-        const float edgeGap = 8.0f  * scaleF;
+        // Matches the button-to-border arc diagonal gap at pad=30, radius=70,
+        // btnSize=34 (computed: √2·(pad+radius − edgeGap − btnSize/2) − radius
+        // − btnSize/2·√2 ≈ 10 px). So button-to-edge = button-to-border.
+        const float edgeGap = 10.0f * scaleF;
         const float btnSize = 34.0f * scaleF;
         const float btnX = static_cast<float>(getWidth()) - edgeGap - btnSize;
         const float btnY = edgeGap;
@@ -646,10 +660,14 @@ void TiptoeAudioProcessorEditor::resized()
     }
 
     // All knob-area positioning below works in the SUB-window beneath the
-    // graph. Keep `h` as the remaining height so the existing ratios still
-    // map the knob/button/pill the way they used to; each setBounds()/paint
-    // Y gets `graphH` added back to translate into editor coords.
-    float h = hTotal - graphH;
+    // graph + a fixed top pad. Keep `h` as the remaining height so the
+    // existing ratios still map the knob/button/pill the way they used to;
+    // each setBounds()/paint Y gets `knobAreaY0` (= graphH + topPad) added
+    // back to translate into editor coords.
+    const float topPad = KnobDesign::kKnobAreaTopPadPx
+                         * (hTotal / static_cast<float>(KnobDesign::defaultHeight));
+    const float knobAreaY0 = graphH + topPad;
+    float h = hTotal - graphH - topPad;
 
     float margin = w * 0.05f;
 
@@ -669,7 +687,7 @@ void TiptoeAudioProcessorEditor::resized()
     reductionLabel.setFont(labelFont);
 
     const int labelH = static_cast<int>(KnobDesign::columnLabelHeight(w));
-    const int labelY = static_cast<int>(graphH + h * KnobDesign::columnLabelTopYInKnobArea());
+    const int labelY = static_cast<int>(knobAreaY0 + h * KnobDesign::columnLabelTopYInKnobArea());
     sensitivityLabel.setBounds(static_cast<int>(knobColX0), labelY,
                              static_cast<int>(knobColW), labelH);
     reductionLabel.setBounds(static_cast<int>(knobColX1), labelY,
@@ -688,7 +706,7 @@ void TiptoeAudioProcessorEditor::resized()
     // the value pills sit a bit lower on the page (matches the knob-ring
     // shift in drawRotarySlider, keeping the whole knob cluster aligned).
     const float knobClusterExtraShift = 20.0f * (hTotal / static_cast<float>(KnobDesign::defaultHeight));
-    const int sliderTopEditor = sliderTop + static_cast<int>(graphH + knobClusterExtraShift);
+    const int sliderTopEditor = sliderTop + static_cast<int>(knobAreaY0 + knobClusterExtraShift);
 
     // Tighten slider bounds to match visible knob area
     float sliderBoundsW = knobColW * 0.90f;
@@ -731,7 +749,9 @@ void TiptoeAudioProcessorEditor::resized()
     float btnW = centreColW * 0.75f;
     float btnH = h * 0.07f;
     float btnX = w * 0.5f - btnW * 0.5f;
-    float btnY = h * 0.72f - btnH * 0.5f + graphH; // pushed lower to make room for the MODE pair above
+    // Raised from h*0.72 → h*0.68 so the learn pair sits a bit closer to
+    // the mode pair above. Must mirror the same move in paint().
+    float btnY = h * 0.68f - btnH * 0.5f + knobAreaY0;
 
     learnButton.setBounds(static_cast<int>(btnX), static_cast<int>(btnY),
                           static_cast<int>(btnW), static_cast<int>(btnH));
@@ -750,7 +770,9 @@ void TiptoeAudioProcessorEditor::resized()
     // Mode button sits one "pair height" above the learn button (so
     // its "MODE" label has the same spacing above it as "LEARN" does).
     float pairStride = btnH + h * 0.055f;
-    const float kModeShiftUp = 50.0f * (hTotal / static_cast<float>(KnobDesign::defaultHeight));
+    // Reduced 50 → 15 px so the mode pair sits closer to the learn pair.
+    // Mirror this in paint() (both values must stay in sync).
+    const float kModeShiftUp = 15.0f * (hTotal / static_cast<float>(KnobDesign::defaultHeight));
     float modeBtnY   = btnY - pairStride - kModeShiftUp;
 
     modeButton.setBounds(static_cast<int>(modeBtnX), static_cast<int>(modeBtnY),

@@ -31,15 +31,18 @@ public:
         constexpr float kDefaultW = 650.0f;
         constexpr float kDefaultH = 540.0f;
 
-        beginTest("Column label font is bigger than it was (matches the previous LEARN button size)");
+        beginTest("Column label font is bigger than it was, and at least as big as the old LEARN button size");
         {
             const float newSize = KnobDesign::columnLabelFontSize(kDefaultW);
             const float oldSize = OldSizes::columnLabelFontSize(kDefaultW);
             expect(newSize > oldSize,
                    "column label font size did not grow");
-            // The explicit design target: match what the LEARN button used
-            // to be before *it* gets shrunk in this change.
-            expectWithinAbsoluteError(newSize, OldSizes::learnButtonFontSize(kDefaultW), 0.01f);
+            // Must be at least as big as the old LEARN button size. Upper
+            // bound keeps future tweaks from ballooning the label.
+            expect(newSize >= OldSizes::learnButtonFontSize(kDefaultW) - 0.01f,
+                   "column label font fell below the old LEARN button size");
+            expect(newSize < OldSizes::learnButtonFontSize(kDefaultW) * 1.25f,
+                   "column label font grew more than 25% over the old LEARN size");
         }
 
         beginTest("LEARN button font shrunk below its previous size");
@@ -77,10 +80,13 @@ public:
             expect((minusThirtyTop - labelBottom) >= 3.0f,
                    "column label bottom sits within 3 px of the -30 tick label");
 
-            // And the column labels did move DOWN relative to the old layout,
-            // which used 0.04 inside the knob-area sub-window.
-            expect(KnobDesign::columnLabelTopYInKnobArea() > 0.04f,
-                   "column label position did not move down");
+            // Column labels now sit near the TOP of the knob-area sub-window
+            // because a fixed kKnobAreaTopPadPx block sits above them giving
+            // the breathing room previously provided by a 0.04+ relative
+            // offset. So we accept a small fraction (≤ 0.05) here.
+            expect(KnobDesign::columnLabelTopYInKnobArea() < 0.05f,
+                   "column label position expected to be near the top of "
+                   "the knob-area sub-window (the top-pad provides the gap)");
         }
     }
 };

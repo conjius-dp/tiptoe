@@ -170,7 +170,7 @@ int main(int argc, char** argv)
     {
         const float widthScale = static_cast<float>(width) / static_cast<float>(KnobDesign::defaultWidth);
         const int insetPx = static_cast<int>(20.0f * widthScale * scale);
-        const float cornerRadius = 78.0f * widthScale * scale;
+        const float cornerRadius = 70.0f * widthScale * scale;
 
         const int outW = snap.getWidth() - 2 * insetPx;
         const int outH = snap.getHeight() - 2 * insetPx;

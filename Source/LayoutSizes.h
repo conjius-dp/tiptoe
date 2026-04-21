@@ -26,15 +26,16 @@ namespace KnobDesign
 
     // Default window dimensions — single source of truth for scaling.
     inline constexpr int   defaultWindowWidth  = 650;
-    inline constexpr int   defaultWindowHeight = 540;
+    inline constexpr int   defaultWindowHeight = 565;
 
 
     // ───────── Column-label text (THRESHOLD / REDUCTION) ─────────
 
     // Bumped up from 0.024 so the column labels read at the same weight
     // as the START/STOP button used to — they're now the loudest text in
-    // the lower half of the window.
-    inline constexpr float columnLabelFontSize(float w) { return 0.030f * w; }
+    // the lower half of the window. Nudged 0.030 → 0.033 for a touch more
+    // visual weight without crowding the knob tick labels.
+    inline constexpr float columnLabelFontSize(float w) { return 0.033f * w; }
 
     // Label component's height — 1.2x the font leaves room for descenders
     // and a small vertical margin.
@@ -44,10 +45,11 @@ namespace KnobDesign
     }
 
     // Top-Y (within the knob-area sub-window) of the column labels.
-    // Dropped from 0.04 to 0.05 — a small "slightly lower" move that's
-    // visible without eating into the Reduction knob's "-30" mid-tick
-    // label area below.
-    inline constexpr float columnLabelTopYInKnobArea() { return 0.05f; }
+    // 0.01 — the labels now sit near the top of the knob area (the
+    // kKnobAreaTopPadPx block above provides breathing room against the
+    // spectrum graph). Raised from 0.05 so the labels don't overlap the
+    // Reduction knob's "-30" mid-tick label below.
+    inline constexpr float columnLabelTopYInKnobArea() { return 0.01f; }
 
     // Top-Y of the column labels in editor coordinates.
     inline constexpr float columnLabelTopY(float hTotal)
