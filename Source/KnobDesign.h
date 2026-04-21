@@ -313,13 +313,26 @@ public:
         float aMid = normToAngleRad(defaultNorm);
         float topLabelR = tickEndR + markerFontSize * 0.3f;
         float midLabelW = KnobDesign::stringWidth(getBoldFont(markerFontSize), midLabel);
-        // Sensitivity: base left-nudge of -midLabelW*0.5 (label centres left
-        // of the tick). Plus a ~10 px rightward nudge so the "1.0" sits a
-        // touch closer to the tick — scaled via markerFontSize so the same
-        // visual shift applies across window sizes.
-        float midXShift = (knobType == KnobType::Sensitivity)
-                            ? -midLabelW * 0.5f + markerFontSize * 0.47f
-                            : 0.0f;
+        float midXShift;
+        if (knobType == KnobType::Sensitivity)
+        {
+            // Sensitivity: base left-nudge of -midLabelW*0.5 (label centres
+            // left of the tick). Plus a ~10 px rightward nudge so the "1.0"
+            // sits a touch closer to the tick — scaled via markerFontSize.
+            midXShift = -midLabelW * 0.5f + markerFontSize * 0.47f;
+        }
+        else
+        {
+            // Reduction: shift "−30" left so the visual gap between the "3"
+            // and "0" characters sits exactly over the tick below. With the
+            // label centred normally, that gap lands to the right of the
+            // tick (because "−3" is wider than "0"). Compute the shift from
+            // actual glyph widths so it stays correct across font sizes.
+            float leftHalfW = KnobDesign::stringWidth(
+                getBoldFont(markerFontSize),
+                juce::String(juce::CharPointer_UTF8("\xe2\x88\x92")) + "3");
+            midXShift = midLabelW * 0.5f - leftHalfW;
+        }
         // Sensitivity knob: nudge the "1.0" label slightly UP so it sits a
         // touch closer to (but still clear of) the default tick mark.
         float midYShift = (knobType == KnobType::Sensitivity) ? -markerFontSize * 0.15f : 0.0f;
