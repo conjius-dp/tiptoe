@@ -26,7 +26,7 @@ namespace KnobDesign
 
     // Default window dimensions — single source of truth for scaling.
     inline constexpr int   defaultWindowWidth  = 650;
-    inline constexpr int   defaultWindowHeight = 540;
+    inline constexpr int   defaultWindowHeight = 565;
 
 
     // ───────── Column-label text (THRESHOLD / REDUCTION) ─────────

@@ -32,8 +32,18 @@ namespace KnobDesign
 
     // ── Window ──
     // Taller default than before so the spectrum graph fits above the knobs.
+    // Bumped 540 → 565: the extra 25 px slides into a fixed top gap inside
+    // the knob area (see kKnobAreaTopPadPx), giving the SENSITIVITY /
+    // REDUCTION labels breathing room above them.
     inline constexpr int   defaultWidth      = 650;
-    inline constexpr int   defaultHeight     = 540;
+    inline constexpr int   defaultHeight     = 565;
+
+    // Fixed vertical gap inserted above the knob column labels (between
+    // the spectrum graph's bottom edge and the column labels). In pixels at
+    // defaultHeight; scaled by (hTotal / defaultHeight) elsewhere. Sized to
+    // roughly match the gap between the knob value pills and the orange
+    // border below them at the bottom of the window.
+    inline constexpr float kKnobAreaTopPadPx = 25.0f;
     inline constexpr int   minWidth          = 400;
     inline constexpr int   minHeight         = 420;
     inline constexpr int   maxWidth          = 1000;
