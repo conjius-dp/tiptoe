@@ -584,7 +584,7 @@ void TiptoeAudioProcessorEditor::paintOverChildren(juce::Graphics& g)
 {
     const float scaleF  = static_cast<float>(getWidth())
                         / static_cast<float>(KnobDesign::defaultWidth);
-    const float pad     = 20.0f * scaleF;
+    const float pad     = 30.0f * scaleF;
     const float borderW = 4.0f  * scaleF;
     // Match the knob ring's drawn radius (see drawRotarySlider — diameter
     // caps at sliderW*0.60, so at default width 650 knobRadius = sliderW/2
@@ -619,7 +619,7 @@ void TiptoeAudioProcessorEditor::resized()
 
     // Spectrum graph fills the top slice of the window, inset slightly so
     // it sits inside the orange border.
-    const float pad = 20.0f * (w / static_cast<float>(KnobDesign::defaultWidth));
+    const float pad = 30.0f * (w / static_cast<float>(KnobDesign::defaultWidth));
     const float graphH = hTotal * KnobDesign::graphAreaFrac;
     spectrumGraph.setBounds(static_cast<int>(pad),
                             static_cast<int>(pad),
@@ -642,7 +642,10 @@ void TiptoeAudioProcessorEditor::resized()
     // stroke naturally passes underneath the button without overlapping.
     {
         const float scaleF  = w / static_cast<float>(KnobDesign::defaultWidth);
-        const float edgeGap = 8.0f  * scaleF;
+        // Matches the button-to-border arc diagonal gap at pad=30, radius=70,
+        // btnSize=34 (computed: √2·(pad+radius − edgeGap − btnSize/2) − radius
+        // − btnSize/2·√2 ≈ 10 px). So button-to-edge = button-to-border.
+        const float edgeGap = 10.0f * scaleF;
         const float btnSize = 34.0f * scaleF;
         const float btnX = static_cast<float>(getWidth()) - edgeGap - btnSize;
         const float btnY = edgeGap;

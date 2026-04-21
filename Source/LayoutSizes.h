@@ -33,8 +33,9 @@ namespace KnobDesign
 
     // Bumped up from 0.024 so the column labels read at the same weight
     // as the START/STOP button used to — they're now the loudest text in
-    // the lower half of the window.
-    inline constexpr float columnLabelFontSize(float w) { return 0.030f * w; }
+    // the lower half of the window. Nudged 0.030 → 0.033 for a touch more
+    // visual weight without crowding the knob tick labels.
+    inline constexpr float columnLabelFontSize(float w) { return 0.033f * w; }
 
     // Label component's height — 1.2x the font leaves room for descenders
     // and a small vertical margin.
