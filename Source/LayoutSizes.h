@@ -44,10 +44,11 @@ namespace KnobDesign
     }
 
     // Top-Y (within the knob-area sub-window) of the column labels.
-    // Dropped from 0.04 to 0.05 — a small "slightly lower" move that's
-    // visible without eating into the Reduction knob's "-30" mid-tick
-    // label area below.
-    inline constexpr float columnLabelTopYInKnobArea() { return 0.05f; }
+    // 0.01 — the labels now sit near the top of the knob area (the
+    // kKnobAreaTopPadPx block above provides breathing room against the
+    // spectrum graph). Raised from 0.05 so the labels don't overlap the
+    // Reduction knob's "-30" mid-tick label below.
+    inline constexpr float columnLabelTopYInKnobArea() { return 0.01f; }
 
     // Top-Y of the column labels in editor coordinates.
     inline constexpr float columnLabelTopY(float hTotal)

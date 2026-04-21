@@ -586,7 +586,11 @@ void TiptoeAudioProcessorEditor::paintOverChildren(juce::Graphics& g)
                         / static_cast<float>(KnobDesign::defaultWidth);
     const float pad     = 20.0f * scaleF;
     const float borderW = 4.0f  * scaleF;
-    const float radius  = 78.0f * scaleF;
+    // Match the knob ring's drawn radius (see drawRotarySlider — diameter
+    // caps at sliderW*0.60, so at default width 650 knobRadius = sliderW/2
+    // = knobColW*0.90/2 * 0.60 ≈ 70 px). Keep border corner radius identical
+    // so the outer rounded rectangle shares the knobs' curvature.
+    const float radius  = 70.0f * scaleF;
     juce::Rectangle<float> borderRect{ pad, pad,
                                        static_cast<float>(getWidth())  - 2.0f * pad,
                                        static_cast<float>(getHeight()) - 2.0f * pad };
@@ -626,7 +630,7 @@ void TiptoeAudioProcessorEditor::resized()
     // to draw the border in paint().
     {
         const float scaleF = w / static_cast<float>(KnobDesign::defaultWidth);
-        spectrumGraph.setCornerRadius(78.0f * scaleF);
+        spectrumGraph.setCornerRadius(70.0f * scaleF);
         // Keep in sync with the border stroke drawn in paintOverChildren().
         spectrumGraph.setBorderStrokeWidth(4.0f * scaleF);
     }
